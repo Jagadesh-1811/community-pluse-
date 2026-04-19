@@ -355,27 +355,30 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen bg-slate-950 overflow-hidden flex font-inter">
+    <main className="relative min-h-screen bg-[var(--background)] overflow-hidden flex font-roboto -mt-20 pt-20">
       {/* 
           UNIFIED SIDEBAR SYSTEM 
           Contains both Navigation icons and the expandable Intake Form
       */}
       <aside 
-        className="fixed left-0 top-0 bottom-0 z-70 flex transition-all duration-500 ease-out translate-x-0"
+        className="fixed left-0 top-20 bottom-0 z-40 flex transition-all duration-500 ease-out translate-x-0"
       >
         {/* Persistent Nav Strip */}
-        <nav className="h-full w-24 flex flex-col items-center gap-8 py-10 glass-dark border-r border-white/5 relative z-20">
+        <nav className="h-full w-24 flex flex-col items-center gap-8 py-10 glass border-r border-[var(--border-color)] border-t-0 relative z-20 brutalist-grid">
             {/* Dashboard Icon */}
             <div className="relative group">
                 <button 
                     onClick={() => setActiveTab('map')}
                     className={cn(
-                        "p-4 rounded-2xl transition-all",
-                        activeTab === 'map' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-white hover:bg-white/5"
+                        "p-4 rounded-2xl transition-all border border-transparent hover:scale-105 active:scale-95",
+                        activeTab === 'map' ? "bg-yellow text-black border-black/10 shadow-[0_5px_15px_rgba(255,225,124,0.3)]" : "text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/10"
                     )}
                 >
                     <LayoutDashboard size={24} />
                 </button>
+                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--foreground)] text-[var(--background)] font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                    Operation Map
+                </div>
             </div>
 
             <div className="w-8 h-px bg-white/10 my-4"></div>
@@ -385,15 +388,18 @@ export default function Home() {
                 <button 
                     onClick={() => setActiveTab('alerts')}
                     className={cn(
-                        "p-4 rounded-2xl transition-all relative",
-                        activeTab === 'alerts' ? "bg-emergency text-white shadow-lg shadow-emergency/20" : "text-slate-500 hover:text-white hover:bg-white/5"
+                        "p-4 rounded-2xl transition-all relative hover:scale-105 active:scale-95",
+                        activeTab === 'alerts' ? "bg-emergency text-white border border-emergency/50 shadow-[0_0_15px_var(--color-emergency-glow)]" : "text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/10"
                     )}
                 >
                     <ShieldAlert size={24} />
                     {needs.filter(n => n.urgency_score >= 8).length > 0 && (
-                        <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-white rounded-full animate-pulse border-2 border-emergency"></div>
+                        <div className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full animate-pulse border-2 border-emergency shadow-[0_0_10px_white]"></div>
                     )}
                 </button>
+                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--foreground)] text-[var(--background)] font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                    Priority Queue
+                </div>
             </div>
 
             {/* Analytics Icon */}
@@ -401,48 +407,60 @@ export default function Home() {
                 <button 
                     onClick={() => setActiveTab('analytics')}
                     className={cn(
-                        "p-4 rounded-2xl transition-all",
-                        activeTab === 'analytics' ? "bg-success text-white shadow-lg shadow-success/20" : "text-slate-500 hover:text-white hover:bg-white/5"
+                        "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
+                        activeTab === 'analytics' ? "bg-success text-[var(--background)] shadow-[0_0_15px_var(--color-success-glow)]" : "text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/10"
                     )}
                 >
                     <TrendingUp size={24} />
                 </button>
+                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--foreground)] text-[var(--background)] font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                    Analytics Engine 
+                </div>
             </div>
 
             <div className="mt-auto flex flex-col items-center gap-6">
-                <button 
-                    onClick={() => setActiveTab('comms')}
-                    className={cn(
-                        "p-4 transition-all rounded-2xl",
-                        activeTab === 'comms' ? "bg-white/10 text-white shadow-lg" : "text-slate-500 hover:text-white hover:bg-white/5"
-                    )}
-                >
-                    <Bot size={24} />
-                </button>
+                <div className="relative group">
+                    <button 
+                        onClick={() => setActiveTab('comms')}
+                        className={cn(
+                            "p-4 transition-all rounded-2xl hover:scale-105 active:scale-95",
+                            activeTab === 'comms' ? "bg-[var(--foreground)] text-[var(--background)] shadow-xl" : "text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/10"
+                        )}
+                    >
+                        <Bot size={24} />
+                    </button>
+                    <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[var(--foreground)] text-[var(--background)] font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                        AI Watchbot
+                    </div>
+                </div>
 
-                <div className="w-10 h-px bg-white/5"></div>
+                <div className="w-10 h-px bg-[var(--border-color)]"></div>
 
-                <button 
-                    onClick={() => signOut()}
-                    className="p-4 rounded-2xl text-slate-500 hover:text-emergency hover:bg-emergency/10 transition-all group relative"
-                    title="Terminate Session"
-                >
-                    <LogOut size={20} />
-                </button>
+                <div className="relative group">
+                    <button 
+                        onClick={() => signOut()}
+                        className="p-4 rounded-2xl text-[var(--foreground)]/50 hover:text-[var(--background)] hover:bg-emergency transition-all hover:scale-105 active:scale-95"
+                    >
+                        <LogOut size={20} />
+                    </button>
+                    <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emergency text-white font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                        Terminate Link
+                    </div>
+                </div>
             </div>
         </nav>
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 transition-all duration-500 ease-out h-screen relative flex flex-col pl-24">
+      <div className="flex-1 transition-all duration-500 ease-out h-[calc(100vh-80px)] relative flex flex-col pl-24">
         {/* Header */}
-        <header className="px-12 py-8 flex justify-between items-center border-b border-white/5 glass-dark z-40 bg-slate-950/50 backdrop-blur-md">
+        <header className="px-12 py-8 flex justify-between items-center border-b border-[var(--border-color)] glass z-30">
           <div className="flex items-center gap-6">
-            <div className="p-3 bg-emergency rounded-[1.25rem] shadow-xl shadow-emergency/20">
+            <div className="p-3 bg-emergency rounded-[1.25rem] border border-black/10 shadow-lg shadow-emergency/20">
               <Activity className="text-white" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white font-outfit tracking-tighter uppercase leading-none mb-1">
+              <h1 className="text-4xl font-anton text-[var(--foreground)] tracking-wide uppercase leading-none mb-1 shadow-sm">
                   {activeTab === 'map' ? 'Operational Hub' : activeTab === 'alerts' ? 'Priority Queue' : activeTab === 'comms' ? 'AI Watch Chatbot' : 'Analytics Engine'}
               </h1>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-0.5">CommunityPulse Response Network</p>
@@ -451,8 +469,8 @@ export default function Home() {
 
           <div className="flex items-center gap-10">
             {/* Volunteer GPS Status */}
-            <div className="flex flex-col items-end border-r border-white/10 pr-10">
-              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <div className="flex flex-col items-end border-r border-[var(--border-color)] pr-10">
+              <span className="text-[10px] text-[var(--foreground)]/60 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
                 <Navigation2 size={9} />
                 Your Position
               </span>
@@ -470,26 +488,26 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="flex gap-10 border-r border-white/10 pr-10">
-                <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Life Threats</span>
-                    <span className="text-2xl font-black text-emergency tracking-tighter tabular-nums">
-                        {needs.filter(n => n.urgency_score >= 8).length}
-                    </span>
-                </div>
-                <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Active Feed</span>
-                    <span className="text-2xl font-black text-success tracking-tighter tabular-nums">{needs.length}</span>
-                </div>
+            <div className="flex gap-10 border-r border-[var(--border-color)] pr-10">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-[var(--foreground)]/60 font-black uppercase tracking-widest mb-1">Life Threats</span>
+                <span className="text-3xl font-anton text-emergency tracking-widest tabular-nums">
+                    {needs.filter(n => n.urgency_score >= 8).length}
+                </span>
+              </div>
+              <div className="flex flex-col items-end pl-4">
+                <span className="text-[10px] text-[var(--foreground)]/60 font-black uppercase tracking-widest mb-1">Active Feed</span>
+                <span className="text-3xl font-anton text-success tracking-widest tabular-nums">{needs.length}</span>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to from-primary to-primary-dark border border-white/20 shadow-lg p-0.5">
-                <div className="w-full h-full rounded-[0.9rem] bg-slate-950/40 backdrop-blur-sm"></div>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-yellow to-yellow border border-[var(--border-color)] shadow-lg p-0.5">
+                <div className="w-full h-full rounded-[0.9rem] bg-[var(--background)]/80 backdrop-blur-sm"></div>
             </div>
           </div>
         </header>
 
         {/* View Selection Content */}
-        <div className="flex-1 p-12 overflow-hidden relative">
+        <div className="flex-1 p-6 lg:p-12 overflow-hidden relative flex flex-col">
           <AnimatePresence mode="wait">
               {activeTab === 'map' ? (
                   <motion.div 
@@ -497,7 +515,7 @@ export default function Home() {
                       initial={{ opacity: 0, scale: 0.99 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 1.01 }}
-                      className="absolute inset-12 overflow-hidden rounded-[3rem] border border-white/10 shadow-3xl"
+                      className="w-full flex-1 overflow-hidden rounded-[2rem] border border-[var(--border-color)] shadow-2xl glass brutalist-grid"
                   >
                       <LiveMap 
                           needs={needs} 
@@ -820,21 +838,24 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center gap-10"
+            className="fixed inset-0 z-[200] bg-[var(--background)] brutalist-grid flex flex-col items-center justify-center gap-10"
           >
-            <div className="p-10 bg-emergency rounded-[3.5rem] shadow-[0_40px_80px_rgba(255,77,0,0.4)] animate-bounce border border-white/10">
-              <Activity className="text-white" size={80} />
+            <div className="relative group">
+                <div className="absolute inset-x-[-10px] inset-y-[10px] bg-yellow -rotate-[3deg] scale-105 z-[-1] animate-pulse"></div>
+                <div className="p-8 bg-[var(--background)] border border-[var(--border-color)] shadow-2xl relative z-10 glass">
+                  <Activity className="text-yellow" size={80} />
+                </div>
             </div>
-            <div className="text-center">
-                <h2 className="text-5xl font-black text-white font-outfit uppercase tracking-tighter leading-none mb-4">CommunityPulse</h2>
-                <div className="flex flex-col items-center gap-3">
-                    <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[12px]">Optimizing Ground Logic...</p>
-                    <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <div className="text-center relative z-10 mt-6">
+                <h2 className="text-6xl md:text-8xl font-anton text-[var(--foreground)] uppercase tracking-wide leading-none mb-6 drop-shadow-sm">COMMUNITYPULSE</h2>
+                <div className="flex flex-col items-center gap-4">
+                    <p className="text-[var(--foreground)]/60 font-black uppercase tracking-[0.3em] text-[12px] font-roboto">Optimizing Ground Logic...</p>
+                    <div className="w-64 h-1.5 bg-[var(--foreground)]/10 overflow-hidden border border-[var(--border-color)]">
                         <motion.div 
-                            className="h-full bg-emergency shadow-[0_0_10px_#FF4D00]"
+                            className="h-full bg-yellow"
                             initial={{ width: 0 }}
                             animate={{ width: '100%' }}
-                            transition={{ duration: 2, repeat: Infinity }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                         ></motion.div>
                     </div>
                 </div>
