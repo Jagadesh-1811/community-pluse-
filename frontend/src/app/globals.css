@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-emergency: #FF4D00;
+  --color-emergency-glow: rgba(255, 77, 0, 0.3);
+  --color-success: #00E676;
+  --color-success-glow: rgba(0, 230, 118, 0.3);
+  --color-primary: #6200EA;
+  --color-primary-glow: rgba(98, 0, 234, 0.3);
+
+  --color-slate-950: #0F172A;
+  --color-slate-900: #1E293B;
+  --color-slate-800: #334155;
+  
+  --font-inter: 'Inter', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
+}
+
+:root {
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-inter);
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl;
+  }
+  
+  .glass-dark {
+    @apply bg-slate-900/40 backdrop-blur-3xl border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)];
+  }
+
+  .neon-border {
+    @apply border border-emergency/50 shadow-[0_0_15px_var(--color-emergency-glow)];
+  }
+
+  .neon-border-success {
+    @apply border border-success/50 shadow-[0_0_15px_var(--color-success-glow)];
+  }
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+  background: #0F172A !important;
+}
+
+.leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.leaflet-bar {
+  @apply !border-none !shadow-none;
+}
+
+.leaflet-bar a {
+  @apply !bg-slate-900 !text-white !border !border-slate-800 !rounded-lg mb-1;
+}
+
+.custom-marker {
+  @apply rounded-full border-2 border-white shadow-lg;
+}
+
+@keyframes marker-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-marker-pulse {
+  animation: marker-pulse 2s infinite ease-in-out;
+}
