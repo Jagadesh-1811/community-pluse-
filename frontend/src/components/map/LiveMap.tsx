@@ -136,8 +136,8 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
         </Marker>
       ))}
 
-      {/* Volunteer Location Marker - Hidden until a need is selected for dispatch/view */}
-      {volunteerLocation && focusNeed && !isNaN(volunteerLocation.lat) && !isNaN(volunteerLocation.lng) && (
+      {/* Volunteer Location Marker - ALWAYS visible */}
+      {volunteerLocation && !isNaN(volunteerLocation.lat) && !isNaN(volunteerLocation.lng) && (
         <>
           {/* GPS accuracy circle */}
           {volunteerLocation.accuracy && (
@@ -266,8 +266,8 @@ export default function LiveMap(props: LiveMapProps) {
 
 
   if (!isClient || !L) return (
-    <div className="w-full h-full bg-slate-900 flex items-center justify-center rounded-3xl animate-pulse">
-        <div className="text-slate-700 font-black uppercase tracking-widest">Waking Up Intelligence...</div>
+    <div className="w-full h-full bg-[var(--background)] flex items-center justify-center rounded-3xl animate-pulse">
+        <div className="text-[var(--foreground)] font-anton uppercase tracking-widest text-xl">Waking Up Intelligence...</div>
     </div>
   );
 
@@ -281,7 +281,7 @@ export default function LiveMap(props: LiveMapProps) {
       <MapContainer
         center={[20.5937, 78.9629] as [number, number]}
         zoom={5}
-        className="h-full w-full"
+        className="h-full w-full bg-[var(--background)]"
         zoomControl={false}
       >
         <MapInner {...props} L={L} recenterTrigger={recenterTrigger} />
@@ -297,7 +297,8 @@ export default function LiveMap(props: LiveMapProps) {
       )}
 
       {/* MAP CONTROLS — bottom right */}
-      <div className="absolute bottom-6 right-6 z-50 flex flex-col gap-3">
+      <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-3 pointer-events-none">
+        <div className="pointer-events-auto flex flex-col gap-3">
         {/* Locate Me Button */}
         {props.volunteerLocation && (
           <button
@@ -315,40 +316,41 @@ export default function LiveMap(props: LiveMapProps) {
 
         {/* Volunteer Status Badge */}
         {props.volunteerLocation ? (
-          <div className="bg-blue-600/90 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-blue-400/30 shadow-lg flex items-center gap-2 whitespace-nowrap">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+          <div className="bg-[var(--background)]/90 backdrop-blur-md text-[var(--foreground)] text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-[var(--border-color)] shadow-lg flex items-center gap-2 whitespace-nowrap">
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
             GPS Active
           </div>
         ) : (
-          <div className="bg-slate-800/90 backdrop-blur-md text-slate-400 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-white/10 shadow-lg flex items-center gap-2 whitespace-nowrap">
+          <div className="bg-[var(--background)]/90 backdrop-blur-md text-[var(--foreground)]/50 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-[var(--border-color)] shadow-lg flex items-center gap-2 whitespace-nowrap">
             <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></div>
             Locating...
           </div>
         )}
+        </div>
       </div>
 
       {/* Map Legend — bottom left */}
-      <div className="absolute bottom-6 left-6 z-50 bg-slate-950/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5">
-        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Map Legend</p>
+      <div className="absolute bottom-6 left-6 z-[1000] bg-[var(--background)]/80 backdrop-blur-md border border-[var(--border-color)] rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 pointer-events-auto">
+        <p className="text-[10px] font-black text-[var(--foreground)]/50 uppercase tracking-widest mb-0.5">Map Legend</p>
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] flex-shrink-0"></div>
-          <span className="text-[10px] text-slate-300 font-bold">Your Location</span>
+          <span className="text-[10px] text-[var(--foreground)] font-bold">Your Location</span>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-emergency shadow-[0_0_8px_rgba(255,77,0,0.6)] flex-shrink-0"></div>
-          <span className="text-[10px] text-slate-300 font-bold">Critical Need</span>
+          <span className="text-[10px] text-[var(--foreground)] font-bold">Critical Need</span>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)] flex-shrink-0"></div>
-          <span className="text-[10px] text-slate-300 font-bold">Urgent Need</span>
+          <span className="text-[10px] text-[var(--foreground)] font-bold">Urgent Need</span>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-success shadow-[0_0_8px_rgba(0,230,118,0.6)] flex-shrink-0"></div>
-          <span className="text-[10px] text-slate-300 font-bold">Stable Need</span>
+          <span className="text-[10px] text-[var(--foreground)] font-bold">Stable Need</span>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="h-px w-5 border-t-2 border-dashed border-emergency flex-shrink-0"></div>
-          <span className="text-[10px] text-slate-300 font-bold">Route to Need</span>
+          <span className="text-[10px] text-[var(--foreground)] font-bold">Route to Need</span>
         </div>
       </div>
     </div>
