@@ -355,23 +355,23 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen bg-slate-950 overflow-hidden flex font-inter">
+    <main className="relative min-h-screen bg-[var(--background)] overflow-hidden flex font-roboto -mt-20 pt-20">
       {/* 
           UNIFIED SIDEBAR SYSTEM 
           Contains both Navigation icons and the expandable Intake Form
       */}
       <aside 
-        className="fixed left-0 top-0 bottom-0 z-70 flex transition-all duration-500 ease-out translate-x-0"
+        className="fixed left-0 top-20 bottom-0 z-40 flex transition-all duration-500 ease-out translate-x-0"
       >
         {/* Persistent Nav Strip */}
-        <nav className="h-full w-24 flex flex-col items-center gap-8 py-10 glass-dark border-r border-white/5 relative z-20">
+        <nav className="h-full w-24 flex flex-col items-center gap-8 py-10 glass border-r border-[var(--border-color)] border-t-0 relative z-20 brutalist-grid">
             {/* Dashboard Icon */}
             <div className="relative group">
                 <button 
                     onClick={() => setActiveTab('map')}
                     className={cn(
-                        "p-4 rounded-2xl transition-all",
-                        activeTab === 'map' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-white hover:bg-white/5"
+                        "p-4 rounded-2xl transition-all border border-transparent",
+                        activeTab === 'map' ? "bg-yellow text-black border-black/10 shadow-[0_5px_15px_rgba(255,225,124,0.3)]" : "text-[var(--foreground)]/60 hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/10"
                     )}
                 >
                     <LayoutDashboard size={24} />
@@ -434,15 +434,15 @@ export default function Home() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 transition-all duration-500 ease-out h-screen relative flex flex-col pl-24">
+      <div className="flex-1 transition-all duration-500 ease-out h-[calc(100vh-80px)] relative flex flex-col pl-24">
         {/* Header */}
-        <header className="px-12 py-8 flex justify-between items-center border-b border-white/5 glass-dark z-40 bg-slate-950/50 backdrop-blur-md">
+        <header className="px-12 py-8 flex justify-between items-center border-b border-[var(--border-color)] glass z-30">
           <div className="flex items-center gap-6">
-            <div className="p-3 bg-emergency rounded-[1.25rem] shadow-xl shadow-emergency/20">
+            <div className="p-3 bg-emergency rounded-[1.25rem] border border-black/10 shadow-lg shadow-emergency/20">
               <Activity className="text-white" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white font-outfit tracking-tighter uppercase leading-none mb-1">
+              <h1 className="text-4xl font-anton text-[var(--foreground)] tracking-wide uppercase leading-none mb-1 shadow-sm">
                   {activeTab === 'map' ? 'Operational Hub' : activeTab === 'alerts' ? 'Priority Queue' : activeTab === 'comms' ? 'AI Watch Chatbot' : 'Analytics Engine'}
               </h1>
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-0.5">CommunityPulse Response Network</p>
@@ -451,8 +451,8 @@ export default function Home() {
 
           <div className="flex items-center gap-10">
             {/* Volunteer GPS Status */}
-            <div className="flex flex-col items-end border-r border-white/10 pr-10">
-              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <div className="flex flex-col items-end border-r border-[var(--border-color)] pr-10">
+              <span className="text-[10px] text-[var(--foreground)]/60 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
                 <Navigation2 size={9} />
                 Your Position
               </span>
@@ -470,20 +470,20 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="flex gap-10 border-r border-white/10 pr-10">
-                <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Life Threats</span>
-                    <span className="text-2xl font-black text-emergency tracking-tighter tabular-nums">
-                        {needs.filter(n => n.urgency_score >= 8).length}
-                    </span>
-                </div>
-                <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Active Feed</span>
-                    <span className="text-2xl font-black text-success tracking-tighter tabular-nums">{needs.length}</span>
-                </div>
+            <div className="flex gap-10 border-r border-[var(--border-color)] pr-10">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-[var(--foreground)]/60 font-black uppercase tracking-widest mb-1">Life Threats</span>
+                <span className="text-3xl font-anton text-emergency tracking-widest tabular-nums">
+                    {needs.filter(n => n.urgency_score >= 8).length}
+                </span>
+              </div>
+              <div className="flex flex-col items-end pl-4">
+                <span className="text-[10px] text-[var(--foreground)]/60 font-black uppercase tracking-widest mb-1">Active Feed</span>
+                <span className="text-3xl font-anton text-success tracking-widest tabular-nums">{needs.length}</span>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to from-primary to-primary-dark border border-white/20 shadow-lg p-0.5">
-                <div className="w-full h-full rounded-[0.9rem] bg-slate-950/40 backdrop-blur-sm"></div>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-yellow to-yellow border border-[var(--border-color)] shadow-lg p-0.5">
+                <div className="w-full h-full rounded-[0.9rem] bg-[var(--background)]/80 backdrop-blur-sm"></div>
             </div>
           </div>
         </header>
