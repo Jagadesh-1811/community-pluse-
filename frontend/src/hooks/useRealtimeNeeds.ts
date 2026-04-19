@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 export interface Need {
   id: string;
@@ -22,47 +23,23 @@ export function useRealtimeNeeds() {
   const [needs, setNeeds] = useState<Need[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchNeeds = async () => {
-    const { data, error } = await supabase
-      .from('needs')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (!error && data) {
-      setNeeds(data);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchNeeds();
+    const q = query(collection(db, 'needs'), orderBy('created_at', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const needsData: Need[] = [];
+      snapshot.forEach((doc) => {
+        needsData.push({ id: doc.id, ...doc.data() } as Need);
+      });
+      setNeeds(needsData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error listening to needs:", error);
+      setLoading(false);
+    });
 
-    // 2. Realtime Listener
-    const channel = supabase
-      .channel('public:needs')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'needs' },
-        (payload) => {
-          setNeeds((prev) => [payload.new as Need, ...prev]);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'needs' },
-        (payload) => {
-          setNeeds((prev) =>
-            prev.map((item) => (item.id === payload.new.id ? (payload.new as Need) : item))
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => unsubscribe();
   }, []);
 
-  return { needs, loading, refresh: fetchNeeds };
+  return { needs, loading, refresh: () => {} };
 }
