@@ -17,13 +17,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Bypassed Authentication for Frontend-Only Development
-  const [user, setUser] = useState<User | null>({ uid: 'mock-frontend-dev', email: 'dev@frontend.local' } as User);
-  const [role, setRole] = useState<UserRole>('VOLUNTEER');
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<UserRole>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return () => {}; // Bypass Firebase listener entirely
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
@@ -52,8 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    console.log("Mock sign out triggered - Frontend only mode");
-    // await firebaseSignOut(auth);
+    await firebaseSignOut(auth);
   };
 
   const value = {
