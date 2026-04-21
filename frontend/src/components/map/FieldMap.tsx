@@ -112,9 +112,9 @@ export default function FieldMap(props: FieldMapProps) {
   }, []);
 
   if (!isClient || !L) return (
-    <div className="w-full h-full glass flex flex-col items-center justify-center animate-pulse rounded-[2rem]">
-        <div className="w-8 h-8 rounded-full border-t-2 border-r-2 border-yellow animate-spin mb-4"></div>
-        <div className="text-[10px] text-[var(--foreground)] font-anton uppercase tracking-widest">Acquiring Satellites...</div>
+    <div className="w-full h-full bg-slate-900/50 flex flex-col items-center justify-center animate-pulse border border-white/5 rounded-[2rem]">
+        <div className="w-8 h-8 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin mb-4"></div>
+        <div className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Acquiring Satellites...</div>
     </div>
   );
 
@@ -125,14 +125,15 @@ export default function FieldMap(props: FieldMapProps) {
       <MapContainer
         center={[20.5937, 78.9629]}
         zoom={props.location ? 16 : 5}
-        className="h-full w-full bg-[var(--background)]"
+        className="h-full w-full bg-slate-900"
         zoomControl={false}
         dragging={true}
       >
-        <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap'
-        />
+        {!props.location && (
+            <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+        )}
         <FieldMapInner {...props} L={L} />
       </MapContainer>
     </div>
