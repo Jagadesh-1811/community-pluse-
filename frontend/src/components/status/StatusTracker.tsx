@@ -16,7 +16,7 @@ const STAGES = [
     { key: 'resolved', label: 'Resolved', sublabel: 'Mission complete', icon: ShieldCheck, color: 'text-emerald-400' },
 ];
 
-export default function StatusTracker({ needId }: StatusTrackerProps) {
+export default function StatusTracker({ needId, onVolunteerLocationUpdate }: StatusTrackerProps) {
     const [status, setStatus] = useState('open');
 
     useEffect(() => {
@@ -129,7 +129,3 @@ export default function StatusTracker({ needId }: StatusTrackerProps) {
         </div>
     );
 }
-function onVolunteerLocationUpdate(arg0: { lat: never; lng: never; }) {
-    throw new Error('Function not implemented.');
-}
-
