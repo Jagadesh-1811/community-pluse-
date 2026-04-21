@@ -1,35 +1,32 @@
 'use client';
 
-import { ArrowRight, ShieldAlert, Signal, MapPin, Bot, CheckCircle, XIcon } from 'lucide-react';
+import { ArrowRight, CheckCircle, XIcon, FingerprintIcon, MousePointer2, Settings, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[var(--background)] flex flex-col font-roboto relative overflow-x-hidden pt-10">
+    <main className="min-h-screen bg-[var(--background)] flex flex-col font-outfit relative overflow-x-hidden pt-20">
       
       {/* 1. HERO SECTION */}
       <section className="relative w-full min-h-[90vh] flex flex-col items-center justify-center brutalist-grid p-6 text-center">
-        <div className="absolute top-10 flex items-center justify-center gap-3 glass px-5 py-2 rounded-full border-black/10 dark:border-white/10 uppercase font-black text-xs tracking-widest text-[var(--foreground)] mb-8 shadow-sm">
-           <div className="w-2.5 h-2.5 bg-yellow rounded-full shadow-[0_0_10px_#ffe17c] animate-pulse"></div>
+        <div className="flex items-center justify-center gap-3 border border-[var(--foreground)]/10 px-6 py-2.5 rounded-full uppercase font-black text-xs tracking-widest text-[var(--foreground)] mb-12 shadow-sm bg-[var(--background)]">
+           <div className="w-2.5 h-2.5 bg-[#ffe17c] rounded-full shadow-[0_0_10px_#ffe17c] animate-pulse"></div>
            Pulse Protocol Online
         </div>
         
-        <h1 className="text-6xl md:text-8xl lg:text-9xl font-anton uppercase leading-[0.9] text-[var(--foreground)] mt-20 md:mt-10 mx-auto max-w-[90vw] tracking-normal mb-8">
+        <h1 className="text-6xl md:text-8xl lg:text-9xl font-anton uppercase leading-[0.9] text-[var(--foreground)] max-w-5xl mx-auto tracking-normal mb-8 z-10">
             Intelligent Field <br/> 
-            <span className="relative inline-block mt-4 md:mt-2">
-                <span className="absolute inset-x-[-10px] inset-y-[10px] bg-yellow -rotate-[3deg] scale-105 z-[-1] hidden md:block"></span>
-                <span className="relative z-10 text-[var(--background)] md:text-[var(--foreground)] drop-shadow-md">COORDINATION</span>
-            </span>
+            <span className="text-[#ffe17c]">COORDINATION</span>
         </h1>
         
-        <p className="text-lg md:text-2xl font-medium text-[var(--foreground)] opacity-70 max-w-2xl mx-auto mb-14 leading-relaxed">
+        <p className="text-lg md:text-xl font-medium text-[var(--foreground)]/70 max-w-2xl mx-auto mb-14 leading-relaxed">
             Real-time telemetry, AI-driven communications, and decentralized reporting. Move faster when seconds matter.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-center w-full max-w-md mx-auto">
-            <Link href="/field" className="w-full bg-yellow text-[var(--foreground)] !text-[#171e19] px-8 py-5 rounded-2xl font-anton text-2xl md:text-3xl uppercase tracking-wide hover:-translate-y-2 hover:shadow-[0_20px_0_var(--border-color)] active:translate-y-2 active:shadow-none transition-all flex justify-center items-center gap-3">
-                Report Incident <ArrowRight size={28} strokeWidth={3} />
+        <div className="flex flex-col sm:flex-row gap-3 items-center w-full max-w-xl mx-auto">
+            <input type="text" placeholder="Enter Dispatch ID" className="w-full sm:w-1/2 p-5 rounded-lg border border-[var(--foreground)]/20 bg-[var(--background)] outline-none focus:border-[var(--foreground)] font-outfit text-lg" />
+            <Link href="/field" className="w-full sm:w-1/2 bg-[#ffe17c] text-[#171e19] px-8 py-5 rounded-lg font-anton text-2xl uppercase tracking-wide hover:-translate-y-1 active:translate-y-1 transition-all flex justify-center items-center gap-3">
+                Report Incident <ArrowRight size={24} strokeWidth={3} />
             </Link>
         </div>
       </section>
@@ -38,146 +35,166 @@ export default function LandingPage() {
       <section className="w-full flex flex-col lg:flex-row border-y border-[var(--border-color)]">
         {/* The Old Way */}
         <div className="flex-1 bg-[#171e19] text-white p-12 md:p-24 flex flex-col justify-start">
-            <h2 className="text-5xl md:text-7xl font-anton uppercase text-white/50 mb-10">The Old Way</h2>
-            <ul className="space-y-8 font-medium text-lg md:text-xl text-[#b7c6c2]">
-                <li className="flex items-start gap-4">
-                    <XIcon className="text-red-500 shrink-0 mt-1" size={24} strokeWidth={3} />
-                    Disjointed communication lines and dropped calls.
+            <h2 className="text-5xl md:text-7xl font-anton uppercase text-[#b7c6c2]/50 mb-12 transform -rotate-2 origin-left">The Old Way</h2>
+            <ul className="space-y-10 font-medium text-lg md:text-xl text-[#b7c6c2]">
+                <li className="flex items-start gap-6">
+                    <XIcon className="text-red-500 shrink-0 mt-1" size={32} strokeWidth={3} />
+                    Disjointed communication lines, dropped calls, and unreliable infrastructure.
                 </li>
-                <li className="flex items-start gap-4">
-                    <XIcon className="text-red-500 shrink-0 mt-1" size={24} strokeWidth={3} />
-                    Responders arriving without crucial live location telemetry.
+                <li className="flex items-start gap-6">
+                    <XIcon className="text-red-500 shrink-0 mt-1" size={32} strokeWidth={3} />
+                    Responders arriving blindly without crucial live location telemetry.
                 </li>
-                <li className="flex items-start gap-4">
-                    <XIcon className="text-red-500 shrink-0 mt-1" size={24} strokeWidth={3} />
-                    Chaotic dispatch prioritizing the wrong missions.
+                <li className="flex items-start gap-6">
+                    <XIcon className="text-red-500 shrink-0 mt-1" size={32} strokeWidth={3} />
+                    Chaotic dispatch allocating resources to the wrong missions.
                 </li>
             </ul>
         </div>
         {/* The Pulse Way */}
-        <div className="flex-1 bg-[#272727] text-white p-12 md:p-24 border-t-8 lg:border-t-0 lg:border-l-[12px] border-yellow flex flex-col justify-start shadow-inner relative overflow-hidden">
-            <h2 className="text-5xl md:text-7xl font-anton uppercase text-white drop-shadow-lg mb-10 relative z-10">The Pulse Way</h2>
-            <ul className="space-y-8 font-medium text-lg md:text-xl text-white relative z-10">
-                <li className="flex items-start gap-4">
-                    <CheckCircle className="text-yellow shrink-0 mt-1 shadow-[0_0_15px_rgba(255,225,124,0.4)] rounded-full" size={28} strokeWidth={3} />
-                    Instant encrypted web portals with dynamic location sync.
+        <div className="flex-1 bg-[#272727] p-12 md:p-24 border-t-8 lg:border-t-0 lg:border-l-[16px] border-[#ffe17c] flex flex-col justify-start relative overflow-hidden">
+            <h2 className="text-5xl md:text-7xl font-anton uppercase text-white mb-12 relative z-10 transform -rotate-2 origin-left">The Pulse Way</h2>
+            <ul className="space-y-10 font-medium text-lg md:text-xl text-white relative z-10">
+                <li className="flex items-start gap-6">
+                    <CheckCircle className="text-[#ffe17c] shrink-0 mt-1" size={32} strokeWidth={3} />
+                    Instant encrypted web portals with dynamic high-resolution location sync.
                 </li>
-                <li className="flex items-start gap-4">
-                    <CheckCircle className="text-yellow shrink-0 mt-1 shadow-[0_0_15px_rgba(255,225,124,0.4)] rounded-full" size={28} strokeWidth={3} />
-                    AI triage automatically scores urgency and flags crises.
+                <li className="flex items-start gap-6">
+                    <CheckCircle className="text-[#ffe17c] shrink-0 mt-1" size={32} strokeWidth={3} />
+                    AI triage automatically scores report urgency and flags critical crises.
                 </li>
-                <li className="flex items-start gap-4">
-                    <CheckCircle className="text-yellow shrink-0 mt-1 shadow-[0_0_15px_rgba(255,225,124,0.4)] rounded-full" size={28} strokeWidth={3} />
-                    Centralized command center mapping real-time operational flows.
+                <li className="flex items-start gap-6">
+                    <CheckCircle className="text-[#ffe17c] shrink-0 mt-1" size={32} strokeWidth={3} />
+                    Centralized command center mapping real-time operational flows globally.
                 </li>
             </ul>
-            {/* Background Decor */}
-            <div className="absolute right-0 bottom-0 text-9xl text-yellow/5 translate-y-12 translate-x-12">
-               <Bot size={400} />
-            </div>
         </div>
       </section>
 
       {/* 3. BENTO GRID */}
-      <section className="w-full py-24 md:py-36 px-6 md:px-12 max-w-[1600px] mx-auto">
+      <section className="w-full bg-[var(--background)] py-24 md:py-36 px-6 md:px-12 max-w-[1600px] mx-auto">
         <div className="mb-20">
-            <h2 className="text-6xl md:text-8xl font-anton uppercase leading-none text-[var(--foreground)] mb-6">Unrivaled <br/> Operations</h2>
-            <p className="text-xl font-medium opacity-60 max-w-lg">Everything you need to orchestrate mass field actions, neatly packed into a glassmorphic command center.</p>
+            <h2 className="text-6xl md:text-8xl font-anton uppercase leading-[0.9] text-[var(--foreground)] mb-6">
+              Tactical <br/> <span className="text-[#ffe17c] bg-[#171e19] px-4 py-2 inline-block -rotate-2 mt-2">Advantage</span>
+            </h2>
+            <p className="text-xl font-medium opacity-60 max-w-lg mt-8">Everything you need to orchestrate mass field actions, seamlessly packaged into a high-performance command center.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-[400px]">
-            {/* Main Feature - Spans 2 */}
-            <div className="lg:col-span-2 glass rounded-[2.5rem] p-10 flex flex-col relative overflow-hidden group hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-300">
-                <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:scale-110 transition-transform duration-700">
-                   <Signal size={120} className="text-[var(--foreground)]" />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[450px]">
+            {/* Abstract Mockup Card - Spans 2 */}
+            <div className="lg:col-span-2 bg-[#f8f9fa] dark:bg-[#171e19]/30 brutalist-border p-10 flex flex-col relative group transition-all duration-500 hover:shadow-xl overflow-hidden">
                 <h3 className="text-4xl md:text-5xl font-anton uppercase text-[var(--foreground)] mb-4">Command Dashboard</h3>
-                <p className="text-lg opacity-70 mb-auto max-w-sm">Assign, track, and resolve massive influxes of reports with an AI-augmented command center.</p>
+                <p className="text-lg opacity-70 mb-8 max-w-sm">Assign, track, and resolve mass influxes of reports with crystal-clear visibility.</p>
                 
-                {/* Abstract UI Mockup */}
-                <div className="w-full h-48 bg-[#171e19] brutalist-border rounded-t-xl mt-8 absolute bottom-0 right-0 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] flex overflow-hidden">
-                    <div className="w-16 h-full border-r border-white/10 bg-black/40 flex flex-col gap-3 p-4">
-                        <div className="w-6 h-6 rounded bg-yellow flex items-center justify-center text-[10px] font-anton text-black">CP</div>
-                        <div className="w-6 h-6 rounded bg-white/10"></div>
-                        <div className="w-6 h-6 rounded bg-white/10"></div>
+                {/* Abstract UI Mockup - positioned at bottom, not overlapping text */}
+                <div className="w-full h-52 mt-auto bg-white dark:bg-[#111] border border-black/10 dark:border-white/10 rounded-xl shadow-2xl flex flex-col overflow-hidden transform group-hover:-translate-y-2 transition-transform duration-500">
+                    <div className="h-8 border-b border-black/10 dark:border-white/10 flex items-center px-4 gap-2 bg-[#f8f9fa] dark:bg-[#000]">
+                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                        <span className="mx-auto text-[10px] font-black uppercase text-black/40 dark:text-white/40 tracking-widest leading-none mt-1">PULSE_OS</span>
                     </div>
-                    <div className="flex-1 p-6 relative">
-                        <div className="w-48 h-8 bg-white/10 rounded mb-4"></div>
-                        <div className="flex gap-4">
-                            <div className="w-1/2 h-20 bg-white/5 rounded border border-white/10 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-yellow"></div>
+                    <div className="flex flex-1">
+                        <div className="w-16 border-r border-black/10 dark:border-white/10 flex flex-col items-center py-4 gap-4 bg-black/5 dark:bg-white/5">
+                            <div className="w-8 h-8 rounded bg-[#171e19] dark:bg-white flex items-center justify-center text-[#ffe17c] dark:text-[#171e19] font-anton text-xs shadow-sm">CP</div>
+                            <div className="w-6 h-6 rounded bg-black/10 dark:bg-white/10"></div>
+                            <div className="w-6 h-6 rounded bg-black/10 dark:bg-white/10"></div>
+                        </div>
+                        <div className="flex-1 bg-black/5 dark:bg-black/50 p-6 relative flex items-center justify-center">
+                            <div className="w-48 h-32 bg-white dark:bg-[#171e19] border border-black/5 dark:border-white/5 rounded-lg shadow-lg relative flex flex-col p-4 transition-transform group-hover:scale-105 duration-500">
+                               <div className="w-3/4 h-3 bg-black/10 dark:bg-white/10 rounded mb-2"></div>
+                               <div className="w-1/2 h-3 bg-black/10 dark:bg-white/10 rounded"></div>
+                               
+                               <div className="absolute -bottom-3 -right-3 flex flex-col items-end gap-1">
+                                  <MousePointer2 className="text-[#171e19] dark:text-[#ffe17c] fill-[#171e19] dark:fill-[#ffe17c] -mb-2 z-10" size={24} />
+                                  <span className="bg-[#171e19] dark:bg-[#ffe17c] text-white dark:text-black py-0.5 px-2 rounded font-mono text-[9px] uppercase tracking-wider font-bold shadow-md">Dispatcher_01</span>
+                               </div>
                             </div>
-                            <div className="w-1/2 h-20 bg-white/5 rounded border border-white/10"></div>
+                        </div>
+                        <div className="w-48 border-l border-black/10 dark:border-white/10 p-4 flex flex-col gap-4 bg-white dark:bg-[#0a0a0a]">
+                            <div className="font-anton text-xs uppercase text-black/40 dark:text-white/40">Properties</div>
+                            <div className="w-full flex gap-2">
+                                <div className="p-1 border border-black/10 dark:border-white/10 rounded"><AlignLeft size={16} className="text-black/60 dark:text-white/60"/></div>
+                                <div className="p-1 border border-black/10 dark:border-white/10 rounded"><AlignCenter size={16} className="text-black/60 dark:text-white/60"/></div>
+                                <div className="p-1 border border-black/10 dark:border-white/10 rounded"><AlignRight size={16} className="text-black/60 dark:text-white/60"/></div>
+                            </div>
+                            <div className="w-full h-8 border border-black/10 dark:border-white/10 rounded flex items-center px-2 gap-2 mt-auto">
+                                <div className="w-4 h-4 rounded-full bg-[#FFE17C]"></div>
+                                <span className="font-mono text-[10px] text-black/60 dark:text-white/60 font-bold uppercase">#FFE17C</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* AI Sidekick */}
-            <div className="glass rounded-[2.5rem] p-10 flex flex-col bg-[#171e19] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-300 group text-white">
-                <h3 className="text-4xl font-anton uppercase text-yellow mb-4">AI Watchdog</h3>
-                <p className="text-sm opacity-80 text-[#b7c6c2]">Automated transcription and urgency scoring algorithms.</p>
+            <div className="bg-[#171e19] text-white brutalist-border p-10 flex flex-col transition-all duration-300 hover:shadow-2xl group">
+                <h3 className="text-4xl font-anton uppercase text-[#ffe17c] mb-4">AI Watchdog</h3>
+                <p className="text-lg opacity-80 text-[#b7c6c2]">Automated transcription and urgency scoring algorithms.</p>
                 
-                <div className="mt-auto bg-black/40 rounded-xl p-4 border border-white/10 font-mono text-xs text-green-400 space-y-2 group-hover:-translate-y-2 transition-transform duration-300">
+                <div className="mt-auto bg-[#0a0a0a] rounded-lg p-5 border border-white/5 font-mono text-xs text-[#b7c6c2] space-y-3 group-hover:-translate-y-2 transition-transform duration-300">
                     <div>&gt; incoming_signal...</div>
-                    <div className="text-yellow">&gt; calculating_urgency()</div>
-                    <div className="text-white bg-red-500/20 px-2 py-1 rounded inline-block">Score: 9.9 CRITICAL</div>
+                    <div className="text-[#ffe17c]">&gt; calculating_urgency()</div>
+                    <div className="text-white bg-red-600 px-3 py-1.5 rounded inline-block font-bold mt-2 shadow-[0_0_15px_rgba(220,38,38,0.5)]">Severity: 9.9 CRITICAL</div>
                 </div>
             </div>
 
             {/* GPS Tracking */}
-            <div className="glass rounded-[2.5rem] p-10 flex flex-col hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-300 relative overflow-hidden group">
-                <h3 className="text-4xl md:text-5xl font-anton text-[var(--foreground)] uppercase mb-4 z-10 relative">Live GPS Lock</h3>
-                <p className="text-lg opacity-70 mb-auto max-w-xs z-10 relative">Haversine-based location sharing without mobile app installation.</p>
+            <div className="bg-[#272727] text-white p-10 flex flex-col transition-all duration-300 hover:shadow-2xl relative overflow-hidden group">
+                <h3 className="text-4xl font-anton uppercase mb-4 z-10 relative">Live GPS Lock</h3>
+                <p className="text-lg opacity-70 mb-auto z-10 relative">Browser-based haversine location sharing. Zero app installation.</p>
 
-                <div className="absolute -bottom-10 -right-10 w-64 h-64 border-4 border-yellow/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <div className="w-48 h-48 border-4 border-yellow/40 rounded-full flex items-center justify-center animate-spin" style={{animationDuration: '10s'}}>
-                        <div className="w-24 h-24 bg-yellow/20 rounded-full backdrop-blur-md border border-yellow flex items-center justify-center">
-                            <MapPin size={32} className="text-yellow drop-shadow-[0_0_10px_rgba(255,225,124,1)]" />
+                <div className="absolute -bottom-5 -right-5 w-64 h-64 border-[1px] border-[#ffe17c]/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <div className="w-48 h-48 border-[1px] border-[#ffe17c]/40 rounded-full flex items-center justify-center animate-[spin_10s_linear_infinite]">
+                        <div className="w-24 h-24 bg-[#ffe17c]/10 rounded-full backdrop-blur-md border border-[#ffe17c] flex items-center justify-center shadow-[0_0_20px_rgba(255,225,124,0.2)]">
+                            <FingerprintIcon size={40} className="text-[#ffe17c]" />
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Security */}
-            <div className="lg:col-span-2 glass rounded-[2.5rem] p-10 flex items-center justify-center bg-yellow text-[#171e19] brutalist-grid group overflow-hidden relative">
-                <div className="z-10 relative text-center">
-                    <ShieldAlert size={64} className="mx-auto mb-6" />
-                    <h3 className="text-5xl md:text-6xl font-anton uppercase drop-shadow-md">Military-Grade Tunnel</h3>
-                    <p className="text-xl font-bold mt-2 opacity-80 font-roboto">End-to-End Supabase / Firebase Encryption</p>
+            <div className="lg:col-span-2 bg-[#ffe17c] text-[#171e19] p-10 flex flex-col justify-center transition-all duration-300 hover:shadow-2xl brutalist-grid overflow-hidden relative">
+                <div className="z-10 relative">
+                    <h3 className="text-5xl md:text-7xl font-anton uppercase mb-4">Military-Grade Tunnel</h3>
+                    <p className="text-xl font-bold opacity-80 max-w-md">End-to-End Encryption backed by industry-leading providers natively built into the protocol framework.</p>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[rgba(255,225,124,1)] to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-white/10 to-transparent flex items-center justify-end pr-10 border-l border-white/20">
+                   <Settings className="text-[#171e19]/10 animate-[spin_20s_linear_infinite]" size={250} strokeWidth={1} />
+                </div>
             </div>
         </div>
       </section>
 
-      {/* 4. HOW IT WORKS */}
-      <section className="w-full bg-[var(--foreground)] text-[var(--background)] py-24 md:py-36 px-6 md:px-12 border-y border-[var(--border-color)]">
+
+
+      {/* 5. HOW IT WORKS */}
+      <section className="w-full bg-[var(--foreground)] text-[var(--background)] py-24 md:py-48 px-6 md:px-12 border-y border-[#171e19]/10">
          <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-20">
             {/* Sticky Header */}
             <div className="lg:w-1/3">
                 <div className="sticky top-32">
-                    <h2 className="text-7xl md:text-8xl font-anton uppercase leading-none mb-6 text-[var(--background)]">
+                    <h2 className="text-7xl md:text-8xl font-anton uppercase leading-[0.9] mb-8 text-[var(--background)]">
                         Action <br/> Protocol
                     </h2>
-                    <p className="text-xl font-medium opacity-70">Three steps to orchestrating flawless operations.</p>
+                    <p className="text-xl font-medium opacity-60">Three systematic steps to neutralizing chaos and orchestrating flawless emergency operations.</p>
                 </div>
             </div>
 
             {/* Steps Stack */}
-            <div className="lg:w-2/3 flex flex-col gap-24">
+            <div className="lg:w-2/3 flex flex-col gap-32">
                 {[
-                    {num: '01', title: 'Submit Sitrep', desc: 'Reporters scan a QR code or tap a link to instantly open the field gateway. No app downloads required.'},
+                    {num: '01', title: 'Submit Sitrep', desc: 'Reporters scan a QR code or tap a link to instantly open the field gateway. No app downloads required. Ever.'},
                     {num: '02', title: 'AI Triage', desc: 'The Command Center receives a sanitized, prioritized alert complete with real-time GPS coordinates and context.'},
-                    {num: '03', title: 'Dispatch & Resolve', desc: 'Responders accept the ticket, lock their GPS to the map, and physically secure the location.'}
+                    {num: '03', title: 'Dispatch & Resolve', desc: 'Responders accept the ticket, lock their GPS to the live map, and physically secure the location.'}
                 ].map((step, i) => (
-                   <div key={i} className="flex gap-8 md:gap-12 group cursor-default">
-                       <span className="text-8xl md:text-9xl font-anton text-[#171e19]/20 dark:text-[#b7c6c2]/20 group-hover:text-yellow transition-colors duration-500 leading-none">
+                   <div key={i} className="flex flex-col md:flex-row gap-8 md:gap-16 group cursor-default items-start">
+                       <span className="text-[120px] md:text-[180px] font-anton text-[var(--background)] opacity-20 group-hover:opacity-100 group-hover:text-[#ffe17c] transition-all duration-500 leading-none -mt-4 md:-mt-10">
                            {step.num}
                        </span>
-                       <div className="pt-4">
-                           <h3 className="text-4xl md:text-5xl font-anton uppercase mb-4 text-[var(--background)]">{step.title}</h3>
-                           <p className="text-xl md:text-2xl font-medium opacity-80 max-w-xl leading-relaxed">{step.desc}</p>
+                       <div className="pt-4 flex-1">
+                           <h3 className="text-4xl md:text-6xl font-anton uppercase mb-6 text-[var(--background)]">{step.title}</h3>
+                           <p className="text-xl md:text-2xl font-medium opacity-70 max-w-xl leading-relaxed">{step.desc}</p>
                        </div>
                    </div> 
                 ))}
@@ -185,30 +202,30 @@ export default function LandingPage() {
          </div>
       </section>
 
-      {/* 5. FINAL CTA */}
-      <section className="relative w-full py-40 flex flex-col items-center justify-center overflow-hidden bg-yellow">
+      {/* 6. FINAL CTA */}
+      <section className="relative w-full py-48 flex flex-col items-center justify-center overflow-hidden bg-[#ffe17c]">
         {/* Massive Overlay Text */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex whitespace-nowrap overflow-hidden z-0 pointer-events-none opacity-[0.03]">
-             <span className="text-[300px] font-anton uppercase leading-none text-black">COMMUNITY PULSE </span>
-             <span className="text-[300px] font-anton uppercase leading-none text-black ml-10">COMMUNITY PULSE</span>
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex whitespace-nowrap overflow-hidden z-0 pointer-events-none opacity-[0.05]">
+             <span className="text-[200px] md:text-[350px] font-anton uppercase leading-none text-[#171e19]">COMMUNITY PULSE </span>
+             <span className="text-[200px] md:text-[350px] font-anton uppercase leading-none text-[#171e19] ml-10">COMMUNITY PULSE</span>
         </div>
 
-        <div className="relative z-10 text-center px-6">
-            <h2 className="text-7xl md:text-9xl font-anton uppercase text-black leading-[0.8] mb-6 drop-shadow-sm">
-                INITIATE<br/>PROTOCOL
+        <div className="relative z-10 flex flex-col items-center px-6 w-full">
+            <h2 className="text-7xl md:text-8xl lg:text-[130px] font-anton uppercase text-[#171e19] leading-[0.8] mb-8 drop-shadow-sm text-center">
+                INITIATE
             </h2>
-            <p className="text-2xl font-black text-black/60 max-w-2xl mx-auto mb-16 uppercase tracking-[0.2em] font-roboto">
+            <p className="text-xl md:text-3xl font-bold text-[#171e19]/60 max-w-2xl text-center mb-16 tracking-wide">
                 The Field Is Waiting. Secure the perimeter.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center max-w-2xl mx-auto p-4 md:p-8 bg-white/20 backdrop-blur-2xl rounded-[3rem] border border-black/10 shadow-[0_40px_80px_rgba(0,0,0,0.2)] hover:scale-[1.02] transition-transform duration-500">
+            <div className="flex flex-col sm:flex-row gap-4 focus-within:scale-[1.02] items-center justify-center w-full max-w-3xl p-4 bg-[#171e19] rounded-[2rem] shadow-2xl transition-transform duration-500">
                 <input 
                     type="email" 
-                    placeholder="Enter Operation ID or Email" 
-                    className="w-full bg-white px-8 py-5 rounded-2xl font-bold text-[#171e19] outline-none border-2 border-transparent focus:border-black transition-colors"
+                    placeholder="Enter Operation ID or Email..." 
+                    className="w-full bg-transparent px-8 py-6 rounded-xl font-medium text-white text-lg md:text-xl outline-none placeholder:text-white/30"
                 />
-                <Link href="/volunteer" className="w-full sm:w-auto shrink-0 bg-[#171e19] text-white px-10 py-5 rounded-2xl font-anton text-2xl uppercase tracking-widest hover:bg-[#272727] active:scale-95 transition-all text-center">
-                    Enter Link
+                <Link href="/volunteer" className="w-full sm:w-auto shrink-0 bg-[#ffe17c] text-[#171e19] px-12 py-6 rounded-xl font-anton text-2xl uppercase tracking-widest hover:bg-white active:scale-95 transition-all text-center">
+                    Enter
                 </Link>
             </div>
         </div>

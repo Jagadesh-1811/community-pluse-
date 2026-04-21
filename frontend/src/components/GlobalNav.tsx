@@ -40,7 +40,7 @@ export default function GlobalNav() {
         <Link href="/login" className="font-roboto font-bold text-sm uppercase tracking-widest hover:text-yellow transition-colors">
           Login
         </Link>
-        <Link href="/field" className="bg-[var(--foreground)] text-[var(--background)] px-6 py-2.5 rounded-full font-roboto font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_var(--border-color)]">
+        <Link href="/signup" className="bg-[var(--foreground)] text-[var(--background)] px-6 py-2.5 rounded-full font-roboto font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_var(--border-color)]">
           Join Network
         </Link>
       </div>
