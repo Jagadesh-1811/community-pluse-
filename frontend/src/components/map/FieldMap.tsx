@@ -1,36 +1,51 @@
-'use client';
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports */
 
-import { useEffect, useState } from 'react';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useState } from "react";
+import "leaflet/dist/leaflet.css";
+import { calculateDistance, formatDistance } from "@/lib/geolocation-utils";
 
 interface FieldMapProps {
   location: { lat: number; lng: number } | null;
-  volunteerLocation?: { lat: number; lng: number } | null;
+  volunteerLocation?: { lat: number; lng: number; accuracy?: number } | null;
+  locationName?: string | null;
 }
 
-const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: any }) => {
-  const { TileLayer, Marker, useMap, Polyline } = require('react-leaflet');
+const FieldMapInner = ({
+  location,
+  volunteerLocation,
+  locationName,
+  L,
+}: FieldMapProps & { L: any }) => {
+  const { TileLayer, Marker, useMap, Polyline } = require("react-leaflet");
   const map = useMap();
 
-  const isValid = location && typeof location.lat === 'number' && typeof location.lng === 'number' && !isNaN(location.lat) && !isNaN(location.lng);
+  const isValid =
+    location &&
+    typeof location.lat === "number" &&
+    typeof location.lng === "number" &&
+    !isNaN(location.lat) &&
+    !isNaN(location.lng);
 
   useEffect(() => {
     if (map) {
       setTimeout(() => {
         try {
-            map.invalidateSize();
-            if (isValid && volunteerLocation) {
-                // Fit bounds to show both
-                map.fitBounds([
-                    [location.lat, location.lng],
-                    [volunteerLocation.lat, volunteerLocation.lng]
-                ], { padding: [50, 50], duration: 1 });
-            } else if (isValid) {
-                map.flyTo([location.lat, location.lng], 16, { duration: 1 });
-            }
+          map.invalidateSize();
+          if (isValid && volunteerLocation) {
+            // Fit bounds to show both
+            map.fitBounds(
+              [
+                [location.lat, location.lng],
+                [volunteerLocation.lat, volunteerLocation.lng],
+              ],
+              { padding: [50, 50], duration: 1 },
+            );
+          } else if (isValid) {
+            map.flyTo([location.lat, location.lng], 16, { duration: 1 });
+          }
         } catch {
-            // Ignore sizing issues
+          // Ignore sizing issues
         }
       }, 300);
     }
@@ -38,16 +53,26 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
 
   if (!isValid) return null;
 
+  const distance =
+    location && volunteerLocation
+      ? calculateDistance(
+          location.lat,
+          location.lng,
+          volunteerLocation.lat,
+          volunteerLocation.lng,
+        )
+      : null;
+
   return (
     <>
       <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        attribution="&copy; Esri, DigitalGlobe, GeoEye, Earthstar Geographics"
       />
       <Marker
         position={[location.lat, location.lng]}
         icon={L.divIcon({
-          className: 'custom-field-marker',
+          className: "custom-field-marker",
           html: `
             <div class="relative w-12 h-12 flex items-center justify-center">
                 <div class="absolute inset-0 bg-blue-500/40 rounded-full animate-ping"></div>
@@ -60,13 +85,30 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
         })}
       />
 
+      {/* Location Name/Address Label - shows above field marker */}
+      {location && (
+        <Marker
+          position={[location.lat, location.lng]}
+          icon={L.divIcon({
+            className: "location-label",
+            html: `
+              <div class="bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg border border-blue-400 shadow-lg whitespace-nowrap">
+                ${locationName || `📍 ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
+              </div>
+            `,
+            iconSize: [200, 28],
+            iconAnchor: [100, 28],
+          })}
+        />
+      )}
+
       {volunteerLocation && (
         <>
-            <Marker
-                position={[volunteerLocation.lat, volunteerLocation.lng]}
-                icon={L.divIcon({
-                    className: 'volunteer-live-marker',
-                    html: `
+          <Marker
+            position={[volunteerLocation.lat, volunteerLocation.lng]}
+            icon={L.divIcon({
+              className: "volunteer-live-marker",
+              html: `
                         <div class="relative w-16 h-16 flex items-center justify-center">
                             <div class="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                             <div class="w-8 h-8 rounded-[1rem] bg-slate-950 border-2 border-primary flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.5)]">
@@ -75,22 +117,40 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
                             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Volunteer</div>
                         </div>
                     `,
-                    iconSize: [64, 64],
-                    iconAnchor: [32, 32],
-                })}
+              iconSize: [64, 64],
+              iconAnchor: [32, 32],
+            })}
+          />
+          {distance && (
+            <Marker
+              position={[
+                (location.lat + volunteerLocation.lat) / 2,
+                (location.lng + volunteerLocation.lng) / 2,
+              ]}
+              icon={L.divIcon({
+                className: "distance-label",
+                html: `
+                    <div class="bg-slate-900/90 backdrop-blur text-white text-[9px] font-black px-2 py-1 rounded border border-blue-400/50 shadow-lg whitespace-nowrap">
+                      ${formatDistance(distance)}
+                    </div>
+                  `,
+                iconSize: [60, 24],
+                iconAnchor: [30, 12],
+              })}
             />
-            <Polyline 
-                positions={[
-                    [location.lat, location.lng],
-                    [volunteerLocation.lat, volunteerLocation.lng]
-                ]}
-                pathOptions={{ 
-                    color: '#3b82f6', 
-                    weight: 3, 
-                    dashArray: '10, 10', 
-                    opacity: 0.6 
-                }}
-            />
+          )}
+          <Polyline
+            positions={[
+              [location.lat, location.lng],
+              [volunteerLocation.lat, volunteerLocation.lng],
+            ]}
+            pathOptions={{
+              color: "#3b82f6",
+              weight: 3,
+              dashArray: "10, 10",
+              opacity: 0.6,
+            }}
+          />
         </>
       )}
     </>
@@ -105,20 +165,25 @@ export default function FieldMap(props: FieldMapProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
     let mounted = true;
-    import('leaflet').then((leaflet) => {
-        if (mounted) setL(leaflet);
+    import("leaflet").then((leaflet) => {
+      if (mounted) setL(leaflet);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  if (!isClient || !L) return (
-    <div className="w-full h-full glass flex flex-col items-center justify-center animate-pulse rounded-[2rem]">
+  if (!isClient || !L)
+    return (
+      <div className="w-full h-full glass flex flex-col items-center justify-center animate-pulse rounded-[2rem]">
         <div className="w-8 h-8 rounded-full border-t-2 border-r-2 border-yellow animate-spin mb-4"></div>
-        <div className="text-[10px] text-[var(--foreground)] font-anton uppercase tracking-widest">Acquiring Satellites...</div>
-    </div>
-  );
+        <div className="text-[10px] text-[var(--foreground)] font-anton uppercase tracking-widest">
+          Acquiring Satellites...
+        </div>
+      </div>
+    );
 
-  const { MapContainer, TileLayer } = require('react-leaflet');
+  const { MapContainer, TileLayer } = require("react-leaflet");
 
   return (
     <div className="w-full h-full relative overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl">
@@ -127,11 +192,10 @@ export default function FieldMap(props: FieldMapProps) {
         zoom={props.location ? 16 : 5}
         className="h-full w-full bg-[var(--background)]"
         zoomControl={false}
-        dragging={true}
-      >
+        dragging={true}>
         <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          attribution="&copy; Esri, DigitalGlobe, GeoEye, Earthstar Geographics"
         />
         <FieldMapInner {...props} L={L} />
       </MapContainer>
