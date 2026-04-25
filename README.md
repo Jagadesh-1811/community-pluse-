@@ -64,55 +64,8 @@ The interface has been hardened for field use. Using a pure black (`#000000`) on
 - Python (v3.10+)
 - **Firebase Project** (RTDB + Auth enabled)
 
-### **2. Frontend Setup**
-```bash
-cd frontend
-npm install
-npm run dev
-```
 
-### **3. Backend Setup**
-```bash
-cd backend
-python -m venv venv
-# Windows
-.\venv\Scripts\Activate
-# Mac/Linux
-source venv/bin/activate
-pip install -r requirements.txt
-python main.py
-```
 
-### **4. Environment Variables**
-
-**Frontend (.env)**
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_DATABASE_URL=your_rtdb_url
-NEXT_PUBLIC_VOLUNTEER_CODES=PULSE_ADMIN_1,PULSE_VOLUNTEER_2,PULSE_RESCUE_3,PULSE_CORE_4
-```
-
-**Backend (.env)**
-```env
-GEMINI_API_KEY=your_gemini_key
-FIREBASE_SERVICE_ACCOUNT_PATH=firebase-admin.json
-FIREBASE_DATABASE_URL=your_rtdb_url
-TELEGRAM_BOT_TOKEN=your_bot_token
-VAPI_API_KEY=your_vapi_key
-VOLUNTEER_ALERT_PHONE=your_alert_phone
-```
-
----
-
-## 📁 Project Structure
-
-- `frontend/`: Next.js 16 application with decentralized gateways.
-- `backend/`: FastAPI service managing urgency scoring and notifications.
-- `database/`: Real-time schema managed via **Firebase RTDB**.
-
----
 
 ## ⚖️ License
 Personal / Technical Demonstration.
