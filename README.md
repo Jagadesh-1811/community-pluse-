@@ -3,7 +3,7 @@
 **Live Deployment:** [Insert Live Link Here]  
 **Backend API Endpoint:** `https://community-pulse-api.onrender.com`
 
-CommunityPulse is a high-performance, real-time coordination platform designed for rapid disaster response and tactical volunteer management. Developed as a submission for the **Google AI Hackathon**, this project demonstrates the powerful integration of Google's Gemini AI models with decentralized operational gateways to bridge the critical gap between on-the-ground field reports and strategic command centers.
+CommunityPulse is a high-performance, real-time coordination platform designed for rapid disaster response and tactical volunteer management. Developed by the contributors of the **Sparks Team** for the **Google Solution Build / Google AI Hackathon**, this project demonstrates the powerful integration of Google's Gemini AI models with decentralized operational gateways to bridge the critical gap between on-the-ground field reports and strategic command centers.
 
 ## Strategic Overview
 
@@ -71,5 +71,5 @@ Automated intake and status updates are managed via a dedicated Telegram bot (@C
 
 *(Note: Proper environment variables must be configured in your deployment platform for Firebase, Gemini, and Vapi integrations to function correctly.)*
 
-## License
-Developed for the Google AI Hackathon.
+## Acknowledgments
+Developed and maintained by the contributors of the **Sparks Team** as a submission for the **Google Solution Build** and **Google AI Hackathon**.
