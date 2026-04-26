@@ -355,12 +355,12 @@ export default function IntakeForm({
                   Voice Agent Line
                 </p>
                 <p className="text-sm font-black text-(--foreground)">
-                  +91 91705 60759
+                  +91 70936 91626
                 </p>
               </div>
             </div>
             <a
-              href="https://t.me/Community_Pulse_Bot"
+              href="https://t.me/CPFieldBot"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer">
