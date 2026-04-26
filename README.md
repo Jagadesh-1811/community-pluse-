@@ -48,28 +48,7 @@ pip install -r requirements.txt
 python main.py  # http://localhost:8000
 ```
 
-### Environment Setup
 
-**Frontend (.env.local)**
-
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=<key>
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<domain>
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=<project>
-NEXT_PUBLIC_FIREBASE_DATABASE_URL=<url>
-```
-
-**Backend (.env)**
-
-```
-GEMINI_API_KEY=<key>
-FIREBASE_SERVICE_ACCOUNT_PATH=./firebase_admin.json
-FIREBASE_DATABASE_URL=<url>
-VOLUNTEER_ALERT_PHONE=+91XXXXXXXXXX
-AI_PROVIDER=gemini
-```
-
----
 
 ## API Endpoints
 
