@@ -2,4 +2,10 @@
 firebase-admin.json
 venv/
 __pycache__/
-*.pycfirebase_admin.json
+*.pyc
+firebase_admin.json
+
+# Log files
+*.log
+*.err.log
+*.out.log

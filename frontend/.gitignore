@@ -40,3 +40,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+
+# IDE
+.vscode/
+.idea/
+
+# Internal documentation
+AGENTS.md
+CLAUDE.md
+
+# Log files
+*.log
+*.err.log
+*.out.log
