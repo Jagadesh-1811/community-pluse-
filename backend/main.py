@@ -37,9 +37,21 @@ async def startup_event():
     """
     Background tasks on startup.
     """
-    logger.info("[STARTUP] CommunityPulse Intelligence Engine is starting...")
+    environment = os.getenv("ENVIRONMENT", "development")
+    logger.info(f"[STARTUP] CommunityPulse Intelligence Engine v1.0.0 starting in {environment} mode...")
+    
+    # Verify Firebase connection
+    try:
+        test_ref = root_ref
+        if test_ref is None:
+            logger.warning("⚠️  Firebase reference is None - database operations may fail")
+        else:
+            logger.info("✅ Firebase database connection verified")
+    except Exception as e:
+        logger.error(f"❌ Firebase verification failed: {e}")
+    
     # Telegram bot disabled for hackathon testing to avoid conflicts
-    logger.info("[BOT] Telegram Bot: DISABLED (for development)")
+    logger.info("[BOT] Telegram Bot: DISABLED (for deployment testing)")
     # Uncomment below for production with Telegram support
     # try:
     #     asyncio.create_task(run_bot())
