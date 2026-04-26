@@ -3,9 +3,9 @@ import json
 import httpx
 import google.generativeai as genai
 from typing import Dict, Any
-from dotenv import load_dotenv
+from env import load_backend_env
 
-load_dotenv()
+load_backend_env()
 
 # Configuration
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").lower() # 'gemini' or 'ollama'
@@ -15,15 +15,24 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
-# Initialize Gemini if selected
+# Initialize models - with fallback
+extraction_model = None
+scoring_model = None
+
 if AI_PROVIDER == "gemini":
     if not GEMINI_API_KEY:
         print("WARNING: GEMINI_API_KEY not found. AI features will be limited.")
     else:
-        genai.configure(api_key=GEMINI_API_KEY)
-        # Models
-        extraction_model = genai.GenerativeModel("gemini-2.0-flash-lite")
-        scoring_model = genai.GenerativeModel("gemini-1.5-flash")
+        try:
+            genai.configure(api_key=GEMINI_API_KEY)
+            # Use gemini-2.0-flash for both - cheaper and more reliable
+            extraction_model = genai.GenerativeModel("gemini-2.0-flash")
+            scoring_model = genai.GenerativeModel("gemini-2.0-flash")
+            print("[AI] Gemini 2.0 Flash models initialized successfully")
+        except Exception as e:
+            print(f"ERROR initializing Gemini: {e}")
+            extraction_model = None
+            scoring_model = None
 
 async def _call_gemini(model, prompt: str) -> str:
     response = await model.generate_content_async(prompt)
@@ -65,8 +74,11 @@ Field report: {text}"""
     try:
         if AI_PROVIDER == "ollama":
             content = await _call_ollama(prompt)
-        else:
+        elif extraction_model:
             content = await _call_gemini(extraction_model, prompt)
+        else:
+            print("ERROR: No AI model available for extraction")
+            raise Exception("AI extraction model not initialized")
             
         # Cleanup
         content = content.strip()
@@ -109,8 +121,11 @@ Field report transcript: {raw_text}"""
     try:
         if AI_PROVIDER == "ollama":
             content = await _call_ollama(prompt)
-        else:
+        elif scoring_model:
             content = await _call_gemini(scoring_model, prompt)
+        else:
+            print("ERROR: No AI model available for scoring")
+            raise Exception("AI scoring model not initialized")
             
         # Cleanup
         content = content.strip()

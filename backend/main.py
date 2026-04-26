@@ -1,4 +1,9 @@
 import os
+from env import load_backend_env
+
+# Load environment variables FIRST, before any other imports
+load_backend_env()
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Form
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
@@ -20,13 +25,15 @@ async def startup_event():
     """
     Background tasks on startup.
     """
-    print("🚀 CommunityPulse Intelligence Engine is starting...")
-    # Start Telegram bot for incoming reports
-    try:
-        asyncio.create_task(run_bot())
-        print(" Telegram Bot: ACTIVE")
-    except Exception as e:
-        print(f" Telegram Bot Error: {e}")
+    print("[STARTUP] CommunityPulse Intelligence Engine is starting...")
+    # Telegram bot disabled for hackathon testing to avoid conflicts
+    print("[BOT] Telegram Bot: DISABLED (for development)")
+    # Uncomment below for production with Telegram support
+    # try:
+    #     asyncio.create_task(run_bot())
+    #     print("[BOT] Telegram Bot: ACTIVE")
+    # except Exception as e:
+    #     print(f"[BOT ERROR] Telegram Bot Error: {e}")
 
 
 # Add CORS middleware to allow communication with the frontend
@@ -61,6 +68,12 @@ async def process_intake(request: IntakeRequest, background_tasks: BackgroundTas
     """
     if not request.text:
         raise HTTPException(status_code=400, detail="Text is required")
+
+    if root_ref is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Backend database is not configured. Check backend/.env and Firebase credentials.",
+        )
 
     # 1. AI Analysis
     ai_data = await extract_need_structure(request.text)
@@ -98,7 +111,7 @@ async def process_intake(request: IntakeRequest, background_tasks: BackgroundTas
             if volunteer_phone:
                 background_tasks.add_task(trigger_emergency_call, volunteer_phone, request.text)
                 
-        return {"status": "success", "id": need_id}
+        return {"status": "success", "id": need_id, "data": {"id": need_id}}
     except Exception as e:
         print(f"Database error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
