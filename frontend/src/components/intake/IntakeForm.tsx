@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { X, Send, Heart, Phone, MapPin, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { VoiceAgentButton } from '@/components/voice/VoiceAgentButton';
 
 interface IntakeFormProps {
     pickedLocation?: { lat: number; lng: number } | null;
@@ -206,10 +207,11 @@ export default function IntakeForm({ pickedLocation, onPickModeToggle, onClose, 
                           <Phone size={18} />
                       </div>
                       <div>
-                          <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">Voice Agent Line</p>
-                          <p className="text-sm font-black text-(--foreground)">+91 91705 60759</p>
+                          <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">Dial From Phone</p>
+                          <p className="text-sm font-black text-(--foreground)">+1 948-222-9326</p>
                       </div>
                   </div>
+                  <VoiceAgentButton />
                   <a 
                       href="https://t.me/CPFieldBot" 
                       target="_blank" 
