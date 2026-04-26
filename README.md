@@ -24,8 +24,9 @@ CommunityPulse is a high-performance, real-time coordination platform designed f
 - **Comms Hub**: Integrated communication log listening to satellite transmissions, Telegram signals, and automated AI responses via **Gemini 2.0 Flash**.
 
 ### 📱 Cross-Channel Response System
-- **Voice Agent Integration**: Direct AI Voice Agent line (+91 91705 60759) integrated into the field gateway.
-- **Telegram Bot Sync**: Automated intake and status updates via the @CPFieldBot.
+- **Web Voice Agent Integration**: Directly embedded Vapi Web SDK allowing victims to call the AI directly from their browser (free Wi-Fi calling), bypassing international telecom charges.
+- **PSTN Voice Line**: Backup traditional phone number (+1 948-222-9326) for direct dial.
+- **Telegram Bot Sync**: Automated intake and status updates via @CPFieldBot, strictly powered by Gemini.
 
 ---
 
@@ -92,15 +93,20 @@ NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
 NEXT_PUBLIC_FIREBASE_DATABASE_URL=your_rtdb_url
 NEXT_PUBLIC_VOLUNTEER_CODES=PULSE_ADMIN_1,PULSE_VOLUNTEER_2,PULSE_RESCUE_3,PULSE_CORE_4
+NEXT_PUBLIC_VAPI_PUBLIC_KEY=your_vapi_public_key
+NEXT_PUBLIC_VAPI_ASSISTANT_ID=your_assistant_id
 ```
 
 **Backend (.env)**
 ```env
 GEMINI_API_KEY=your_gemini_key
+AI_PROVIDER=gemini
 FIREBASE_SERVICE_ACCOUNT_PATH=firebase-admin.json
 FIREBASE_DATABASE_URL=your_rtdb_url
 TELEGRAM_BOT_TOKEN=your_bot_token
 VAPI_API_KEY=your_vapi_key
+VAPI_ASSISTANT_ID=your_assistant_id
+VAPI_PHONE_NUMBER_ID=your_phone_id
 VOLUNTEER_ALERT_PHONE=your_alert_phone
 ```
 
