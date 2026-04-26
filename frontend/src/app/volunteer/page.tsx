@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRealtimeNeeds, Need } from '@/hooks/useRealtimeNeeds';
 
 const LiveMap = dynamic(() => import('@/components/map/LiveMap'), { ssr: false });
-import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { rtdb } from '@/lib/firebase';
@@ -16,6 +16,9 @@ import { useRouter } from 'next/navigation';
 
 
 export default function Home() {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ||
+    'http://localhost:8000';
   const { needs, loading: needsLoading, refresh } = useRealtimeNeeds();
   const { user, role, domain, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
@@ -34,6 +37,7 @@ export default function Home() {
 
 
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
+  const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'alerts' | 'dispatched' | 'resolved' | 'comms' | 'intel'>('map');
   const [manualSector, setManualSector] = useState<'all' | 'human' | 'animal'>('all');
   
@@ -42,9 +46,16 @@ export default function Home() {
   const [volunteerLocation, setVolunteerLocation] = useState<{lat: number; lng: number; accuracy?: number} | null>(null);
   const [locationStatus, setLocationStatus] = useState<'detecting' | 'found' | 'denied' | 'idle'>('idle');
   const [showLocationToast, setShowLocationToast] = useState(false);
+  const [actionToast, setActionToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isManualMode, setIsManualMode] = useState(false);
   const [watchId] = useState<number | null>(null);
   const [trackingNeedId, setTrackingNeedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!actionToast) return;
+    const timeoutId = window.setTimeout(() => setActionToast(null), 3500);
+    return () => window.clearTimeout(timeoutId);
+  }, [actionToast]);
 
   const formatDate = (ts: number | string | null | undefined) => {
       if (!ts) return 'Unknown Time';
@@ -191,6 +202,19 @@ interface TelegramAction {
     }
   }, [trackingNeedId, volunteerLocation]);
 
+  const openNeed = (need: Need, tab: 'map' | 'alerts' | 'dispatched' | 'resolved' = 'map') => {
+      setSelectedNeed(need);
+      setCollapsedNeed(null);
+      setActiveTab(tab);
+  };
+
+  const closeNeedPanel = () => {
+      if (selectedNeed) {
+          setCollapsedNeed(selectedNeed);
+      }
+      setSelectedNeed(null);
+  };
+
   const handleDeploy = async (needId: string, status: string) => {
       try {
           const needRef = ref(rtdb, `needs/${needId}`);
@@ -201,7 +225,7 @@ interface TelegramAction {
               else setTrackingNeedId(null);
               // Trigger automated dispatch notification
               try {
-                  fetch('http://localhost:8000/notify/status', {
+                  await fetch(`${apiBaseUrl}/status/update`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ need_id: needId, status })
@@ -212,10 +236,19 @@ interface TelegramAction {
           } else if (status === 'resolved' || status === 'open') {
               setTrackingNeedId(null);
           }
+          if (status === 'in-progress') {
+              setActionToast({ type: 'success', message: 'Dispatch initiated successfully.' });
+              setActiveTab('dispatched');
+          } else if (status === 'resolved') {
+              setActionToast({ type: 'success', message: 'Issue resolved successfully.' });
+              setActiveTab('resolved');
+          }
           setSelectedNeed(null);
+          setCollapsedNeed(null);
           refresh();
       } catch (error) {
           console.error("Error updating status:", error);
+          setActionToast({ type: 'error', message: 'Failed to update mission status.' });
       }
   };
 
@@ -532,7 +565,7 @@ interface TelegramAction {
                   >
                       <LiveMap 
                           needs={filteredNeeds} 
-                          onMarkerClick={setSelectedNeed} 
+                          onMarkerClick={(need) => openNeed(need, 'map')} 
                           volunteerLocation={volunteerLocation}
                           focusNeed={selectedNeed}
                           onRecenter={() => {}}
@@ -616,7 +649,7 @@ interface TelegramAction {
                           {(activeTab === 'alerts' ? sortedNeeds : activeTab === 'dispatched' ? dispatchedNeeds : resolvedNeeds).map((need) => (
                               <div 
                                   key={need.id} 
-                                  onClick={() => { setSelectedNeed(need); setActiveTab('map'); }}
+                                  onClick={() => openNeed(need, 'map')}
                                   className="group relative p-6 bg-(--card-bg) rounded-4xl border border-(--border-color) hover:border-emergency/30 hover:bg-(--foreground)/5 cursor-pointer transition-all duration-500 shadow-xl flex flex-col"
                               >
                                   <div className="flex justify-between items-start mb-4">
@@ -673,7 +706,7 @@ interface TelegramAction {
                                       </div>
                                       <div className="flex items-center gap-3">
                                           <button
-                                              onClick={(e) => { e.stopPropagation(); setSelectedNeed(need); setActiveTab('map'); }}
+                                              onClick={(e) => { e.stopPropagation(); openNeed(need, 'map'); }}
                                               className="px-2.5 py-1 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-full text-[8px] font-black uppercase tracking-widest text-yellow flex items-center gap-1 transition-colors border border-(--border-color)"
                                           >
                                               <MapPin size={9} /> Locate
@@ -844,6 +877,33 @@ interface TelegramAction {
                    </motion.div>
                ) : null}
           </AnimatePresence>
+
+          <AnimatePresence>
+            {actionToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -16, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -16, scale: 0.98 }}
+                className={cn(
+                  'absolute top-6 right-6 z-60 rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-xl',
+                  actionToast.type === 'success'
+                    ? 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300'
+                    : 'bg-emergency/12 border-emergency/30 text-emergency',
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {actionToast.type === 'success' ? (
+                    <CheckCircle2 size={18} />
+                  ) : (
+                    <ShieldAlert size={18} />
+                  )}
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em]">
+                    {actionToast.message}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
       {/* Summary Panel Overlay (Full-Width Tactical Slide) */}
@@ -880,7 +940,7 @@ interface TelegramAction {
                     </div>
                   </div>
                   <button 
-                    onClick={() => setSelectedNeed(null)}
+                    onClick={closeNeedPanel}
                     className="p-4 bg-(--foreground)/5 hover:bg-emergency hover:text-white rounded-2xl transition-all border border-(--border-color) group"
                   >
                     <X size={24} className="group-hover:scale-110 transition-transform" />
@@ -995,7 +1055,11 @@ interface TelegramAction {
                                <span className="text-[8px] font-black text-sage uppercase tracking-widest block mb-1">GPS Lock</span>
                                <div className="flex items-center gap-2 text-xs font-mono font-bold text-(--foreground)">
                                   <MapPin size={14} className="text-yellow" />
-                                  <span>{selectedNeed.lat?.toFixed(4)}, {selectedNeed.lng?.toFixed(4)}</span>
+                                  <span>
+                                    {selectedNeed.lat != null && selectedNeed.lng != null
+                                      ? `${selectedNeed.lat.toFixed(4)}, ${selectedNeed.lng.toFixed(4)}`
+                                      : 'GPS unavailable'}
+                                  </span>
                                </div>
                             </div>
                           </div>
@@ -1003,6 +1067,7 @@ interface TelegramAction {
                     </div>
 
                     {/* Action Buttons with Definitions */}
+                    {selectedNeed.status !== 'resolved' && (
                     <div className="flex flex-col gap-4 mt-auto">
                       <div className="flex items-center justify-between px-4">
                         <h4 className="text-[11px] text-(--foreground) font-black uppercase tracking-[0.3em]">Watch these buttons ↓</h4>
@@ -1010,6 +1075,7 @@ interface TelegramAction {
                       </div>
                       
                       <div className="space-y-4">
+                        {selectedNeed.status !== 'in-progress' && (
                         <div className="group relative">
                           <button 
                             onClick={() => handleDeploy(selectedNeed.id, 'in-progress')}
@@ -1023,6 +1089,7 @@ interface TelegramAction {
                              </p>
                           </div>
                         </div>
+                        )}
 
                         <div className="group relative">
                           <button 
@@ -1039,6 +1106,7 @@ interface TelegramAction {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* Audio recording if exists */}
                     {selectedNeed.source === 'voice_agent' && selectedNeed.recording_url && (
@@ -1056,6 +1124,51 @@ interface TelegramAction {
               <div className="h-3 w-full bg-linear-to-r from-emergency via-primary to-success"></div>
             </div>
           </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!selectedNeed && collapsedNeed && (
+          <motion.button
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            onClick={() => openNeed(collapsedNeed, 'map')}
+            className="fixed bottom-5 right-6 left-30 z-50 rounded-3xl border border-(--border-color) bg-(--background)/95 px-6 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl text-left"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-sage">
+                  Mission Minimized
+                </p>
+                <div className="mt-1 flex items-center gap-3 min-w-0">
+                  <span className="truncate text-sm font-black uppercase text-(--foreground)">
+                    {collapsedNeed.location_name || 'Unnamed Mission'}
+                  </span>
+                  <span className="shrink-0 text-[10px] font-mono text-sage">
+                    #{collapsedNeed.id.slice(0, 8)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span
+                  className={cn(
+                    'rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest',
+                    collapsedNeed.status === 'resolved'
+                      ? 'bg-success/15 text-success'
+                      : collapsedNeed.status === 'in-progress'
+                        ? 'bg-orange-500/15 text-orange-400'
+                        : 'bg-emergency/15 text-emergency',
+                  )}
+                >
+                  {collapsedNeed.status || 'open'}
+                </span>
+                <div className="rounded-2xl bg-yellow p-3 text-black shadow-lg">
+                  <ChevronUp size={18} />
+                </div>
+              </div>
+            </div>
+          </motion.button>
         )}
       </AnimatePresence>
 
