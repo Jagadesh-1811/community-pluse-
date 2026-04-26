@@ -1,0 +1,62 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+
+# Documentation files (internal dev guides - do not commit)
+PRODUCTION_REVIEW.md
+DEPLOYMENT_CHECKLIST.md
+DEPLOYMENT_SUMMARY.md
+CODE_QUALITY.md
+CLAUDE.md
+
+# Frontend internal docs
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# Credentials
+firebase_admin.json
+*.key
+*.pem
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pip-debug.log*
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+
+# Database
+*.db
+*.sqlite
+
+# Temporary files
+*.tmp
+*.temp
