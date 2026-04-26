@@ -10,24 +10,35 @@ interface FieldMapProps {
   volunteerLocation?: { lat: number; lng: number } | null;
 }
 
+const hasValidLatitude = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= -90 && value <= 90;
+
+const hasValidLongitude = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= -180 && value <= 180;
+
+const hasValidCoords = (
+  coords: { lat: number; lng: number } | null | undefined,
+): coords is { lat: number; lng: number } =>
+  !!coords && hasValidLatitude(coords.lat) && hasValidLongitude(coords.lng);
+
 const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: any }) => {
   const map = useMap();
 
-  const isValid = location && typeof location.lat === 'number' && typeof location.lng === 'number' && !isNaN(location.lat) && !isNaN(location.lng);
+  const hasValidLocation = hasValidCoords(location);
+  const hasValidVolunteerLocation = hasValidCoords(volunteerLocation);
 
   useEffect(() => {
     if (map) {
       setTimeout(() => {
         try {
             map.invalidateSize();
-            const isVolunteerValid = volunteerLocation && !isNaN(volunteerLocation.lat) && !isNaN(volunteerLocation.lng);
-            if (isValid && isVolunteerValid) {
+            if (hasValidLocation && hasValidVolunteerLocation) {
                 // Fit bounds to show both
                 map.fitBounds([
                     [location.lat, location.lng],
                     [volunteerLocation.lat, volunteerLocation.lng]
                 ], { padding: [50, 50], duration: 1 });
-            } else if (isValid) {
+            } else if (hasValidLocation) {
                 map.flyTo([location.lat, location.lng], 16, { duration: 1 });
             }
         } catch {
@@ -35,9 +46,9 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
         }
       }, 300);
     }
-  }, [location, volunteerLocation, map, isValid]);
+  }, [location, volunteerLocation, map, hasValidLocation, hasValidVolunteerLocation]);
 
-  if (!isValid) return null;
+  if (!hasValidLocation) return null;
 
   return (
     <>
@@ -61,7 +72,7 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
         })}
       />
 
-      {volunteerLocation && !isNaN(volunteerLocation.lat) && !isNaN(volunteerLocation.lng) && (
+      {hasValidVolunteerLocation && volunteerLocation && (
         <>
             <Marker
                 position={[volunteerLocation.lat, volunteerLocation.lng]}
@@ -101,6 +112,9 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
 export default function FieldMap(props: FieldMapProps) {
   const [L, setL] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const mapCenter: [number, number] = hasValidCoords(props.location)
+    ? [props.location.lat, props.location.lng]
+    : [20.5937, 78.9629];
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -122,8 +136,8 @@ export default function FieldMap(props: FieldMapProps) {
   return (
     <div className="w-full h-full relative overflow-hidden rounded-4xl border border-white/10 shadow-2xl">
       <MapContainer
-        center={[20.5937, 78.9629]}
-        zoom={props.location ? 16 : 5}
+        center={mapCenter}
+        zoom={hasValidCoords(props.location) ? 16 : 5}
         className="h-full w-full bg-(--background)"
         zoomControl={false}
         dragging={true}

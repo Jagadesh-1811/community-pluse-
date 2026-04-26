@@ -10,6 +10,11 @@ interface StatusTrackerProps {
     onVolunteerLocationUpdate?: (loc: { lat: number; lng: number }) => void;
 }
 
+const toFiniteCoordinate = (value: unknown): number | null => {
+    const parsed = typeof value === 'string' ? Number(value) : value;
+    return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : null;
+};
+
 const STAGES = [
     { key: 'open', label: 'Processing', sublabel: 'System AI Intake', icon: Clock },
     { key: 'in-progress', label: 'Dispatched', sublabel: 'Volunteer En Route', icon: Truck },
@@ -23,15 +28,24 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
 
         const needRef = ref(rtdb, `needs/${needId}`);
 
+        const publishVolunteerLocation = (data: Record<string, unknown>) => {
+            if (!onVolunteerLocationUpdate) return;
+
+            const lat = toFiniteCoordinate(data.volunteer_lat);
+            const lng = toFiniteCoordinate(data.volunteer_lng);
+
+            if (lat !== null && lng !== null) {
+                onVolunteerLocationUpdate({ lat, lng });
+            }
+        };
+
         // Fetch initial status and location
         const fetchNeedData = async () => {
             const snapshot = await get(needRef);
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 setStatus(data.status);
-                if (data.volunteer_lat && data.volunteer_lng && onVolunteerLocationUpdate) {
-                    onVolunteerLocationUpdate({ lat: data.volunteer_lat, lng: data.volunteer_lng });
-                }
+                publishVolunteerLocation(data);
             }
         };
         fetchNeedData();
@@ -41,10 +55,8 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
             if (snapshot.exists()) {
                 const newData = snapshot.val();
                 setStatus(newData.status);
-                
-                if (newData.volunteer_lat && newData.volunteer_lng && onVolunteerLocationUpdate) {
-                    onVolunteerLocationUpdate({ lat: newData.volunteer_lat, lng: newData.volunteer_lng });
-                }
+
+                publishVolunteerLocation(newData);
             }
         });
 
