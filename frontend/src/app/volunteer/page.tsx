@@ -700,7 +700,7 @@ interface TelegramAction {
                                     <p className="text-[10px] text-sage font-black uppercase tracking-widest">Satellite Transmission Log & AI Response Feed</p>
                                     <div className="flex items-center gap-3">
                                         <a 
-                                            href="https://t.me/Community_Pulse_Bot" 
+                                            href="https://t.me/CPFieldBot" 
                                             target="_blank" 
                                             rel="noopener noreferrer"
                                             className="text-[9px] font-black text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-[0.2em] bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20"
@@ -708,7 +708,7 @@ interface TelegramAction {
                                             Connect Bot
                                         </a>
                                         <div className="text-[9px] font-black text-emergency uppercase tracking-[0.2em] bg-emergency/10 px-2 py-0.5 rounded border border-emergency/20">
-                                            Voice Agent: +91 91705 60759
+                                            Voice Agent :+91 91705 60759
                                         </div>
                                     </div>
                                 </div>
