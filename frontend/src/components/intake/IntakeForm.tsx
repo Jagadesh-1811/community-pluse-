@@ -211,7 +211,7 @@ export default function IntakeForm({ pickedLocation, onPickModeToggle, onClose, 
                       </div>
                   </div>
                   <a 
-                      href="https://t.me/Community_Pulse_Bot" 
+                      href="https://t.me/CPFieldBot" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer"
@@ -221,7 +221,7 @@ export default function IntakeForm({ pickedLocation, onPickModeToggle, onClose, 
                       </div>
                       <div className="flex-1">
                           <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">Telegram Intelligence</p>
-                          <p className="text-sm font-black text-(--foreground)">@Community_Pulse_Bot</p>
+                          <p className="text-sm font-black text-(--foreground)">@CPFieldBot</p>
                       </div>
                   </a>
               </div>
