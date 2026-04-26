@@ -20,7 +20,7 @@ async def startup_event():
     """
     Background tasks on startup.
     """
-    print("🚀 CommunityPulse Intelligence Engine is starting...")
+    print("CommunityPulse Intelligence Engine is starting...")
     # Start Telegram bot for incoming reports
     try:
         asyncio.create_task(run_bot())

@@ -25,7 +25,7 @@ CommunityPulse is a high-performance, real-time coordination platform designed f
 
 ### 📱 Cross-Channel Response System
 - **Voice Agent Integration**: Direct AI Voice Agent line (+91 91705 60759) integrated into the field gateway.
-- **Telegram Bot Sync**: Automated intake and status updates via the @Community_Pulse_Bot.
+- **Telegram Bot Sync**: Automated intake and status updates via the @CPFieldBot.
 
 ---
 

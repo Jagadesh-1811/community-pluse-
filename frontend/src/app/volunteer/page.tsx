@@ -708,7 +708,7 @@ interface TelegramAction {
                                             Connect Bot
                                         </a>
                                         <div className="text-[9px] font-black text-emergency uppercase tracking-[0.2em] bg-emergency/10 px-2 py-0.5 rounded border border-emergency/20">
-                                            Voice Agent: +91 91705 60759
+                                            Voice Agent :+91 91705 60759
                                         </div>
                                     </div>
                                 </div>
