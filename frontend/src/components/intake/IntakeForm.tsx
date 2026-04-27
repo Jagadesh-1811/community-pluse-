@@ -355,7 +355,7 @@ export default function IntakeForm({
                   Voice Agent Line
                 </p>
                 <p className="text-sm font-black text-(--foreground)">
-                  +91 70936 91626
+                  +1948-222-9326
                 </p>
               </div>
             </div>
