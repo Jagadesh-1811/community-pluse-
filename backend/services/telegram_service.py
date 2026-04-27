@@ -84,22 +84,25 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Visible on Command Center Priority Queue."
         )
     except Exception as e:
-        print(f"Error in Telegram AI pipeline: {e}")
-        await update.message.reply_text("❌ Analysis failed, but record saved with default priority.")
-        # Fallback save
-        need_record = {
-            "raw_text": text,
-            "need_type": "animal" if domain == "animal" else "medical",
-            "domain": domain,
-            "urgency_score": 5,
-            "status": "open",
-            "source": "telegram",
-            "created_at": {".sv": "timestamp"}
-        }
-        db.reference("needs").push(need_record)
-    except Exception as e:
-        print(f"Error logging telegram need: {e}")
-        await update.message.reply_text("❌ Failed to log need.")
+        print(f"Error in Telegram pipeline: {e}")
+        # Fallback: save with defaults even if AI fails
+        try:
+            fallback_record = {
+                "raw_text": text,
+                "need_type": "animal" if domain == "animal" else "medical",
+                "domain": domain,
+                "urgency_score": 5,
+                "status": "open",
+                "source": "telegram",
+                "reporter_name": user.full_name or user.username,
+                "telegram_chat_id": update.effective_chat.id,
+                "created_at": {".sv": "timestamp"}
+            }
+            db.reference("needs").push(fallback_record)
+            await update.message.reply_text("⚠️ AI analysis limited, but report saved with default priority.")
+        except Exception as db_error:
+            print(f"Error saving fallback to Firebase: {db_error}")
+            await update.message.reply_text("❌ Failed to log need. Please check backend Firebase configuration.")
 
 async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
