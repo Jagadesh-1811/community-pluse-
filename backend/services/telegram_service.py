@@ -1,7 +1,7 @@
 from uuid import uuid4
-from telegram._inline import inlinequeryresultcachedvideo
 import os
 import asyncio
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from firebase_admin import db
@@ -11,6 +11,7 @@ from services.ai_service import extract_need_structure, score_urgency
 load_dotenv()
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+logger = logging.getLogger("telegram_bot")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -84,7 +85,7 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Visible on Command Center Priority Queue."
         )
     except Exception as e:
-        print(f"Error in Telegram pipeline: {e}")
+        logger.error(f"Error in Telegram pipeline: {str(e)}", exc_info=True)
         # Fallback: save with defaults even if AI fails
         try:
             fallback_record = {
@@ -94,15 +95,20 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "urgency_score": 5,
                 "status": "open",
                 "source": "telegram",
-                "reporter_name": user.full_name or user.username,
+                "reporter_name": user.full_name or user.username or "Unknown",
                 "telegram_chat_id": update.effective_chat.id,
                 "created_at": {".sv": "timestamp"}
             }
             db.reference("needs").push(fallback_record)
+            logger.warning(f"Fallback report saved for {user.username} due to AI analysis failure")
             await update.message.reply_text("⚠️ AI analysis limited, but report saved with default priority.")
         except Exception as db_error:
-            print(f"Error saving fallback to Firebase: {db_error}")
-            await update.message.reply_text("❌ Failed to log need. Please check backend Firebase configuration.")
+            logger.error(f"Error saving fallback to Firebase: {str(db_error)}", exc_info=True)
+            await update.message.reply_text(
+                f"❌ Failed to log need. Backend Firebase error:\n"
+                f"{str(db_error)[:100]}\n\n"
+                f"Contact admin or check backend configuration."
+            )
 
 async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -112,52 +118,80 @@ async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     action_text = " ".join(context.args)
     user = update.effective_user
     
-    # Prepare action record
+    # Prepare action record as a need entry with 'action' type
     action_record = {
-        "text": action_text,
-        "user": user.full_name or user.username,
-        "platform": "telegram",
-        "timestamp": {".sv": "timestamp"} # Server value for timestamp
+        "raw_text": action_text,
+        "need_type": "action",
+        "domain": "action",
+        "status": "logged",
+        "source": "telegram",
+        "reporter_name": user.full_name or user.username or "Unknown",
+        "telegram_chat_id": update.effective_chat.id,
+        "created_at": {".sv": "timestamp"},
+        "urgency_score": 3  # Low priority for actions
     }
     
     try:
-        # Push to Firebase
-        ref = db.reference("telegram_actions")
-        ref.push(action_record)
-        await update.message.reply_text(f"✅ Action Logged: {action_text}")
+        # Push to Firebase 'needs' path so it appears in dashboard
+        needs_ref = db.reference("needs")
+        if needs_ref is None:
+            logger.error("Firebase needs reference is None")
+            await update.message.reply_text("❌ Failed to log action - Backend Firebase not configured. Contact admin.")
+            return
+        
+        needs_ref.push(action_record)
+        
+        logger.info(f"✅ Action logged via Telegram from {user.username}: {action_text[:50]}...")
+        await update.message.reply_text(
+            f"✅ **Action Logged to Dashboard**\n"
+            f"━━━━━━━━━━━━━━━━━\n"
+            f"Message: {action_text}\n"
+            f"Status: Visible in Command Center"
+        )
     except Exception as e:
-        print(f"Error logging telegram action: {e}")
-        await update.message.reply_text("❌ Failed to log action to dashboard.")
+        logger.error(f"Error logging telegram action: {str(e)}", exc_info=True)
+        await update.message.reply_text(
+            f"❌ Failed to log action to dashboard.\n"
+            f"Error: {str(e)[:100]}\n\n"
+            f"Please ensure backend Firebase is properly configured."
+        )
 
 async def run_bot():
     if not TOKEN:
-        print("TELEGRAM_BOT_TOKEN not found. Telegram bot disabled.")
+        logger.warning("TELEGRAM_BOT_TOKEN not found. Telegram bot disabled.")
+        logger.warning("To enable: Set TELEGRAM_BOT_TOKEN environment variable on Render")
         return
 
-    print("Starting Telegram Bot listener...")
-    application = ApplicationBuilder().token(TOKEN).build()
-    
-    start_handler = CommandHandler('start', start)
-    action_handler = CommandHandler('action', log_action)
-    report_handler = CommandHandler('report', log_need)
-    animal_handler = CommandHandler('animal', log_need)
-    location_handler = MessageHandler(filters.LOCATION, handle_location)
-    message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
-    
-    application.add_handler(start_handler)
-    application.add_handler(action_handler)
-    application.add_handler(report_handler)
-    application.add_handler(animal_handler)
-    application.add_handler(location_handler)
-    application.add_handler(message_handler)
-    
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling()
-    
-    # Keep the bot running
-    while True:
-        await asyncio.sleep(1)
+    logger.info("🤖 Starting Telegram Bot listener...")
+    try:
+        application = ApplicationBuilder().token(TOKEN).build()
+        
+        start_handler = CommandHandler('start', start)
+        action_handler = CommandHandler('action', log_action)
+        report_handler = CommandHandler('report', log_need)
+        animal_handler = CommandHandler('animal', log_need)
+        location_handler = MessageHandler(filters.LOCATION, handle_location)
+        message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+        
+        application.add_handler(start_handler)
+        application.add_handler(action_handler)
+        application.add_handler(report_handler)
+        application.add_handler(animal_handler)
+        application.add_handler(location_handler)
+        application.add_handler(message_handler)
+        
+        await application.initialize()
+        await application.start()
+        await application.updater.start_polling()
+        
+        logger.info("✅ Telegram Bot is ACTIVE and listening for commands")
+        
+        # Keep the bot running
+        while True:
+            await asyncio.sleep(1)
+    except Exception as e:
+        logger.error(f"❌ Telegram Bot Error: {str(e)}", exc_info=True)
+        raise
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
