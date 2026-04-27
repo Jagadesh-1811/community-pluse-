@@ -13,6 +13,19 @@ load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 logger = logging.getLogger("telegram_bot")
 
+# Helper function to safely get database reference
+def get_needs_ref():
+    """Get Firebase needs reference with error handling."""
+    try:
+        ref = db.reference("needs")
+        if ref is None:
+            logger.error("Firebase reference returned None - not initialized")
+            return None
+        return ref
+    except Exception as e:
+        logger.error(f"Error getting Firebase reference: {str(e)}", exc_info=True)
+        return None
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🛡️ **COMMUNITYPULSE OPERATIONAL RULES** 🛡️\n\n"
@@ -63,13 +76,22 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "emotional_signal": scoring_data.get("emotional_signal"),
             "status": "open",
             "source": "telegram",
-            "reporter_name": user.full_name or user.username,
+            "reporter_name": user.full_name or user.username or "Unknown",
             "telegram_chat_id": update.effective_chat.id,
             "created_at": {".sv": "timestamp"}
         }
         
-        ref = db.reference("needs")
-        ref.push(need_record)
+        # Push to Firebase
+        needs_ref = get_needs_ref()
+        if needs_ref is None:
+            logger.error("Cannot get Firebase reference - Firebase may not be initialized")
+            await update.message.reply_text(
+                "❌ Failed to log report - Backend Firebase not configured.\n"
+                "Please contact admin. Backend needs TELEGRAM_BOT_TOKEN and Firebase credentials."
+            )
+            return
+        
+        needs_ref.push(need_record)
         
         urgency = need_record["urgency_score"]
         status_msg = "🔴 CRITICAL" if urgency > 7 else "🟠 STABLE" if urgency > 4 else "🟢 LOW"
@@ -99,7 +121,16 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "telegram_chat_id": update.effective_chat.id,
                 "created_at": {".sv": "timestamp"}
             }
-            db.reference("needs").push(fallback_record)
+            needs_ref = get_needs_ref()
+            if needs_ref is None:
+                logger.error("Cannot save fallback - Firebase not initialized")
+                await update.message.reply_text(
+                    "❌ Failed to save report. Backend Firebase not initialized.\n"
+                    "Contact admin - check FIREBASE_SERVICE_ACCOUNT_PATH and FIREBASE_DATABASE_URL"
+                )
+                return
+            
+            needs_ref.push(fallback_record)
             logger.warning(f"Fallback report saved for {user.username} due to AI analysis failure")
             await update.message.reply_text("⚠️ AI analysis limited, but report saved with default priority.")
         except Exception as db_error:
@@ -133,10 +164,13 @@ async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         # Push to Firebase 'needs' path so it appears in dashboard
-        needs_ref = db.reference("needs")
+        needs_ref = get_needs_ref()
         if needs_ref is None:
-            logger.error("Firebase needs reference is None")
-            await update.message.reply_text("❌ Failed to log action - Backend Firebase not configured. Contact admin.")
+            logger.error("Cannot get Firebase reference - Firebase may not be initialized")
+            await update.message.reply_text(
+                "❌ Failed to log action - Backend Firebase not configured.\n"
+                "Please contact admin to check backend deployment."
+            )
             return
         
         needs_ref.push(action_record)
@@ -152,8 +186,7 @@ async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error logging telegram action: {str(e)}", exc_info=True)
         await update.message.reply_text(
             f"❌ Failed to log action to dashboard.\n"
-            f"Error: {str(e)[:100]}\n\n"
-            f"Please ensure backend Firebase is properly configured."
+            f"Error: {str(e)[:100]}"
         )
 
 async def run_bot():
@@ -202,8 +235,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     
     # Find active need for this chat_id
-    needs_ref = db.reference("needs")
-    # In a real app, you'd use a query to filter by telegram_chat_id
+    needs_ref = get_needs_ref()
+    if needs_ref is None:
+        logger.warning(f"Cannot handle message - Firebase not initialized for chat {chat_id}")
+        await update.message.reply_text("⚠️ Backend connection issue. Please try again later.")
+        return
+    
     snapshot = needs_ref.get()
     
     active_need_id = None
@@ -219,15 +256,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if active_need_id:
         # Log to Firebase Chat
-        msg_ref = db.reference(f"messages/{active_need_id}")
-        msg_ref.push({
-            "need_id": active_need_id,
-            "sender": "reporter",
-            "text": text,
-            "created_at": {".sv": "timestamp"}
-        })
-        # Optional: Add a small confirmation reaction or message
-        # await update.message.reply_text("📤 Relayed to rescue team.")
+        try:
+            msg_ref = db.reference(f"messages/{active_need_id}")
+            if msg_ref is None:
+                logger.warning(f"Cannot log message - Firebase reference is None")
+                return
+            
+            msg_ref.push({
+                "need_id": active_need_id,
+                "sender": "reporter",
+                "text": text,
+                "created_at": {".sv": "timestamp"}
+            })
+        except Exception as e:
+            logger.error(f"Error logging message to Firebase: {str(e)}", exc_info=True)
     else:
         await update.message.reply_text("❓ No active mission found. Use `/report` to start one.")
 
@@ -256,16 +298,29 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "description": "GPS Location Shared via Telegram",
         "latitude": lat,
         "longitude": lng,
+        "lat": lat,
+        "lng": lng,
         "status": "open",
         "source": "telegram",
-        "reporter_name": user.full_name or user.username,
+        "reporter_name": user.full_name or user.username or "Unknown",
         "telegram_chat_id": update.effective_chat.id,
         "created_at": {".sv": "timestamp"},
         "urgency_score": 5 # Default for location-only ping
     }
     
-    db.reference(f"needs/{need_id}").set(need_record)
-    await update.message.reply_text(f"✅ **Location Received!**\nCoordinates: `{lat}, {lng}`\n\nOur team is monitoring this area. Please type a brief description of the emergency.")
+    try:
+        needs_ref = get_needs_ref()
+        if needs_ref is None:
+            logger.error("Cannot save location - Firebase not initialized")
+            await update.message.reply_text("❌ Failed to save location - Backend Firebase not configured.")
+            return
+        
+        needs_ref.child(need_id).set(need_record)
+        logger.info(f"✅ Location saved from {user.username}: ({lat}, {lng})")
+        await update.message.reply_text(f"✅ **Location Received!**\nCoordinates: `{lat}, {lng}`\n\nOur team is monitoring this area. Please type a brief description of the emergency.")
+    except Exception as e:
+        logger.error(f"Error saving location: {str(e)}", exc_info=True)
+        await update.message.reply_text(f"❌ Failed to save location.\nError: {str(e)[:100]}")
 
 if __name__ == "__main__":
     asyncio.run(run_bot())
