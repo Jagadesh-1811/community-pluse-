@@ -8,7 +8,6 @@
 !frontend/.env.example
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
