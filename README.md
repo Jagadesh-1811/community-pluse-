@@ -13,17 +13,18 @@ The architecture is split into two distinct operational layers:
 1. **FieldOps Portal (`/field`)**: A lightweight, highly accessible entry point for victims and on-site reporters to broadcast immediate needs.
 2. **Strategic Command Hub (`/volunteer`)**: A secure, high-stakes command center for authorized personnel, featuring real-time tactical telemetry, AI-driven priority intelligence logs, and automated dispatch tracking.
 
-## Core Capabilities & Google AI Integration
+## Core Capabilities & Integrations
 
 ### Gemini 2.0 Flash Integration
 The platform relies exclusively on **Google Gemini 2.0 Flash** as its core intelligence engine. Every piece of incoming intelligence—whether via text, voice, or Telegram—is instantly processed by Gemini to extract tactical structures (medical, shelter, animal rescue), determine human life-threat levels, and assign a standardized Urgency Score (1-10).
 
-### WebRTC Voice Agent & Natural Language Processing
-To ensure accessibility during high-stress scenarios, the system integrates a native Web Voice Agent. Victims can bypass typing entirely and speak directly into their browsers. The audio is transcribed in real-time and passed to Gemini 2.0 Flash, which dynamically converses with the caller to extract mission-critical coordinates and triage data before synthesizing a voice response and automatically dispatching the log to the command hub.
-- **PSTN Voice Line:** A traditional fallback phone number (+1 948-222-9326) is also maintained for direct dial in low-bandwidth situations.
+### WebRTC Voice Agent & Outbound Telephony (Vapi)
+To ensure accessibility during high-stress scenarios, the system integrates advanced AI Voice capabilities:
+- **Web Voice Agent:** Victims can bypass typing entirely and speak directly into their browsers. The audio is transcribed in real-time and passed to Gemini 2.0 Flash, which dynamically converses with the caller to extract mission-critical coordinates and triage data.
+
 
 ### Telegram OSINT Synchronization
-Automated intake and status updates are managed via a dedicated Telegram bot (@CPFieldBot). This allows field operatives to send encrypted, low-bandwidth reports that are seamlessly ingested, analyzed by Gemini, and synchronized to the global Firebase state.
+Automated intake and status updates are managed via a dedicated Telegram bot (`@CPFieldBot`). This allows field operatives to send encrypted, low-bandwidth reports that are seamlessly ingested, analyzed by Gemini, and synchronized to the global Firebase state.
 
 ### Real-time Telemetry & Command UI
 - **Firebase Realtime Database (RTDB)**: Powers 100% of the platform's live data flow. Every field report, mission status update, and volunteer movement is synced across the network with zero-latency.
@@ -37,39 +38,56 @@ Automated intake and status updates are managed via a dedicated Telegram bot (@C
 - **Styling**: Vanilla CSS + Tailwind CSS v4
 - **State & Auth**: Firebase Auth, Firebase RTDB
 - **Geospatial Mapping**: React-Leaflet (Leaflet.js)
-- **Voice SDK**: Vapi Web SDK
+- **Voice Integration**: Vapi Web SDK
+- **API Connectivity**: Dynamic Routing via `NEXT_PUBLIC_API_URL`
 
 ### Backend Layer
 - **Framework**: FastAPI (Python)
-- **Intelligence Engine**: Google Gemini 2.0 Flash
-- **Telephony / WebRTC**: Vapi AI 
+- **Intelligence Engine**: Google Gemini 2.0 Flash (via `google.genai`)
+- **Telephony / WebRTC**: Vapi AI REST API
 - **Database Operations**: Firebase Admin SDK
 
 ## Local Development Initialization
 
-1. **Frontend Configuration**
-   Navigate to the `frontend` directory, install dependencies, and start the Next.js development server.
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+### 1. Environment Configuration
+You must configure the `.env` variables for both directories before starting. 
 
-2. **Backend Configuration**
-   Navigate to the `backend` directory, instantiate a virtual environment, install requirements, and execute the FastAPI server.
-   ```bash
-   cd backend
-   python -m venv venv
-   # Windows Activation
-   .\venv\Scripts\Activate
-   # POSIX Activation
-   source venv/bin/activate
-   
-   pip install -r requirements.txt
-   python main.py
-   ```
+**Frontend (`frontend/.env`)**
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000 # Or your deployed backend URL
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_VAPI_PUBLIC_KEY=...
+```
 
-*(Note: Proper environment variables must be configured in your deployment platform for Firebase, Gemini, and Vapi integrations to function correctly.)*
+**Backend (`backend/.env`)**
+```env
+GEMINI_API_KEY=...
+VAPI_API_KEY=...
+FIREBASE_SERVICE_ACCOUNT_JSON=...
+```
+
+### 2. Frontend Initialization
+Navigate to the `frontend` directory, install dependencies, and start the Next.js server.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 3. Backend Initialization
+Navigate to the `backend` directory, instantiate a virtual environment, install requirements, and execute the FastAPI server.
+```bash
+cd backend
+python -m venv venv
+
+# Windows Activation
+.\venv\Scripts\Activate
+# POSIX Activation
+source venv/bin/activate
+
+pip install -r requirements.txt
+python main.py
+```
 
 ## Acknowledgments
 Developed and maintained by the contributors of the **Sparks Team** as a submission for the **Google Solution Build** and **Google AI Hackathon**.
