@@ -252,7 +252,6 @@ export default function IntakeForm({
           </div>
         </div>
 
-<<<<<<< HEAD
         <div className="space-y-3">
           <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">
             Operational Domain
@@ -261,7 +260,6 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={() => setDomain("human")}
-=======
           <div className="space-y-4">
               <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">Geospatial Tagging</label>
               <div className="grid grid-cols-2 gap-4">
