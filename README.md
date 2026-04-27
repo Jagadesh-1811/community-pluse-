@@ -1,113 +1,75 @@
-# CommunityPulse
+# CommunityPulse | Intelligent Field Coordination
 
-**Version:** 1.0.0
+**Live Deployment:** [Insert Live Link Here]  
+**Backend API Endpoint:** `https://community-pulse-api.onrender.com`
 
-Real-time crisis coordination platform enabling rapid response through AI-powered need prioritization and multi-channel communication between field reporters and volunteer coordinators.
+CommunityPulse is a high-performance, real-time coordination platform designed for rapid disaster response and tactical volunteer management. Developed by the contributors of the **Sparks Team** for the **Google Solution Build / Google AI Hackathon**, this project demonstrates the powerful integration of Google's Gemini AI models with decentralized operational gateways to bridge the critical gap between on-the-ground field reports and strategic command centers.
 
----
+## Strategic Overview
 
-## Features
+During crisis situations, information asymmetry and communication bottlenecks often cost lives. CommunityPulse eliminates these barriers by providing a seamless, multi-channel intake system that automatically categorizes, scores, and dispatches emergencies using advanced Large Language Models. 
 
-**Field Portal** (`/field`): Report needs via text, voice, Telegram, or SMS with real-time location tracking.
+The architecture is split into two distinct operational layers:
+1. **FieldOps Portal (`/field`)**: A lightweight, highly accessible entry point for victims and on-site reporters to broadcast immediate needs.
+2. **Strategic Command Hub (`/volunteer`)**: A secure, high-stakes command center for authorized personnel, featuring real-time tactical telemetry, AI-driven priority intelligence logs, and automated dispatch tracking.
 
-**Volunteer Dashboard** (`/volunteer`): AI-powered urgency scoring, interactive mapping, and status management for coordinators.
+## Core Capabilities & Google AI Integration
 
-**Multi-Channel Integration**: Voice agent (Vapi), Telegram bot, email notifications, and SMS support.
+### Gemini 2.0 Flash Integration
+The platform relies exclusively on **Google Gemini 2.0 Flash** as its core intelligence engine. Every piece of incoming intelligence—whether via text, voice, or Telegram—is instantly processed by Gemini to extract tactical structures (medical, shelter, animal rescue), determine human life-threat levels, and assign a standardized Urgency Score (1-10).
 
-**AI Intelligence**: Google Gemini 2.0 Flash for need classification, urgency assessment, and emotional signal detection.
+### WebRTC Voice Agent & Natural Language Processing
+To ensure accessibility during high-stress scenarios, the system integrates a native Web Voice Agent. Victims can bypass typing entirely and speak directly into their browsers. The audio is transcribed in real-time and passed to Gemini 2.0 Flash, which dynamically converses with the caller to extract mission-critical coordinates and triage data before synthesizing a voice response and automatically dispatching the log to the command hub.
+- **PSTN Voice Line:** A traditional fallback phone number (+1 948-222-9326) is also maintained for direct dial in low-bandwidth situations.
 
----
+### Telegram OSINT Synchronization
+Automated intake and status updates are managed via a dedicated Telegram bot (@CPFieldBot). This allows field operatives to send encrypted, low-bandwidth reports that are seamlessly ingested, analyzed by Gemini, and synchronized to the global Firebase state.
 
-## Tech Stack
+### Real-time Telemetry & Command UI
+- **Firebase Realtime Database (RTDB)**: Powers 100% of the platform's live data flow. Every field report, mission status update, and volunteer movement is synced across the network with zero-latency.
+- **Absolute Black Protocol**: The interface is hardened for field use, employing a pure black high-contrast aesthetic to ensure mission IDs and AI-decoded reports are instantly readable in direct sunlight or low-light tactical situations.
+- **Secure Tactical Handshake**: Command access requires a dual-gate security system, pairing standard Google OAuth with internal, role-specific clearance codes.
 
-| Frontend      | Backend      | AI                   | Database     |
-| ------------- | ------------ | -------------------- | ------------ |
-| Next.js 16    | FastAPI      | Gemini 2.0 Flash     | Firebase     |
-| React 19      | Python 3.10+ | Email: Firebase Auth | Telegram API |
-| TypeScript    | Uvicorn      | SMS: Available       | Vapi Voice   |
-| Tailwind v4   | Pydantic     | Ollama (fallback)    |              |
-| React-Leaflet |              |                      |              |
+## Technical Architecture
 
----
+### Frontend Layer
+- **Framework**: Next.js 16 (Turbopack)
+- **Styling**: Vanilla CSS + Tailwind CSS v4
+- **State & Auth**: Firebase Auth, Firebase RTDB
+- **Geospatial Mapping**: React-Leaflet (Leaflet.js)
+- **Voice SDK**: Vapi Web SDK
 
-## Quick Start
+### Backend Layer
+- **Framework**: FastAPI (Python)
+- **Intelligence Engine**: Google Gemini 2.0 Flash
+- **Telephony / WebRTC**: Vapi AI 
+- **Database Operations**: Firebase Admin SDK
 
-### Frontend
+## Local Development Initialization
 
-```bash
-cd frontend
-npm install
-npm run dev  # http://localhost:3000
-```
+1. **Frontend Configuration**
+   Navigate to the `frontend` directory, install dependencies, and start the Next.js development server.
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-### Backend
+2. **Backend Configuration**
+   Navigate to the `backend` directory, instantiate a virtual environment, install requirements, and execute the FastAPI server.
+   ```bash
+   cd backend
+   python -m venv venv
+   # Windows Activation
+   .\venv\Scripts\Activate
+   # POSIX Activation
+   source venv/bin/activate
+   
+   pip install -r requirements.txt
+   python main.py
+   ```
 
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py  # http://localhost:8000
-```
+*(Note: Proper environment variables must be configured in your deployment platform for Firebase, Gemini, and Vapi integrations to function correctly.)*
 
-
-
-## API Endpoints
-
-| Method | Endpoint         | Purpose               |
-| ------ | ---------------- | --------------------- |
-| POST   | `/intake`        | Submit field needs    |
-| POST   | `/status/update` | Update mission status |
-| POST   | `/notify/vapi`   | Voice agent webhook   |
-| GET    | `/health`        | Health check          |
-
----
-
-## Security
-
-- Email verification for standard users
-- 4-digit tactical code for volunteers
-- Google OAuth SSO support
-- Row-level Firebase security rules
-- TLS 1.3 encryption in transit
-- No personal data logging
-
----
-
-## Deployment
-
-### Prerequisites
-
-- Node.js 20+
-- Python 3.10+
-- Firebase project (RTDB + Auth enabled)
-- Google Generative AI API key
-- Telegram bot token (optional)
-- Vapi account (optional)
-
-### Production Checklist
-
-- [ ] Environment variables configured
-- [ ] Firebase security rules deployed
-- [ ] CORS origins restricted to production domain
-- [ ] SSL/TLS certificates installed
-- [ ] Monitoring & error tracking enabled
-- [ ] Database backups automated
-- [ ] Load testing completed
-- [ ] Security audit passed
-
----
-
-## Documentation
-
-- [Frontend Guide](frontend/README.md) - UI components and setup
-- [Backend API](backend/README.md) - API endpoints and services
-- [AI Integration](frontend/AGENTS.md) - AI agents and configuration
-
----
-
-## License
-
-Demonstration and evaluation purposes.
-
----
-
-For support, refer to component documentation.
+## Acknowledgments
+Developed and maintained by the contributors of the **Sparks Team** as a submission for the **Google Solution Build** and **Google AI Hackathon**.

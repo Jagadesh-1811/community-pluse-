@@ -39,7 +39,7 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
     domain = "animal" if "/animal" in command else "human"
     
     # Notify user that analysis is starting
-    await update.message.reply_text("🔍 Analyzing report via Ollama AI...")
+    await update.message.reply_text("🔍 Analyzing report via Tactical AI...")
 
     # AI Analysis Pipeline
     try:
@@ -216,7 +216,7 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     need_id = str(uuid4())
     need_record = {
         "id": need_id,
-        "description": " GPS Location Shared via Telegram",
+        "description": "GPS Location Shared via Telegram",
         "latitude": lat,
         "longitude": lng,
         "status": "open",

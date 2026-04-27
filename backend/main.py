@@ -226,12 +226,16 @@ async def handle_vapi_webhook(payload: VapiWebhookPayload, background_tasks: Bac
             "id": need_id,
             "raw_text": transcript,
             "description": transcript,
+            "need_type": ai_data.get("need_type", "safety"),
+            "location_name": ai_data.get("location_name", "Unknown"),
+            "people_affected": ai_data.get("people_affected"),
             "status": "open",
             "source": "voice_agent",
             "recording_url": recording_url,
             "caller_phone": payload.callerPhoneNumber,
             "urgency_score": scoring_data.get("urgency_score", 5),
-            "emotional_signal": scoring_data.get("emotional_signal"),
+            "emotional_signal": scoring_data.get("emotional_signal", "concerned"),
+            "tactical_assessment": scoring_data.get("tactical_assessment", "Voice report received."),
             "life_threat": scoring_data.get("life_threat", False),
             "created_at": {".sv": "timestamp"}
         }
