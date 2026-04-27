@@ -3,61 +3,24 @@ import json
 import httpx
 import google.generativeai as genai
 from typing import Dict, Any
-from env import load_backend_env
+from dotenv import load_dotenv
 
-load_backend_env()
+load_dotenv()
 
 # Configuration
-AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").lower() # 'gemini' or 'ollama'
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Ollama Config
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
-
-# Initialize models - with fallback
-extraction_model = None
-scoring_model = None
-
-if AI_PROVIDER == "gemini":
-    if not GEMINI_API_KEY:
-        print("WARNING: GEMINI_API_KEY not found. AI features will be limited.")
-    else:
-        try:
-            genai.configure(api_key=GEMINI_API_KEY)
-            # Use gemini-2.0-flash for both - cheaper and more reliable
-            extraction_model = genai.GenerativeModel("gemini-2.0-flash")
-            scoring_model = genai.GenerativeModel("gemini-2.0-flash")
-            print("[AI] Gemini 2.0 Flash models initialized successfully")
-        except Exception as e:
-            print(f"ERROR initializing Gemini: {e}")
-            extraction_model = None
-            scoring_model = None
+if not GEMINI_API_KEY:
+    print("WARNING: GEMINI_API_KEY not found. AI features will be limited.")
+else:
+    genai.configure(api_key=GEMINI_API_KEY)
+    # Models
+    extraction_model = genai.GenerativeModel("gemini-2.0-flash-lite")
+    scoring_model = genai.GenerativeModel("gemini-1.5-flash")
 
 async def _call_gemini(model, prompt: str) -> str:
     response = await model.generate_content_async(prompt)
     return response.text
-
-async def _call_ollama(prompt: str, response_format: str = "json") -> str:
-    url = f"{OLLAMA_BASE_URL}/api/generate"
-    payload = {
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False
-    }
-    
-    # Only force JSON if requested
-    if response_format == "json":
-        payload["format"] = "json"
-        
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        try:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
-            return response.json().get("response", "")
-        except Exception as e:
-            print(f"Ollama Proxy Error: {e}")
-            raise e
 
 async def extract_need_structure(text: str) -> Dict[str, Any]:
     """Feature 1: Extract structure from field report."""
@@ -72,13 +35,7 @@ async def extract_need_structure(text: str) -> Dict[str, Any]:
 Field report: {text}"""
     
     try:
-        if AI_PROVIDER == "ollama":
-            content = await _call_ollama(prompt)
-        elif extraction_model:
-            content = await _call_gemini(extraction_model, prompt)
-        else:
-            print("ERROR: No AI model available for extraction")
-            raise Exception("AI extraction model not initialized")
+        content = await _call_gemini(extraction_model, prompt)
             
         # Cleanup
         content = content.strip()
@@ -89,7 +46,7 @@ Field report: {text}"""
             
         return json.loads(content)
     except Exception as e:
-        print(f"Error in extraction ({AI_PROVIDER}): {e}")
+        print(f"Error in extraction (gemini): {e}")
         return {
             "need_type": "safety",
             "location_name": "Unknown",
@@ -119,13 +76,7 @@ Return ONLY valid JSON:
 Field report transcript: {raw_text}"""
     
     try:
-        if AI_PROVIDER == "ollama":
-            content = await _call_ollama(prompt)
-        elif scoring_model:
-            content = await _call_gemini(scoring_model, prompt)
-        else:
-            print("ERROR: No AI model available for scoring")
-            raise Exception("AI scoring model not initialized")
+        content = await _call_gemini(scoring_model, prompt)
             
         # Cleanup
         content = content.strip()
@@ -159,7 +110,7 @@ Field report transcript: {raw_text}"""
         
         return data
     except Exception as e:
-        print(f"Error in deep scoring ({AI_PROVIDER}): {e}")
+        print(f"Error in deep scoring (gemini): {e}")
         return {
             "urgency_score": 5,
             "emotional_signal": "concerned",
@@ -187,11 +138,8 @@ async def generate_tactical_reply(user_message: str, ai_analysis: Dict[str, Any]
     """
     
     try:
-        if AI_PROVIDER == "ollama":
-            content = await _call_ollama(prompt, response_format="text")
-        else:
-            # Re-using the scoring model for general intelligence
-            content = await _call_gemini(scoring_model, prompt)
+        # Re-using the scoring model for general intelligence
+        content = await _call_gemini(scoring_model, prompt)
             
         return content.strip().strip('"')
     except Exception as e:
