@@ -252,7 +252,6 @@ export default function IntakeForm({
           </div>
         </div>
 
-<<<<<<< HEAD
         <div className="space-y-3">
           <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">
             Operational Domain
@@ -261,74 +260,6 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={() => setDomain("human")}
-=======
-          <div className="space-y-4">
-              <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">Geospatial Tagging</label>
-              <div className="grid grid-cols-2 gap-4">
-                  <button
-                      type="button"
-                      onClick={handleDetectLocation}
-                      className={cn(
-                          "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
-                          activeLocalCoords ? "bg-(--foreground) border-(--border-color) text-(--background) shadow-inner" : "bg-(--background) border-(--border-color) text-(--foreground) hover:bg-(--foreground)/5"
-                      )}
-                  >
-                      <MapPin size={24} className={cn(activeLocalCoords ? "text-(--background)" : "group-hover:scale-110 transition-transform")} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{activeLocalCoords ? "GPS Active" : "Detect GPS"}</span>
-                  </button>
-                  <button
-                      type="button"
-                      onClick={() => onPickModeToggle?.(true)}
-                      className={cn(
-                          "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
-                          pickedLocation ? "bg-emergency/20 border-emergency/50 text-(--foreground)" : "bg-(--background) border-(--border-color) text-(--foreground) hover:bg-(--foreground)/5"
-                      )}
-                  >
-                      <Target size={24} className={cn(pickedLocation ? "text-emergency" : "group-hover:scale-110 transition-transform")} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{pickedLocation ? "Point Saved" : "Pick on Map"}</span>
-                  </button>
-              </div>
-              {activeCoords && (
-                  <div className="p-4 bg-(--background) rounded-2xl border border-(--border-color) text-center shadow-inner">
-                        <p className="text-(--foreground) font-medium uppercase text-[10px] tracking-[0.3em] mb-4">Tactical Coordinates</p>
-                        Lat: {activeCoords.lat.toFixed(6)} | Lng: {activeCoords.lng.toFixed(6)}
-                  </div>
-              )}
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-(--border-color)">
-              <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">Rapid Response Channels</label>
-              <div className="grid grid-cols-1 gap-3">
-                  <div className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) group">
-                      <div className="w-10 h-10 rounded-xl bg-(--background) border border-(--border-color) flex items-center justify-center text-emergency">
-                          <Phone size={18} />
-                      </div>
-                      <div>
-                          <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">Dial From Phone</p>
-                          <p className="text-sm font-black text-(--foreground)">+1 948-222-9326</p>
-                      </div>
-                  </div>
-                  <VoiceAgentButton />
-                  <a 
-                      href="https://t.me/CPFieldBot" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer"
-                  >
-                      <div className="w-10 h-10 rounded-xl bg-(--background) border border-(--border-color) flex items-center justify-center text-blue-500">
-                          <Send size={18} />
-                      </div>
-                      <div className="flex-1">
-                          <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">Telegram Intelligence</p>
-                          <p className="text-sm font-black text-(--foreground)">@CPFieldBot</p>
-                      </div>
-                  </a>
-              </div>
-          </div>
-
-          <button
-              disabled={isSubmitting}
->>>>>>> bc0ec7d4c71b1920c2866fd406bbaf37a571e9f9
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 domain === "human"
