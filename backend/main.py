@@ -50,14 +50,12 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Firebase verification failed: {e}")
     
-    # Telegram bot disabled for hackathon testing to avoid conflicts
-    logger.info("[BOT] Telegram Bot: DISABLED (for deployment testing)")
-    # Uncomment below for production with Telegram support
-    # try:
-    #     asyncio.create_task(run_bot())
-    #     logger.info("[BOT] Telegram Bot: ACTIVE")
-    # except Exception as e:
-    #     logger.error(f"[BOT ERROR] Telegram Bot Error: {e}")
+    # Telegram bot enabled for production deployment
+    try:
+        asyncio.create_task(run_bot())
+        logger.info("[BOT] Telegram Bot: ACTIVE (Production Mode)")
+    except Exception as e:
+        logger.error(f"[BOT ERROR] Telegram Bot Error: {e}")
 
 
 # Configure CORS based on environment
