@@ -346,19 +346,7 @@ export default function IntakeForm({
             Rapid Response Channels
           </label>
           <div className="grid grid-cols-1 gap-3">
-            <div className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) group">
-              <div className="w-10 h-10 rounded-xl bg-(--background) border border-(--border-color) flex items-center justify-center text-emergency">
-                <Phone size={18} />
-              </div>
-              <div>
-                <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">
-                  Voice Agent Line
-                </p>
-                <p className="text-sm font-black text-(--foreground)">
-                  +1948-222-9326
-                </p>
-              </div>
-            </div>
+            <VoiceAgentButton />
             <a
               href="https://t.me/CPFieldBot"
               target="_blank"

@@ -16,6 +16,7 @@ from services.telegram_service import run_bot, send_telegram_message
 from services.voice_service import trigger_emergency_call
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -26,16 +27,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="CommunityPulse API",
-    description="Real-time crisis coordination and field reporting platform",
-    version="1.0.0"
-)
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
-    Background tasks on startup.
+    Background tasks on startup and cleanup on shutdown.
     """
     environment = os.getenv("ENVIRONMENT", "development")
     logger.info(f"[STARTUP] CommunityPulse Intelligence Engine v1.0.0 starting in {environment} mode...")
@@ -56,6 +51,15 @@ async def startup_event():
         logger.info("[BOT] Telegram Bot: ACTIVE (Production Mode)")
     except Exception as e:
         logger.error(f"[BOT ERROR] Telegram Bot Error: {e}")
+        
+    yield
+
+app = FastAPI(
+    title="CommunityPulse API",
+    description="Real-time crisis coordination and field reporting platform",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 
 # Configure CORS based on environment
@@ -320,8 +324,11 @@ if __name__ == "__main__":
     import uvicorn
     
     PORT = int(os.getenv("PORT", 8000))
-    HOST = os.getenv("HOST", "0.0.0.0")
+    HOST = os.getenv("HOST")
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
     
     logger.info(f"Starting server on {HOST}:{PORT} (debug={DEBUG})")
-    uvicorn.run(app, host=HOST, port=PORT, debug=DEBUG)
+    if DEBUG:
+        uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
+    else:
+        uvicorn.run(app, host=HOST, port=PORT)
