@@ -1,6 +1,6 @@
 # CommunityPulse | Intelligent Field Coordination
 
-**Live Deployment:** [Insert Live Link Here]  
+**Live Deployment:** https://community-pluse.vercel.app/  
 **Backend API Endpoint:** `https://community-pulse-api.onrender.com`
 
 CommunityPulse is a high-performance, real-time coordination platform designed for rapid disaster response and tactical volunteer management. Developed by the contributors of the **Sparks Team** for the **Google Solution Build / Google AI Hackathon**, this project demonstrates the powerful integration of Google's Gemini AI models with decentralized operational gateways to bridge the critical gap between on-the-ground field reports and strategic command centers.
