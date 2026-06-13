@@ -274,7 +274,7 @@ export default function FieldIntakePage() {
 
             {/* Incident Request Card */}
             {selectedNeed && (
-              <div className="w-full bg-(--foreground)/5 border border-(--border-color) rounded-[2rem] p-6 flex flex-col gap-4 shadow-md">
+              <div className="w-full bg-(--foreground)/5 border border-(--border-color) rounded-4xl p-6 flex flex-col gap-4 shadow-md">
                 <div className="flex justify-between items-center border-b border-(--border-color)/30 pb-3">
                   <span className="px-3 py-1 bg-yellow/15 text-yellow rounded-full text-[10px] font-black uppercase tracking-wider border border-yellow/20">
                     {selectedNeed.need_type || 'General'}
