@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRealtimeNeeds, Need } from '@/hooks/useRealtimeNeeds';
 
 const LiveMap = dynamic(() => import('@/components/map/LiveMap'), { ssr: false });
-import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot, ChevronUp, Loader2, Mic, User } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot, ChevronUp, Loader2, Mic, User, BarChart2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { rtdb, auth } from '@/lib/firebase';
@@ -30,6 +30,31 @@ export default function Home() {
   const { user, role, domain, categories: volunteerCategories, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
+  // Dynamic Stats calculations for Analytics tab
+  const totalIncidents = needs.length;
+  const activeMissions = needs.filter(n => n.status === 'in-progress' || n.status === 'in_progress').length;
+  const resolvedMissions = needs.filter(n => n.status === 'resolved').length;
+  const pendingIncidents = needs.filter(n => !n.status || n.status === 'open').length;
+  
+  const categoriesCount = needs.reduce((acc: any, curr) => {
+    const type = curr.need_type || 'unclassified';
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const sourcesCount = needs.reduce((acc: any, curr) => {
+    const src = curr.source || 'web';
+    acc[src] = (acc[src] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const urgencyAvg = totalIncidents > 0 
+    ? (needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) / totalIncidents).toFixed(1)
+    : '0.0';
+    
+  const escalatedCount = needs.filter(n => (n as any).sla_escalated).length;
+  const clusteredCount = needs.filter(n => (n as any).is_major_incident || (n as any).parent_incident_id).length;
+
   // AUTH PROTECTION
   // Handled inline in the render block to allow dedicated volunteer authentication.
 
@@ -39,7 +64,7 @@ export default function Home() {
 
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
   const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
-  const [activeTab, setActiveTab] = useState<'map' | 'alerts' | 'dispatched' | 'resolved' | 'comms' | 'intel'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'alerts' | 'dispatched' | 'resolved' | 'comms' | 'intel' | 'analytics'>('map');
   const [manualSector, setManualSector] = useState<'all' | 'human' | 'animal'>('all');
   const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([]);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
@@ -771,6 +796,22 @@ interface TelegramAction {
                 </div>
             </div>
 
+            {/* Analytics Icon */}
+            <div className="relative group">
+                <button 
+                    onClick={() => setActiveTab('analytics')}
+                    className={cn(
+                        "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
+                        activeTab === 'analytics' ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]" : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10"
+                    )}
+                >
+                    <BarChart2 size={24} />
+                </button>
+                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
+                    Command Analytics
+                </div>
+            </div>
+
             <div className="mt-auto flex flex-col items-center gap-6">
                 <div className="relative group">
                     <button 
@@ -832,7 +873,7 @@ interface TelegramAction {
             </div>
             <div>
               <h1 className="text-4xl font-anton text-(--foreground) tracking-wide uppercase leading-none mb-1 shadow-sm">
-                  {activeTab === 'map' ? 'Operational Hub' : activeTab === 'alerts' ? 'Priority Queue' : activeTab === 'dispatched' ? 'Active Dispatch' : activeTab === 'resolved' ? 'Mission Archive' : activeTab === 'comms' ? 'AI Watch Chatbot' : activeTab === 'intel' ? 'Signals Intel' : 'Command Center'}
+                  {activeTab === 'map' ? 'Operational Hub' : activeTab === 'alerts' ? 'Priority Queue' : activeTab === 'dispatched' ? 'Active Dispatch' : activeTab === 'resolved' ? 'Mission Archive' : activeTab === 'comms' ? 'AI Watch Chatbot' : activeTab === 'intel' ? 'Signals Intel' : activeTab === 'analytics' ? 'Command Analytics' : 'Command Center'}
               </h1>
               <div className="flex items-center gap-4">
                 <p className="text-[10px] text-sage font-bold uppercase tracking-widest pl-0.5">CommunityPulse Response Network</p>
@@ -939,6 +980,7 @@ interface TelegramAction {
                           onRecenter={() => {}}
                           isManualMode={isManualMode}
                           onManualLocationSet={handleManualLocationSet}
+                          recommendedRoute={recommendationData?.polyline}
                       />
 
                       {/* Manual Mode Toggle & Status */}
@@ -1403,7 +1445,116 @@ interface TelegramAction {
                             )}
                         </div>
                    </motion.div>
-               ) : null}
+               ) : activeTab === 'analytics' ? (
+                   <motion.div 
+                       key="analytics-view"
+                       initial={{ opacity: 0, scale: 0.98 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       exit={{ opacity: 0, scale: 0.98 }}
+                       className="h-full glass rounded-[3rem] p-8 overflow-y-auto no-scrollbar shadow-2xl flex flex-col gap-8 text-(--foreground)"
+                   >
+                        <div className="flex justify-between items-center px-4">
+                            <div>
+                                <h2 className="text-3xl font-black uppercase tracking-tighter font-outfit text-white">Strategic Intelligence & Metrics</h2>
+                                <p className="text-[10px] text-sage font-black uppercase tracking-widest mt-1">Real-time Ground Operations & AI Audit Analytics</p>
+                            </div>
+                            <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center gap-3">
+                                <Activity size={16} className="text-blue-400 animate-pulse" />
+                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Real-time Telemetry Sync</span>
+                            </div>
+                        </div>
+
+                        {/* KPI Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 px-4">
+                            <div className="bg-linear-to-b from-white/5 to-transparent border border-white/10 rounded-3xl p-6 flex flex-col justify-between">
+                                <span className="text-sage text-[10px] font-black uppercase tracking-wider">Total Reports Intake</span>
+                                <span className="text-5xl font-black mt-2 font-anton tracking-wide text-white">{totalIncidents}</span>
+                            </div>
+                            <div className="bg-linear-to-b from-orange-500/10 to-transparent border border-orange-500/20 rounded-3xl p-6 flex flex-col justify-between">
+                                <span className="text-orange-400 text-[10px] font-black uppercase tracking-wider">Active Dispatched Missions</span>
+                                <span className="text-5xl font-black mt-2 font-anton tracking-wide text-orange-400">{activeMissions}</span>
+                            </div>
+                            <div className="bg-linear-to-b from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-between">
+                                <span className="text-emerald-400 text-[10px] font-black uppercase tracking-wider">Resolved Disasters</span>
+                                <span className="text-5xl font-black mt-2 font-anton tracking-wide text-emerald-400">{resolvedMissions}</span>
+                            </div>
+                            <div className="bg-linear-to-b from-red-500/10 to-transparent border border-red-500/20 rounded-3xl p-6 flex flex-col justify-between">
+                                <span className="text-red-400 text-[10px] font-black uppercase tracking-wider">Unassigned Emergencies</span>
+                                <span className="text-5xl font-black mt-2 font-anton tracking-wide text-red-400">{pendingIncidents}</span>
+                            </div>
+                        </div>
+
+                        {/* Breakdown Metrics Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 pb-20">
+                            {/* Needs Category breakdown */}
+                            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8">
+                                <h3 className="text-sm font-black uppercase tracking-wider mb-6 text-yellow">Incident Domain & Need Classification</h3>
+                                <div className="space-y-4">
+                                    {['medical', 'food', 'water', 'shelter', 'animal', 'safety', 'education', 'unclassified'].map((cat) => {
+                                        const count = categoriesCount[cat] || 0;
+                                        const percent = totalIncidents > 0 ? ((count / totalIncidents) * 100).toFixed(0) : '0';
+                                        if (count === 0 && cat !== 'medical' && cat !== 'food' && cat !== 'animal') return null;
+                                        return (
+                                            <div key={cat} className="space-y-2">
+                                                <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                                                    <span className="text-sage">{cat}</span>
+                                                    <span>{count} ({percent}%)</span>
+                                                </div>
+                                                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-yellow transition-all duration-500" 
+                                                        style={{ width: `${percent}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Response Channels Breakdown */}
+                            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 flex flex-col justify-between gap-6">
+                                <div>
+                                    <h3 className="text-sm font-black uppercase tracking-wider mb-6 text-blue-400">Intake Channels Distribution</h3>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        {['web', 'voice_agent', 'telegram', 'whatsapp'].map((src) => {
+                                            const count = sourcesCount[src] || 0;
+                                            const percent = totalIncidents > 0 ? ((count / totalIncidents) * 100).toFixed(0) : '0';
+                                            return (
+                                                <div key={src} className="bg-black/30 border border-white/5 rounded-2xl p-5 flex flex-col justify-between">
+                                                    <span className="text-sage text-[10px] font-black uppercase tracking-wider">{src.replace('_', ' ')}</span>
+                                                    <div className="flex justify-between items-end mt-4">
+                                                        <span className="text-2xl font-anton text-white">{count}</span>
+                                                        <span className="text-[10px] text-sage font-black">{percent}%</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* AI Ops Telemetry */}
+                                <div className="border-t border-white/10 pt-6">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-sage mb-4">Autonomous AI Operations Telemetry</h4>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <span className="text-[8px] font-black uppercase tracking-wider text-sage">Avg Urgency Index</span>
+                                            <div className="text-lg font-black mt-1 text-white font-mono">{urgencyAvg}/10</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <span className="text-[8px] font-black uppercase tracking-wider text-sage">SLA Escalations</span>
+                                            <div className="text-lg font-black mt-1 text-indigo-400 font-mono">{escalatedCount}</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <span className="text-[8px] font-black uppercase tracking-wider text-sage">Clustered Events</span>
+                                            <div className="text-lg font-black mt-1 text-emerald-400 font-mono">{clusteredCount}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                   </motion.div>
+                ) : null}
           </AnimatePresence>
 
           <AnimatePresence>

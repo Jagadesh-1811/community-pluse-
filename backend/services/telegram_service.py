@@ -36,9 +36,65 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/report [desc]` - Human Health Need (Medical/Food/Shelter)\n"
         "• `/animal [desc]` - Animal Health Need (Vet/Rescue)\n"
         "• `/action [msg]` - Log a field update/status\n"
+        "• `/accept [need_id]` - Accept mission status\n"
+        "• `/resolve [need_id]` - Mark mission resolved\n"
         "• `/status` - Check system connectivity\n\n"
         "Example: `/report 10 people trapped in building sector 4`"
     )
+
+async def accept_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Usage: /accept [incident_id]")
+        return
+    incident_id = context.args[0]
+    try:
+        need_ref = db.reference(f"needs/{incident_id}")
+        need = need_ref.get()
+        if not need:
+            await update.message.reply_text(f"❌ Incident ID `{incident_id}` not found.")
+            return
+        
+        need_ref.update({"status": "in-progress"})
+        await update.message.reply_text(f"✅ Mission accepted for Incident ID `{incident_id}`. Status set to IN-PROGRESS.")
+        
+        # Log to message feed
+        db.reference(f"messages/{incident_id}").push({
+            "need_id": incident_id,
+            "type": "telegram_update",
+            "body": f"Volunteer accepted incident via Telegram bot command.",
+            "status": "sent",
+            "created_at": {".sv": "timestamp"}
+        })
+    except Exception as e:
+        logger.error(f"Error accepting need in Telegram: {e}")
+        await update.message.reply_text(f"❌ Error updating incident: {str(e)}")
+
+async def resolve_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Usage: /resolve [incident_id]")
+        return
+    incident_id = context.args[0]
+    try:
+        need_ref = db.reference(f"needs/{incident_id}")
+        need = need_ref.get()
+        if not need:
+            await update.message.reply_text(f"❌ Incident ID `{incident_id}` not found.")
+            return
+        
+        need_ref.update({"status": "resolved"})
+        await update.message.reply_text(f"✅ Mission resolved for Incident ID `{incident_id}`. Status set to RESOLVED.")
+        
+        # Log to message feed
+        db.reference(f"messages/{incident_id}").push({
+            "need_id": incident_id,
+            "type": "telegram_update",
+            "body": f"Volunteer marked incident as resolved via Telegram bot command.",
+            "status": "sent",
+            "created_at": {".sv": "timestamp"}
+        })
+    except Exception as e:
+        logger.error(f"Error resolving need in Telegram: {e}")
+        await update.message.reply_text(f"❌ Error updating incident: {str(e)}")
 
 async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -203,6 +259,8 @@ async def run_bot():
         action_handler = CommandHandler('action', log_action)
         report_handler = CommandHandler('report', log_need)
         animal_handler = CommandHandler('animal', log_need)
+        accept_handler = CommandHandler('accept', accept_need)
+        resolve_handler = CommandHandler('resolve', resolve_need)
         location_handler = MessageHandler(filters.LOCATION, handle_location)
         message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
         
@@ -210,6 +268,8 @@ async def run_bot():
         application.add_handler(action_handler)
         application.add_handler(report_handler)
         application.add_handler(animal_handler)
+        application.add_handler(accept_handler)
+        application.add_handler(resolve_handler)
         application.add_handler(location_handler)
         application.add_handler(message_handler)
         

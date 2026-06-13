@@ -41,6 +41,92 @@ export default function IntakeForm({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsOffline(!navigator.onLine);
+      
+      const handleOnline = () => {
+        setIsOffline(false);
+        flushOfflineQueue();
+      };
+      const handleOffline = () => {
+        setIsOffline(true);
+      };
+      
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
+
+  const flushOfflineQueue = async () => {
+    const queueStr = localStorage.getItem("communitypulse_offline_queue");
+    if (!queueStr) return;
+    try {
+      const queue = JSON.parse(queueStr);
+      if (queue.length === 0) return;
+      console.log(`Flushing ${queue.length} offline reports...`);
+      
+      const remaining: any[] = [];
+      for (const item of queue) {
+        try {
+          let response;
+          if (item.image_base64) {
+            const blob = await fetch(item.image_base64).then(r => r.blob());
+            const file = new File([blob], item.image_name || "offline_upload.jpg", { type: blob.type });
+            const formData = new FormData();
+            formData.append("text", item.text);
+            formData.append("source", item.source);
+            formData.append("phone", item.phone || "");
+            formData.append("lat", String(item.lat));
+            formData.append("lng", String(item.lng));
+            formData.append("domain", item.domain);
+            formData.append("reporter_email", item.reporter_email || "");
+            formData.append("image", file);
+            
+            response = await fetch(`${apiBaseUrl}/intake/image`, {
+              method: "POST",
+              body: formData,
+            });
+          } else {
+            response = await fetch(`${apiBaseUrl}/intake`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text: item.text,
+                source: item.source,
+                phone: item.phone,
+                lat: parseFloat(item.lat),
+                lng: parseFloat(item.lng),
+                domain: item.domain,
+                reporter_email: item.reporter_email,
+              }),
+            });
+          }
+          if (!response.ok) {
+            remaining.push(item);
+          }
+        } catch (err) {
+          console.error("Failed to sync offline item:", err);
+          remaining.push(item);
+        }
+      }
+      if (remaining.length > 0) {
+        localStorage.setItem("communitypulse_offline_queue", JSON.stringify(remaining));
+      } else {
+        localStorage.removeItem("communitypulse_offline_queue");
+        alert("✅ All offline reports have been synchronized with the command center!");
+      }
+    } catch (e) {
+      console.error("Error flushing queue", e);
+    }
+  };
+
   const [internalLocalCoords, setInternalLocalCoords] = useState<{
     lat: number;
     lng: number;
@@ -207,6 +293,45 @@ export default function IntakeForm({
       // Validate report text is not empty
       if (!report.trim()) {
         alert("Please describe the situation.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (typeof window !== "undefined" && !navigator.onLine) {
+        let imageBase64: string | null = null;
+        if (selectedImage && imagePreview) {
+          imageBase64 = imagePreview;
+        }
+        
+        const offlineReport = {
+          id: `offline-${Date.now()}`,
+          text: report,
+          source: webrtcConversation.length > 0 ? "voice_agent" : "web",
+          phone: phone || null,
+          lat: lat,
+          lng: lng,
+          domain: domain,
+          reporter_email: user?.email || null,
+          image_base64: imageBase64,
+          image_name: selectedImage?.name || null,
+          created_at: Date.now()
+        };
+        
+        const queueStr = localStorage.getItem("communitypulse_offline_queue");
+        const queue = queueStr ? JSON.parse(queueStr) : [];
+        queue.push(offlineReport);
+        localStorage.setItem("communitypulse_offline_queue", JSON.stringify(queue));
+        
+        alert("⚠️ OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.");
+        
+        setReport("");
+        setPhone("");
+        setSelectedImage(null);
+        setImagePreview(null);
+        setWebrtcConversation([]);
+        updateLocalCoords(null);
+        if (onPickModeToggle) onPickModeToggle(false);
+        if (onClose) onClose();
         setIsSubmitting(false);
         return;
       }

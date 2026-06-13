@@ -293,6 +293,7 @@ Generate automated response message for reporters.
 - Bot message receiving and routing
 - Status update message formatting
 - Automated response generation
+- **Volunteer Commands**: Supports `/accept <incident_id>` and `/resolve <incident_id>` commands to update Firebase status directly.
 
 ### Voice Service (`services/voice_service.py`)
 

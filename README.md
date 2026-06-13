@@ -34,6 +34,7 @@ The platform relies on **Google Gemini Flash** as its core intelligence engine. 
 ### Intelligent Volunteer Recommendation (Google Routes API)
 - **Traffic-Aware Dispatch**: The dispatcher panel queries the Google Routes API to calculate exact distances and real-time, traffic-aware travel durations for all available volunteers relative to the incident.
 - **Gemini Selector Reasoning**: Passes the telemetry, sector match capabilities, and travel times to Gemini to choose the optimal volunteer and generate dispatcher justification notes.
+- **Real-Time Map Navigation Route Rendering (New)**: Decodes and draws the exact travel path polyline on the Leaflet map from the volunteer's current coordinates directly to the incident.
 
 ### WebRTC Voice Agent & Outbound Telephony (Vapi)
 To ensure accessibility during high-stress scenarios, the system integrates advanced AI Voice capabilities:
@@ -56,12 +57,17 @@ To ensure accessibility during high-stress scenarios, the system integrates adva
 
 ### Telegram OSINT Synchronization
 Automated intake and status updates are managed via a dedicated Telegram bot (`@CPFieldBot`). This allows field operatives to send encrypted, low-bandwidth reports that are seamlessly ingested, analyzed by Gemini, and synchronized to the global Firebase state.
+- **Chat-Ops Volunteer Status Controls (New)**: Responders can reply to dispatches directly inside Telegram using `/accept <incident_id>` and `/resolve <incident_id>` commands to update Firebase states and log audit feeds.
+
+### FieldOps Offline Intake Queue (New)
+- **localStorage Client Cache**: If a field reporter submits an incident while offline, it caches the coordinates, descriptions, and photo previews locally. When network is restored, it auto-flushes/syncs the reports.
 
 ### Real-time Telemetry & Command UI
 - **Firebase Realtime Database (RTDB)**: Powers 100% of the platform's live data flow. Every field report, mission status update, and volunteer movement is synced across the network with zero-latency.
 - **Volunteer Capability Filtering**: The volunteer command hub automatically filters the live report alert stream based on the logged-in volunteer's assigned categories (e.g. food, water, medical) to keep dispatches highly targeted.
 - **Audit Logging & Live Communications Feed**: Outbound dispatches and status updates trigger structured logs written to the database `/messages/` collection, instantly populating the **Comms Hub** tab.
 - **Absolute Black Protocol**: The interface is hardened for field use, employing a pure black high-contrast aesthetic to ensure mission IDs and AI-decoded reports are instantly readable in direct sunlight or low-light tactical situations.
+- **Command Analytics Dashboard (New)**: A real-time data statistics center summarizing ground operation metrics, dynamic counts of incidents (total, active, resolved, unassigned), incident domain classifications, intake channel distribution, and autonomous AI-operation metrics.
 - **Secure Tactical Handshake**: Command access requires a dual-gate security system, pairing standard Google OAuth with internal, role-specific clearance codes.
 
 ## Technical Architecture

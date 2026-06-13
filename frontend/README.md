@@ -132,18 +132,19 @@ npm start
 ### Volunteer Dashboard
 
 - Real-time incoming needs list with urgency scoring
-- Interactive map showing need locations
+- Interactive map showing need locations and **Real-time Navigation Routes** (renders traffic-aware polylines from the selected volunteer to the target need coordinate)
 - Volunteer position tracking
 - Priority sorting based on AI urgency assessment
 - Status update interface for dispatch and resolution
 - Communication log
+- **Command Analytics**: Real-time stats widgets on intake rates, channel splits, domain metrics, and SLA operational telemetries
 
-### Real-time Synchronization
+### Real-time Synchronization & Offline Support
 
 - Firebase Realtime Database integration for live updates
 - Automatic UI refresh on data changes
 - Optimistic updates for better UX
-- Offline support with sync on reconnection
+- **FieldOps Offline Intake Queue**: Submissions made offline are automatically cached in browser local queue and flushed/synced with backend once connectivity returns.
 
 ---
 

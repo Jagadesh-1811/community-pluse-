@@ -505,9 +505,34 @@ Text report context: {text_report}"""
             "vision_assessment": f"AI vision pipeline bypassed. Heuristic triage active: {h_data.get('tactical_assessment')}",
         }
 
+def decode_polyline(polyline_str: str) -> list:
+    """Decodes a Google encoded polyline string into a list of [lat, lng] coordinates."""
+    index, lat, lng = 0, 0, 0
+    coordinates = []
+    changes = {'latitude': 0, 'longitude': 0}
+    
+    try:
+        while index < len(polyline_str):
+            for unit in ['latitude', 'longitude']:
+                shift, result = 0, 0
+                while True:
+                    byte = ord(polyline_str[index]) - 63
+                    index += 1
+                    result |= (byte & 0x1f) << shift
+                    shift += 5
+                    if not (byte & 0x20):
+                        break
+                change = ~(result >> 1) if (result & 1) else (result >> 1)
+                changes[unit] += change
+
+            coordinates.append([changes['latitude'] / 1e5, changes['longitude'] / 1e5])
+    except Exception:
+        pass
+    return coordinates
+
 async def get_route_metrics(origin_lat: float, origin_lng: float, dest_lat: float, dest_lng: float, api_key: str) -> Dict[str, Any]:
     """
-    Calls Google Routes API to get distance (meters) and duration (seconds) with real-time traffic info.
+    Calls Google Routes API to get distance (meters), duration (seconds), and polyline details.
     If the API call fails or key is missing, falls back to haversine distance + speed estimation.
     """
     import httpx
@@ -519,7 +544,7 @@ async def get_route_metrics(origin_lat: float, origin_lng: float, dest_lat: floa
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters"
+        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline"
     }
     
     body = {
@@ -560,10 +585,14 @@ async def get_route_metrics(origin_lat: float, origin_lng: float, dest_lat: floa
                     else:
                         duration_seconds = float(duration_str)
                         
+                    encoded_polyline = route.get("polyline", {}).get("encodedPolyline")
+                    polyline_coords = decode_polyline(encoded_polyline) if encoded_polyline else [[origin_lat, origin_lng], [dest_lat, dest_lng]]
+                    
                     return {
                         "distance_km": round(distance_meters / 1000.0, 2),
                         "duration_min": round(duration_seconds / 60.0, 1),
-                        "source": "Google Routes API (Real-Time Traffic)"
+                        "source": "Google Routes API (Real-Time Traffic)",
+                        "polyline": polyline_coords
                     }
     except Exception as e:
         print(f"[AI] Google Routes API error: {e}. Falling back to haversine.")
@@ -589,7 +618,8 @@ def haversine_fallback(lat1, lon1, lat2, lon2) -> Dict[str, Any]:
     return {
         "distance_km": round(distance_km, 2),
         "duration_min": round(duration_min, 1),
-        "source": "Haversine Geodesic (30km/h Base Speed Estimate)"
+        "source": "Haversine Heuristic (Calculated)",
+        "polyline": [[lat1, lon1], [lat2, lon2]]
     }
 
 async def recommend_best_volunteer(
@@ -625,7 +655,8 @@ async def recommend_best_volunteer(
             "status": vol_data.get("status", "available"),
             "distance_km": metrics["distance_km"],
             "duration_min": metrics["duration_min"],
-            "route_source": metrics["source"]
+            "route_source": metrics["source"],
+            "polyline": metrics.get("polyline")
         })
         
     if not enriched_volunteers:
@@ -674,6 +705,7 @@ Return ONLY valid JSON:
             result["distance_km"] = best_vol["distance_km"]
             result["duration_min"] = best_vol["duration_min"]
             result["route_source"] = best_vol["route_source"]
+            result["polyline"] = best_vol.get("polyline")
             
         return result
     except Exception as e:
@@ -686,6 +718,7 @@ Return ONLY valid JSON:
             "distance_km": best_vol["distance_km"],
             "duration_min": best_vol["duration_min"],
             "route_source": best_vol["route_source"],
+            "polyline": best_vol.get("polyline"),
             "reasoning": f"Fallback selection: {best_vol['name']} was selected using distance estimation due to AI dispatch system timeout."
         }
 

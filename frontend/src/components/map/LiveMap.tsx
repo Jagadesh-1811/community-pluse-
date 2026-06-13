@@ -20,12 +20,13 @@ interface LiveMapProps {
   recenterTrigger?: number; // increment to trigger re-center
   isManualMode?: boolean;
   onManualLocationSet?: (lat: number, lng: number) => void;
+  recommendedRoute?: [number, number][] | null;
 }
 
 // 1. Create a "Map Inner" component that handles the actual hooks
 // This needs to be a separate component so useMapEvents can access MapContainer context
 const MapInner = (props: LiveMapProps & { L: any }) => {
-  const { needs, onMarkerClick, isPickingLocation, onLocationPick, pickedLocation, volunteerLocation, focusNeed, recenterTrigger, isManualMode, onManualLocationSet, L } = props;
+  const { needs, onMarkerClick, isPickingLocation, onLocationPick, pickedLocation, volunteerLocation, focusNeed, recenterTrigger, isManualMode, onManualLocationSet, recommendedRoute, L } = props;
 
   const map = useMap();
   const hasFlownToVolunteer = useRef(false);
@@ -188,14 +189,15 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
         </>
       )}
 
-      {/* Active Focus Route: bright orange line from Volunteer → Selected Need */}
-      {volunteerLocation && focusNeed?.lat && focusNeed?.lng && (
+      {/* Active Focus Route: bright orange line from Volunteer → Selected Need (or Google Routes path) */}
+      {((recommendedRoute && recommendedRoute.length > 0) || (volunteerLocation && focusNeed?.lat && focusNeed?.lng)) && (
           <Polyline 
-              key={`focus-route-${focusNeed.id}`}
-              positions={[
-                  [volunteerLocation.lat, volunteerLocation.lng], 
-                  [focusNeed.lat, focusNeed.lng]
-              ]}
+              key={`focus-route-${focusNeed?.id || 'rec'}`}
+              positions={
+                  recommendedRoute && recommendedRoute.length > 0
+                      ? recommendedRoute
+                      : [[volunteerLocation!.lat, volunteerLocation!.lng], [focusNeed!.lat!, focusNeed!.lng!]]
+              }
               pathOptions={{ 
                   color: '#FF4D00', 
                   weight: 4, 
