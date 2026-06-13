@@ -35,11 +35,15 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
   // Notify parent on conversation updates safely using a ref
   const onConversationUpdateRef = useRef(onConversationUpdate);
   const onCallEndRef = useRef(onCallEnd);
+  const onTranscriptUpdateRef = useRef(onTranscriptUpdate);
+  const onAiResponseUpdateRef = useRef(onAiResponseUpdate);
 
   useEffect(() => {
     onConversationUpdateRef.current = onConversationUpdate;
     onCallEndRef.current = onCallEnd;
-  }, [onConversationUpdate, onCallEnd]);
+    onTranscriptUpdateRef.current = onTranscriptUpdate;
+    onAiResponseUpdateRef.current = onAiResponseUpdate;
+  }, [onConversationUpdate, onCallEnd, onTranscriptUpdate, onAiResponseUpdate]);
 
   useEffect(() => {
     onConversationUpdateRef.current?.(conversation);
@@ -74,7 +78,8 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
       onCallEndRef.current?.(conversationRef.current);
     });
 
-    vapi.on("message", (msg: any) => {
+    vapi.on("message", (rawMsg: unknown) => {
+      const msg = rawMsg as { type?: string; transcriptType?: string; transcript?: string; role?: string } | null;
       // Capture final (non-partial) transcripts for both user and assistant
       if (msg && msg.type === "transcript" && msg.transcriptType === "final") {
         const text = typeof msg.transcript === "string" ? msg.transcript.trim() : "";
@@ -82,14 +87,14 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
 
         if (msg.role === "user") {
           // Forward user speech to the report textarea
-          onTranscriptUpdate?.(text);
+          onTranscriptUpdateRef.current?.(text);
           setConversation((prev) => [
             ...prev,
             { role: "user", text, timestamp: Date.now() },
           ]);
         } else if (msg.role === "assistant") {
           // ✅ FIX: Capture and display the AI agent's responses
-          onAiResponseUpdate?.(text);
+          onAiResponseUpdateRef.current?.(text);
           setConversation((prev) => [
             ...prev,
             { role: "assistant", text, timestamp: Date.now() },
@@ -99,19 +104,20 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
     });
 
     // Suppress {} noise — real errors are caught in the preflight fetch below
-    vapi.on("error", (e: any) => {
+    vapi.on("error", (e: unknown) => {
+      const err = e as { message?: string; type?: string; error?: unknown } | null;
       // Only log if the object actually has content
       const hasContent =
-        e &&
-        typeof e === "object" &&
-        (typeof e.message === "string" ||
-          typeof e.type === "string" ||
-          typeof e.error === "object");
+        err &&
+        typeof err === "object" &&
+        (typeof err.message === "string" ||
+          typeof err.type === "string" ||
+          typeof err.error === "object");
 
       if (hasContent) {
         const msg =
-          (typeof e.message === "string" ? e.message : null) ||
-          (typeof e.type === "string" ? e.type : null) ||
+          (typeof err.message === "string" ? err.message : null) ||
+          (typeof err.type === "string" ? err.type : null) ||
           "Voice agent error";
         setErrorMsg(msg);
       }
@@ -197,6 +203,7 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
       }
       // Preflight succeeded — credentials are valid, proceed to vapi.start() below
     } catch (networkErr) {
+      console.error("Vapi preflight network error:", networkErr);
       setErrorMsg(
         "Network error: Could not reach Vapi API. Check your internet connection."
       );
@@ -207,10 +214,11 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
     // 3. Start the Vapi call — credentials already validated by preflight above
     try {
       await vapiRef.current?.start(assistantId);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       const msg =
-        typeof err?.message === "string" && err.message.length > 0
-          ? err.message
+        typeof error?.message === "string" && error.message.length > 0
+          ? error.message
           : "Failed to start voice call. Please try again.";
       setErrorMsg(msg);
       setIsConnecting(false);

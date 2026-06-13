@@ -10,6 +10,10 @@ import { useAuth } from "@/lib/auth-context";
 
 
 
+import Image from "next/image";
+import { useCallback } from "react";
+import { ConversationEntry } from "@/hooks/useRealtimeNeeds";
+
 interface IntakeFormProps {
   pickedLocation?: { lat: number; lng: number } | null;
   onPickModeToggle?: (active: boolean) => void;
@@ -18,6 +22,20 @@ interface IntakeFormProps {
   onRefresh?: (needId?: string, aiHeading?: string) => void;
   localCoords?: { lat: number; lng: number } | null;
   setLocalCoords?: (coords: { lat: number; lng: number } | null) => void;
+}
+
+interface OfflineReport {
+  id: string;
+  text: string;
+  source: string;
+  phone: string | null;
+  lat: number;
+  lng: number;
+  domain: string;
+  reporter_email: string | null;
+  image_base64: string | null;
+  image_name: string | null;
+  created_at: number;
 }
 
 export default function IntakeForm({
@@ -37,42 +55,19 @@ export default function IntakeForm({
   const [phone, setPhone] = useState("");
   const [domain, setDomain] = useState<"human" | "animal">("human");
   const [glitchingDomain, setGlitchingDomain] = useState<"human" | "animal" | null>(null);
-  const [webrtcConversation, setWebrtcConversation] = useState<any[]>([]);
+  const [webrtcConversation, setWebrtcConversation] = useState<ConversationEntry[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const [isOffline, setIsOffline] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsOffline(!navigator.onLine);
-      
-      const handleOnline = () => {
-        setIsOffline(false);
-        flushOfflineQueue();
-      };
-      const handleOffline = () => {
-        setIsOffline(true);
-      };
-      
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-      return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-      };
-    }
-  }, []);
-
-  const flushOfflineQueue = async () => {
+  const flushOfflineQueue = useCallback(async () => {
     const queueStr = localStorage.getItem("communitypulse_offline_queue");
     if (!queueStr) return;
     try {
-      const queue = JSON.parse(queueStr);
+      const queue = JSON.parse(queueStr) as OfflineReport[];
       if (queue.length === 0) return;
       console.log(`Flushing ${queue.length} offline reports...`);
       
-      const remaining: any[] = [];
+      const remaining: OfflineReport[] = [];
       for (const item of queue) {
         try {
           let response;
@@ -101,8 +96,8 @@ export default function IntakeForm({
                 text: item.text,
                 source: item.source,
                 phone: item.phone,
-                lat: parseFloat(item.lat),
-                lng: parseFloat(item.lng),
+                lat: parseFloat(String(item.lat)),
+                lng: parseFloat(String(item.lng)),
                 domain: item.domain,
                 reporter_email: item.reporter_email,
               }),
@@ -125,7 +120,20 @@ export default function IntakeForm({
     } catch (e) {
       console.error("Error flushing queue", e);
     }
-  };
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const handleOnline = () => {
+        flushOfflineQueue();
+      };
+      
+      window.addEventListener("online", handleOnline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+      };
+    }
+  }, [flushOfflineQueue]);
 
   const [internalLocalCoords, setInternalLocalCoords] = useState<{
     lat: number;
@@ -190,7 +198,7 @@ export default function IntakeForm({
     );
   };
 
-  const handleVoiceCallEnd = async (conversation: any[]) => {
+  const handleVoiceCallEnd = async (conversation: ConversationEntry[]) => {
     if (!conversation || conversation.length === 0) return;
 
     // Filter to retrieve user's dialogue and construct full report text
@@ -536,9 +544,12 @@ export default function IntakeForm({
             </label>
           ) : (
             <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-(--border-color) bg-black/40">
-              <img
+              <Image
                 src={imagePreview}
                 alt="Upload preview"
+                width={368}
+                height={207}
+                unoptimized
                 className="w-full h-full object-cover"
               />
             </div>

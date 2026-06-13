@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRealtimeNeeds, Need } from '@/hooks/useRealtimeNeeds';
+import Image from 'next/image';
 
 const LiveMap = dynamic(() => import('@/components/map/LiveMap'), { ssr: false });
 import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot, ChevronUp, Loader2, Mic, User, BarChart2 } from 'lucide-react';
@@ -19,7 +20,6 @@ import {
 import { Mail, Key, ArrowRight, Shield } from 'lucide-react';
 import ChatPanel from '@/components/chat/ChatPanel';
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
 
 
 export default function Home() {
@@ -28,7 +28,7 @@ export default function Home() {
     'http://localhost:8000';
   const { needs, loading: needsLoading, refresh } = useRealtimeNeeds();
   const { user, role, domain, categories: volunteerCategories, loading: authLoading, signOut } = useAuth();
-  const router = useRouter();
+  const [now] = useState(() => Date.now());
 
   // Dynamic Stats calculations for Analytics tab
   const totalIncidents = needs.length;
@@ -36,13 +36,13 @@ export default function Home() {
   const resolvedMissions = needs.filter(n => n.status === 'resolved').length;
   const pendingIncidents = needs.filter(n => !n.status || n.status === 'open').length;
   
-  const categoriesCount = needs.reduce((acc: any, curr) => {
+  const categoriesCount = needs.reduce((acc: Record<string, number>, curr) => {
     const type = curr.need_type || 'unclassified';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
   
-  const sourcesCount = needs.reduce((acc: any, curr) => {
+  const sourcesCount = needs.reduce((acc: Record<string, number>, curr) => {
     const src = curr.source || 'web';
     acc[src] = (acc[src] || 0) + 1;
     return acc;
@@ -52,8 +52,8 @@ export default function Home() {
     ? (needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) / totalIncidents).toFixed(1)
     : '0.0';
     
-  const escalatedCount = needs.filter(n => (n as any).sla_escalated).length;
-  const clusteredCount = needs.filter(n => (n as any).is_major_incident || (n as any).parent_incident_id).length;
+  const escalatedCount = needs.filter(n => n.sla_escalated).length;
+  const clusteredCount = needs.filter(n => n.is_major_incident || n.parent_incident_id).length;
 
   // AUTH PROTECTION
   // Handled inline in the render block to allow dedicated volunteer authentication.
@@ -61,6 +61,15 @@ export default function Home() {
 
 
 
+
+  interface DispatchRecommendation {
+    volunteer_name?: string;
+    route_source?: string;
+    distance_km?: string | number;
+    duration_min?: string | number;
+    reasoning?: string;
+    polyline?: [number, number][];
+  }
 
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
   const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
@@ -72,7 +81,7 @@ export default function Home() {
   const [selectedSourceFilter, setSelectedSourceFilter] = useState<'all' | 'voice_agent' | 'telegram' | 'web'>('all');
   const [selectedDateFilter, setSelectedDateFilter] = useState<'all' | 'today' | '24h' | '7d'>('all');
   const [recommendationLoading, setRecommendationLoading] = useState(false);
-  const [recommendationData, setRecommendationData] = useState<any>(null);
+  const [recommendationData, setRecommendationData] = useState<DispatchRecommendation | null>(null);
   const [recommendationError, setRecommendationError] = useState<string | null>(null);
 
 
@@ -94,7 +103,7 @@ export default function Home() {
   useEffect(() => {
     const categoriesRef = ref(rtdb, 'categories');
     const unsubscribe = onValue(categoriesRef, (snapshot) => {
-      const list: any[] = [];
+      const list: { id: string; name: string; color: string }[] = [];
       snapshot.forEach((child) => {
         list.push({ id: child.key!, ...child.val() });
       });
@@ -300,9 +309,10 @@ interface TelegramAction {
           } else {
               throw new Error("Invalid response from dispatch recommendation service.");
           }
-      } catch (err: any) {
-          console.error("Failed to fetch volunteer recommendation:", err);
-          setRecommendationError(err.message || "Failed to load recommendation.");
+      } catch (err: unknown) {
+          const error = err as Error;
+          console.error("Failed to fetch volunteer recommendation:", error);
+          setRecommendationError(error.message || "Failed to load recommendation.");
       } finally {
           setRecommendationLoading(false);
       }
@@ -421,7 +431,6 @@ interface TelegramAction {
 
     // 4. Date & Time Filter
     if (selectedDateFilter !== 'all') {
-      const now = Date.now();
       const createdAt = need.created_at || 0;
       if (selectedDateFilter === 'today') {
         const todayStart = new Date().setHours(0,0,0,0);
@@ -480,8 +489,9 @@ interface TelegramAction {
       });
 
       setVerificationSent(true);
-    } catch (err: any) {
-      setAuthError(err.message || "Failed to create Volunteer account");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setAuthError(error.message || "Failed to create Volunteer account");
     } finally {
       setLocalAuthLoading(false);
     }
@@ -514,8 +524,9 @@ interface TelegramAction {
         await firebaseSignOut(auth);
         setAuthError("ACCESS DENIED: This account is not registered as a volunteer.");
       }
-    } catch (err: any) {
-      setAuthError(err.message || "Invalid credentials");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setAuthError(error.message || "Invalid credentials");
     } finally {
       setLocalAuthLoading(false);
     }
@@ -1108,7 +1119,7 @@ interface TelegramAction {
                               ].map((opt) => (
                                   <button
                                       key={opt.value}
-                                      onClick={() => setSelectedDateFilter(opt.value as any)}
+                                      onClick={() => setSelectedDateFilter(opt.value as 'all' | 'today' | '24h' | '7d')}
                                       className={cn(
                                           "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
                                           selectedDateFilter === opt.value
@@ -1132,7 +1143,7 @@ interface TelegramAction {
                               ].map((opt) => (
                                   <button
                                       key={opt.value}
-                                      onClick={() => setSelectedSourceFilter(opt.value as any)}
+                                      onClick={() => setSelectedSourceFilter(opt.value as 'all' | 'voice_agent' | 'telegram' | 'web')}
                                       className={cn(
                                           "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
                                           selectedSourceFilter === opt.value
@@ -1163,17 +1174,17 @@ interface TelegramAction {
                                            )}>
                                                {need.urgency_score >= 8 ? 'CRITICAL' : need.urgency_score >= 5 ? 'URGENT' : 'STABLE'}
                                            </div>
-                                           {(need as any).is_major_incident && (
+                                           {need.is_major_incident && (
                                                <span className="px-2 py-0.5 bg-red-500/25 text-red-400 text-[8px] font-black rounded uppercase tracking-widest border border-red-500/50 animate-pulse self-start">
                                                    ⚠️ MAJOR CLUSTER
                                                </span>
                                            )}
-                                           {(need as any).child_reports_count > 0 && (
+                                           {need.child_reports_count !== undefined && need.child_reports_count > 0 && (
                                                <span className="px-2 py-0.5 bg-amber-500/25 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/50 self-start">
-                                                   👥 CLUSTERED ({1 + (need as any).child_reports_count})
+                                                   👥 CLUSTERED ({1 + need.child_reports_count})
                                                </span>
                                            )}
-                                           {(need as any).sla_escalated && (
+                                           {need.sla_escalated && (
                                                <span className="px-2 py-0.5 bg-indigo-500/25 text-indigo-400 text-[8px] font-black rounded uppercase tracking-widest border border-indigo-500/50 animate-bounce self-start">
                                                    ⚡ SLA ESCALATED
                                                </span>
@@ -1217,7 +1228,7 @@ interface TelegramAction {
                                       </div>
                                   </div>
                                   <h4 className="text-lg font-black text-(--foreground) mb-1 group-hover:text-emergency transition-colors leading-tight">
-                                      {(need as any).ai_heading || need.location_name || 
+                                      {need.ai_heading || need.location_name || 
                                        (need.raw_text ? need.raw_text.split(' ').slice(0, 5).join(' ') + '...' : 'Field Report')}
                                   </h4>
                                   {need.lat && need.lng && (
@@ -1487,7 +1498,7 @@ interface TelegramAction {
                         {/* Breakdown Metrics Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4 pb-20">
                             {/* Needs Category breakdown */}
-                            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8">
+                            <div className="bg-white/5 border border-white/10 rounded-4xl p-8">
                                 <h3 className="text-sm font-black uppercase tracking-wider mb-6 text-yellow">Incident Domain & Need Classification</h3>
                                 <div className="space-y-4">
                                     {['medical', 'food', 'water', 'shelter', 'animal', 'safety', 'education', 'unclassified'].map((cat) => {
@@ -1513,7 +1524,7 @@ interface TelegramAction {
                             </div>
 
                             {/* Response Channels Breakdown */}
-                            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-8 flex flex-col justify-between gap-6">
+                            <div className="bg-white/5 border border-white/10 rounded-4xl p-8 flex flex-col justify-between gap-6">
                                 <div>
                                     <h3 className="text-sm font-black uppercase tracking-wider mb-6 text-blue-400">Intake Channels Distribution</h3>
                                     <div className="grid grid-cols-2 gap-6">
@@ -1612,30 +1623,30 @@ interface TelegramAction {
                     </div>
                     <div>
                       <h2 className="text-4xl font-black text-(--foreground) font-anton uppercase tracking-tight flex flex-wrap items-center gap-3">
-                        {(selectedNeed as any).ai_heading || (selectedNeed.source === 'telegram' ? 'Signal Extraction' : 'Intake Incident')}
+                        {selectedNeed.ai_heading || (selectedNeed.source === 'telegram' ? 'Signal Extraction' : 'Intake Incident')}
                         <span className="text-sage text-xl font-mono">#{selectedNeed.id.slice(0, 8)}</span>
                         {selectedNeed.is_major_incident && (
                           <span className="px-3 py-1 bg-red-500/20 border border-red-500 text-red-400 text-xs font-black uppercase tracking-wider rounded-lg animate-pulse flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
                             <Activity size={12} /> MAJOR INCIDENT CLUSTER
                           </span>
                         )}
-                        {(selectedNeed as any).child_reports_count > 0 && (
+                        {selectedNeed.child_reports_count !== undefined && selectedNeed.child_reports_count > 0 && (
                           <span className="px-3 py-1 bg-amber-500/20 border border-amber-500 text-amber-400 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5">
-                            <Signal size={12} /> CLUSTERED ({1 + (selectedNeed as any).child_reports_count} REPORTS)
+                            <Signal size={12} /> CLUSTERED ({1 + selectedNeed.child_reports_count} REPORTS)
                           </span>
                         )}
-                        {(selectedNeed as any).parent_incident_id && (
+                        {selectedNeed.parent_incident_id && (
                           <span className="px-3 py-1 bg-gray-500/20 border border-gray-500 text-gray-400 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5 font-mono">
-                            PARENT ID: {(selectedNeed as any).parent_incident_id.slice(0, 8)}
+                            PARENT ID: {selectedNeed.parent_incident_id.slice(0, 8)}
                           </span>
                         )}
-                        {(selectedNeed as any).sla_escalated && (
+                        {selectedNeed.sla_escalated && (
                           <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-500 text-indigo-400 text-xs font-black uppercase tracking-wider rounded-lg animate-bounce flex items-center gap-1.5">
                             <ShieldAlert size={12} /> SLA AUTO-ESCALATED (+5KM RANGE)
                           </span>
                         )}
                       </h2>
-                      <p className="text-sage font-black uppercase text-[10px] tracking-[0.3em] mt-1">Tactical Intelligence Dossier • Sector: {(selectedNeed as any).ai_heading || selectedNeed.location_name || 'Field Report'}</p>
+                      <p className="text-sage font-black uppercase text-[10px] tracking-[0.3em] mt-1">Tactical Intelligence Dossier • Sector: {selectedNeed.ai_heading || selectedNeed.location_name || 'Field Report'}</p>
                     </div>
                   </div>
                   <button 
@@ -1687,14 +1698,14 @@ interface TelegramAction {
                         )}
 
                         {/* Expandable WebRTC JSON Payload */}
-                        {(selectedNeed as any).webrtc_json && (
+                        {selectedNeed.webrtc_json && (
                           <details className="group border border-(--border-color) rounded-2xl bg-(--background)/30 overflow-hidden">
                             <summary className="px-5 py-4 text-xs font-black text-sage uppercase tracking-widest cursor-pointer select-none hover:bg-(--foreground)/5 transition-colors flex items-center justify-between">
                               <span>View Raw WebRTC Call JSON Data</span>
                               <span className="text-[10px] text-emerald-400/50 group-open:rotate-180 transition-transform">▼</span>
                             </summary>
                             <div className="p-5 border-t border-(--border-color) bg-black/40 overflow-x-auto font-mono text-[10px] leading-relaxed text-emerald-300 max-h-60 no-scrollbar">
-                              <pre>{JSON.stringify((selectedNeed as any).webrtc_json, null, 2)}</pre>
+                              <pre>{JSON.stringify(selectedNeed.webrtc_json, null, 2)}</pre>
                             </div>
                           </details>
                         )}
@@ -1706,7 +1717,7 @@ interface TelegramAction {
                               WebRTC Call Conversation Log ({selectedNeed.webrtc_conversation.length})
                             </p>
                             <div className="flex flex-col gap-4 max-h-[350px] overflow-y-auto p-4 rounded-3xl bg-(--background)/50 border border-emerald-500/10 no-scrollbar">
-                              {selectedNeed.webrtc_conversation.map((entry: any, index: number) => (
+                              {selectedNeed.webrtc_conversation.map((entry, index) => (
                                 <div
                                   key={index}
                                   className={cn(
@@ -1828,9 +1839,12 @@ interface TelegramAction {
                           <Bot size={16} /> Gemini Vision Visual Triage
                         </h3>
                         <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-                          <img
+                          <Image
                             src={selectedNeed.image_url.startsWith('http') ? selectedNeed.image_url : `${apiBaseUrl}${selectedNeed.image_url}`}
                             alt="Incident Evidence"
+                            width={640}
+                            height={360}
+                            unoptimized
                             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                           />
                         </div>
@@ -1848,11 +1862,11 @@ interface TelegramAction {
                             </span>
                           </div>
                         )}
-                        {(selectedNeed as any).visual_hazards && (selectedNeed as any).visual_hazards.length > 0 && (
+                        {selectedNeed.visual_hazards && selectedNeed.visual_hazards.length > 0 && (
                           <div className="space-y-2">
                             <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Spotted Hazards:</span>
                             <div className="flex flex-wrap gap-2">
-                              {(selectedNeed as any).visual_hazards.map((hazard: string, idx: number) => (
+                              {selectedNeed.visual_hazards.map((hazard: string, idx: number) => (
                                 <span key={idx} className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-[10px] font-mono text-red-400 flex items-center gap-1.5">
                                   <ShieldAlert size={12} /> {hazard}
                                 </span>
@@ -2063,7 +2077,7 @@ interface TelegramAction {
                 </p>
                 <div className="mt-1 flex items-center gap-3 min-w-0">
                   <span className="truncate text-sm font-black uppercase text-(--foreground)">
-                    {(collapsedNeed as any).ai_heading || collapsedNeed.location_name || 
+                    {collapsedNeed.ai_heading || collapsedNeed.location_name || 
                      (collapsedNeed.raw_text ? collapsedNeed.raw_text.split(' ').slice(0, 4).join(' ') + '...' : 'Active Mission')}
                   </span>
                   <span className="shrink-0 text-[10px] font-mono text-sage">

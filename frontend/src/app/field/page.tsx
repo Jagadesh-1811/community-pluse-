@@ -8,7 +8,7 @@ import IntakeForm from '@/components/intake/IntakeForm';
 import StatusTracker from '@/components/status/StatusTracker';
 import ChatPanel from '@/components/chat/ChatPanel';
 import { useRouter } from 'next/navigation';
-import { useRealtimeNeeds, Need } from '@/hooks/useRealtimeNeeds';
+import { useRealtimeNeeds } from '@/hooks/useRealtimeNeeds';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 

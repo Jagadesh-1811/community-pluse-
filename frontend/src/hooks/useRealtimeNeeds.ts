@@ -5,6 +5,12 @@ import { rtdb } from '@/lib/firebase';
 import { ref, onValue, query } from 'firebase/database';
 import * as Sentry from '@sentry/nextjs';
 
+export interface ConversationEntry {
+  role: "user" | "assistant";
+  text: string;
+  timestamp: number;
+}
+
 export interface Need {
   id: string;
   raw_text: string;
@@ -28,7 +34,8 @@ export interface Need {
   ai_heading?: string | null;
   caller_phone?: string;
   category?: string;
-  webrtc_conversation?: any[];
+  webrtc_conversation?: ConversationEntry[];
+  webrtc_json?: Record<string, unknown>;
   image_url?: string;
   visual_severity?: string;
   visual_hazards?: string[];

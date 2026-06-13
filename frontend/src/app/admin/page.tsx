@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
 import { rtdb } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
 import {
@@ -26,7 +25,6 @@ import {
   FolderPlus,
   Key,
   ArrowRight,
-  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +36,6 @@ interface Category {
 
 export default function AdminPage() {
   const { user, role, loading: globalAuthLoading, signOut } = useAuth();
-  const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCatName, setNewCatName] = useState("");
@@ -93,7 +90,7 @@ export default function AdminPage() {
       setNewCatName("");
       setFeedback({ type: "success", message: `Category "${newCatName}" added successfully.` });
       setTimeout(() => setFeedback(null), 4000);
-    } catch (err) {
+    } catch {
       setFeedback({ type: "error", message: "Failed to add category." });
       setTimeout(() => setFeedback(null), 4000);
     } finally {
@@ -150,10 +147,11 @@ export default function AdminPage() {
         type: "success",
         message: `VOLUNTEER COMMISSIONED! Account created for ${volEmail.trim()}. Credentials dispatched via Gmail. Default Password: ${result.generated_password}`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       setFeedback({
         type: "error",
-        message: err.message || "Failed to create volunteer account.",
+        message: error.message || "Failed to create volunteer account.",
       });
     } finally {
       setIsSubmittingVol(false);
@@ -184,8 +182,9 @@ export default function AdminPage() {
       });
 
       setVerificationSent(true);
-    } catch (err: any) {
-      setAuthError(err.message || "Failed to create Admin account");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setAuthError(error.message || "Failed to create Admin account");
     } finally {
       setAuthLoading(false);
     }
@@ -219,8 +218,9 @@ export default function AdminPage() {
         await firebaseSignOut(auth);
         setAuthError("ACCESS DENIED: You do not have administrator privileges.");
       }
-    } catch (err: any) {
-      setAuthError(err.message || "Invalid credentials");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setAuthError(error.message || "Invalid credentials");
     } finally {
       setAuthLoading(false);
     }

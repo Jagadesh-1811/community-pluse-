@@ -51,10 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setLoading(false);
           },
-          (err: any) => {
+          (err) => {
+            const error = err as Error & { code?: string };
             // Silently handle permission denied errors on logout
-            if (err.code !== "PERMISSION_DENIED") {
-              console.error("Error fetching user role:", err);
+            if (error.code !== "PERMISSION_DENIED") {
+              console.error("Error fetching user role:", error);
             }
             setRole("REPORTER");
             setLoading(false);
