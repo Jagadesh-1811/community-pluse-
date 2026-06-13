@@ -404,8 +404,8 @@ export default function IntakeForm({
 
         // Ensure only valid finite coordinates are saved
         const safeCoordinates: { lat: number | null; lng: number | null } = {
-          lat: Number.isFinite(lat) ? lat : null,
-          lng: Number.isFinite(lng) ? lng : null,
+          lat: (typeof lat === "number" && Number.isFinite(lat)) ? lat : null,
+          lng: (typeof lng === "number" && Number.isFinite(lng)) ? lng : null,
         };
 
         await set(newNeedRef, {
