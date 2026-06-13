@@ -159,7 +159,7 @@ class GeminiKeyPool:
             try:
                 model = genai.GenerativeModel(model_name)
                 response = await model.generate_content_async(prompt)
-                return response.text          # ✅ success
+                return response.text          #  success
             except Exception as e:
                 err = str(e)
                 if "429" in err or "quota" in err.lower():
@@ -416,7 +416,7 @@ REPLY ONLY WITH THE INSTRUCTION TEXT."""
         return content.strip().strip('"')
     except Exception as e:
         print(f"[AI] generate_tactical_reply error: {e}")
-        return "✅ Report received. Stay safe and wait for further instructions."
+        return " Report received. Stay safe and wait for further instructions."
 
 
 # ─────────────────────────────────────────────────────────────────────────────

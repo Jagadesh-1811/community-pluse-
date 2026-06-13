@@ -20,7 +20,7 @@ def send_credentials_email(recipient_email: str, password: str, domain: str, cat
     try:
         # Create message container
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = "🚨 COMMUNITYPULSE: Tactical Clearance Commissioned"
+        msg["Subject"] = " COMMUNITYPULSE: Tactical Clearance Commissioned"
         msg["From"] = f"CommunityPulse Admin <{sender_email}>"
         msg["To"] = recipient_email
 

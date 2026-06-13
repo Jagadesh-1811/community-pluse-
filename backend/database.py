@@ -43,20 +43,20 @@ if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
                 'databaseURL': database_url
             })
-            logger.info("✅ Firebase initialized successfully with service account")
+            logger.info(" Firebase initialized successfully with service account")
         else:
-            logger.warning(f"⚠️  Firebase service account file not found at {cred_path}. Attempting default credentials...")
+            logger.warning(f"  Firebase service account file not found at {cred_path}. Attempting default credentials...")
             # Try default credentials (for GCP environments)
             try:
                 firebase_admin.initialize_app(options={
                     'databaseURL': database_url
                 })
-                logger.info("✅ Firebase initialized with default credentials")
+                logger.info(" Firebase initialized with default credentials")
             except Exception as e:
-                logger.error(f"❌ Failed to initialize Firebase: {e}")
+                logger.error(f" Failed to initialize Firebase: {e}")
                 raise
     except Exception as e:
-        logger.error(f"❌ Firebase initialization failed: {e}")
+        logger.error(f" Firebase initialization failed: {e}")
         raise
 
 def get_db():
@@ -64,5 +64,5 @@ def get_db():
     try:
         return db.reference("/")
     except Exception as e:
-        logger.error(f"❌ Error accessing Realtime Database: {e}")
+        logger.error(f" Error accessing Realtime Database: {e}")
         return None

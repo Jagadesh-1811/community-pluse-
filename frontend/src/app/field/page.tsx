@@ -328,7 +328,7 @@ export default function FieldIntakePage() {
                     selectedNeed.status === 'in-progress' ? "text-orange-400 animate-pulse" :
                     "text-yellow"
                   )}>
-                    {selectedNeed.status === 'resolved' ? 'Resolved ✓' :
+                    {selectedNeed.status === 'resolved' ? 'Resolved ' :
                      selectedNeed.status === 'in-progress' ? 'Volunteer Dispatched' :
                      'Awaiting Dispatch'}
                   </span>

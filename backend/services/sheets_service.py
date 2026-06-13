@@ -26,13 +26,13 @@ def get_sheets_client():
         if cred_path and os.path.exists(str(cred_path)):
             credentials = Credentials.from_service_account_file(str(cred_path), scopes=SCOPES)
             gc = gspread.authorize(credentials)
-            logger.info("✅ Google Sheets API client initialized successfully.")
+            logger.info(" Google Sheets API client initialized successfully.")
             return gc
         else:
-            logger.error("❌ Credential file not found for Google Sheets initialization.")
+            logger.error(" Credential file not found for Google Sheets initialization.")
             return None
     except Exception as e:
-        logger.error(f"❌ Failed to initialize Google Sheets client: {e}")
+        logger.error(f" Failed to initialize Google Sheets client: {e}")
         return None
 
 def init_sheet():
@@ -44,7 +44,7 @@ def init_sheet():
     sheet_id = os.getenv("GOOGLE_SHEET_ID")
     if not sheet_id:
         logger.warning(
-            "⚠️ GOOGLE_SHEET_ID not found in environment. "
+            " GOOGLE_SHEET_ID not found in environment. "
             "To enable Sheets logging: create a Google Sheet, share it with the service account "
             f"({client.auth.signer_email if hasattr(client.auth, 'signer_email') else 'your Firebase service account email'}), "
             "and set GOOGLE_SHEET_ID in your backend .env file."
@@ -75,10 +75,10 @@ def init_sheet():
                 "Action Notes"
             ]
             worksheet.append_row(headers)
-        logger.info(f"✅ Connected to Google Sheet: {sh.title}")
+        logger.info(f" Connected to Google Sheet: {sh.title}")
         return worksheet
     except Exception as e:
-        logger.error(f"❌ Failed to open Google Sheet with ID '{sheet_id}': {e}. Please ensure the sheet is shared with the service account email.")
+        logger.error(f" Failed to open Google Sheet with ID '{sheet_id}': {e}. Please ensure the sheet is shared with the service account email.")
         return None
 
 def export_incident_to_sheet(need_id: str, need_data: dict):
@@ -139,8 +139,8 @@ def export_incident_to_sheet(need_id: str, need_data: dict):
         ]
         
         ws.append_row(row)
-        logger.info(f"📊 Exported incident log change to sheet for need {need_id}")
+        logger.info(f" Exported incident log change to sheet for need {need_id}")
         return True
     except Exception as e:
-        logger.error(f"❌ Error appending row to Google Sheets: {e}")
+        logger.error(f" Error appending row to Google Sheets: {e}")
         return False

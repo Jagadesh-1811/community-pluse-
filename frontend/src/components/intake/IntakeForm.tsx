@@ -115,7 +115,7 @@ export default function IntakeForm({
         localStorage.setItem("communitypulse_offline_queue", JSON.stringify(remaining));
       } else {
         localStorage.removeItem("communitypulse_offline_queue");
-        alert("✅ All offline reports have been synchronized with the command center!");
+        alert(" All offline reports have been synchronized with the command center!");
       }
     } catch (e) {
       console.error("Error flushing queue", e);
@@ -330,7 +330,7 @@ export default function IntakeForm({
         queue.push(offlineReport);
         localStorage.setItem("communitypulse_offline_queue", JSON.stringify(queue));
         
-        alert("⚠️ OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.");
+        alert(" OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.");
         
         setReport("");
         setPhone("");

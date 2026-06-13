@@ -17,7 +17,7 @@ export const initializeOfflineDatabase = () => {
     const legacyDb = (rtdb as any).database || rtdb;
     if (typeof legacyDb.setPersistenceEnabled === 'function') {
       legacyDb.setPersistenceEnabled(true);
-      console.log('✅ Firebase RTDB disk persistence enabled successfully.');
+      console.log(' Firebase RTDB disk persistence enabled successfully.');
     }
   } catch (err) {
     console.warn('Firebase disk persistence skipped (not supported on this browser context). Fallback to active in-memory sync caching.', err);

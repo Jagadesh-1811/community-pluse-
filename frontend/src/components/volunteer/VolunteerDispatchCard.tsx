@@ -161,7 +161,7 @@ export default function VolunteerDispatchCard({
 
       {errorMessage && (
         <div className="mt-3 text-[10px] text-red-500 font-mono text-center">
-          ⚠️ CONFLICT: {errorMessage.toUpperCase()}
+           CONFLICT: {errorMessage.toUpperCase()}
         </div>
       )}
     </div>

@@ -196,7 +196,7 @@ async def send_whatsapp_reply(to_phone: str, phone_number_id: str, incident_id: 
     }
 
     confirmation_message = (
-        f"🚨 *CommunityPulse Field Logged*\n"
+        f" *CommunityPulse Field Logged*\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"Your report has been successfully categorized by AI.\n"
         f"Incident ID: `{incident_id}`\n"

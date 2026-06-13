@@ -93,7 +93,7 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
             { role: "user", text, timestamp: Date.now() },
           ]);
         } else if (msg.role === "assistant") {
-          // ✅ FIX: Capture and display the AI agent's responses
+          //  FIX: Capture and display the AI agent's responses
           onAiResponseUpdateRef.current?.(text);
           setConversation((prev) => [
             ...prev,
@@ -298,7 +298,7 @@ export function VoiceAgentButton({ onTranscriptUpdate, onAiResponseUpdate, onCon
         </p>
       )}
 
-      {/* ✅ Live AI Conversation Panel — shown during and after call */}
+      {/*  Live AI Conversation Panel — shown during and after call */}
       {(isActive || conversation.length > 0) && (
         <div className="mt-2 rounded-2xl border border-(--border-color) bg-(--background)/60 backdrop-blur-sm overflow-hidden">
           {/* Panel header */}

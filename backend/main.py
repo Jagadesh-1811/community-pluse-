@@ -50,11 +50,11 @@ async def lifespan(app: FastAPI):
     try:
         test_ref = root_ref
         if test_ref is None:
-            logger.warning("⚠️  Firebase reference is None - database operations may fail")
+            logger.warning("  Firebase reference is None - database operations may fail")
         else:
-            logger.info("✅ Firebase database connection verified")
+            logger.info(" Firebase database connection verified")
     except Exception as e:
-        logger.error(f"❌ Firebase verification failed: {e}")
+        logger.error(f" Firebase verification failed: {e}")
     
     # Telegram bot enabled for production deployment
     try:
@@ -92,9 +92,9 @@ async def lifespan(app: FastAPI):
 
         # Starts listening in a background thread
         admin_db.reference("needs").listen(db_listener)
-        logger.info("✅ Firebase RTDB listener for Google Sheets auto-export: ACTIVE")
+        logger.info(" Firebase RTDB listener for Google Sheets auto-export: ACTIVE")
     except Exception as e:
-        logger.error(f"❌ Failed to start Firebase RTDB Sheets listener: {e}")
+        logger.error(f" Failed to start Firebase RTDB Sheets listener: {e}")
 
     # Start periodic SLA escalation task
     async def periodic_sla_check():
@@ -155,7 +155,7 @@ async def lifespan(app: FastAPI):
                 logger.error(f"[SLA Checker] Error in periodic SLA check: {e}")
 
     asyncio.create_task(periodic_sla_check())
-    logger.info("✅ Periodic SLA Escalation check task initialized")
+    logger.info(" Periodic SLA Escalation check task initialized")
 
     yield
 
@@ -717,7 +717,7 @@ async def update_status(request: StatusUpdateRequest, background_tasks: Backgrou
             if snapshot and snapshot.get("source") == "telegram":
                 chat_id = snapshot.get("telegram_chat_id")
                 if chat_id:
-                    msg = f"ℹ**STATUS UPDATE**: Your request is now {status}."
+                    msg = f"**STATUS UPDATE**: Your request is now {status}."
                     if request.notes:
                         msg += f"\n\n{request.notes}"
                     background_tasks.add_task(send_telegram_message, chat_id, msg)
@@ -753,7 +753,7 @@ async def get_message_heading(request: HeadingRequest):
         return {"heading": heading}
     except Exception as e:
         logger.error(f"Heading generation failed: {e}")
-        return {"heading": "📍 Field Report" if request.sender == "reporter" else "🛡️ Volunteer Update"}
+        return {"heading": " Field Report" if request.sender == "reporter" else " Volunteer Update"}
 
 
 # ── Gemini Status / Credit Check Endpoint ───────────────────────────────────

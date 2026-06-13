@@ -1398,18 +1398,18 @@ export default function Home() {
                           </div>
                           {need.is_major_incident && (
                             <span className="px-2 py-0.5 bg-red-500/25 text-red-400 text-[8px] font-black rounded uppercase tracking-widest border border-red-500/50 animate-pulse self-start">
-                              ⚠️ MAJOR CLUSTER
+                               MAJOR CLUSTER
                             </span>
                           )}
                           {need.child_reports_count !== undefined &&
                             need.child_reports_count > 0 && (
                               <span className="px-2 py-0.5 bg-amber-500/25 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/50 self-start">
-                                👥 CLUSTERED ({1 + need.child_reports_count})
+                                 CLUSTERED ({1 + need.child_reports_count})
                               </span>
                             )}
                           {need.sla_escalated && (
                             <span className="px-2 py-0.5 bg-indigo-500/25 text-indigo-400 text-[8px] font-black rounded uppercase tracking-widest border border-indigo-500/50 animate-bounce self-start">
-                              ⚡ SLA ESCALATED
+                               SLA ESCALATED
                             </span>
                           )}
                         </div>
