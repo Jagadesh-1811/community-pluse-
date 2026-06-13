@@ -113,14 +113,20 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # AI Analysis Pipeline
     try:
+        logger.info(f"🤖 Starting AI analysis for Telegram report: {text[:100]}...")
         extracted_data = await extract_need_structure(text)
+        logger.info(f"✅ Need structure extracted: {extracted_data}")
+        
         scoring_data = await score_urgency(text)
+        logger.info(f"✅ Urgency scoring complete: Score={scoring_data.get('urgency_score')}, Signal={scoring_data.get('emotional_signal')}")
         
         need_type = extracted_data.get("need_type")
         if domain == "animal":
             need_type = "animal"
 
         # Prepare need record with AI insights
+        urgency_score = scoring_data.get("urgency_score", 5)
+        
         need_record = {
             "raw_text": text,
             "need_type": need_type,
@@ -128,8 +134,10 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "location_name": extracted_data.get("location_name") or "Telegram Report",
             "lat": None,
             "lng": None,
-            "urgency_score": scoring_data.get("urgency_score") or 5,
+            "urgency_score": urgency_score,
             "emotional_signal": scoring_data.get("emotional_signal"),
+            "tactical_assessment": scoring_data.get("tactical_assessment"),
+            "life_threat": scoring_data.get("life_threat", False),
             "status": "open",
             "source": "telegram",
             "reporter_name": user.full_name or user.username or "Unknown",
@@ -148,17 +156,17 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         
         needs_ref.push(need_record)
+        logger.info(f"✅ Telegram need saved with urgency score: {urgency_score}/10")
         
-        urgency = need_record["urgency_score"]
-        status_msg = "🔴 CRITICAL" if urgency > 7 else "🟠 STABLE" if urgency > 4 else "🟢 LOW"
+        status_msg = "🔴 CRITICAL" if urgency_score > 7 else "🟠 STABLE" if urgency_score > 4 else "🟢 LOW"
         
         await update.message.reply_text(
-            f" **NEED LOGGED**\n"
+            f"✅ **NEED LOGGED**\n"
             f"━━━━━━━━━━━━━━━\n"
-            f" **Domain**: {domain.upper()}\n"
-            f" **Type**: {need_type}\n"
-            f" **Urgency**: {urgency}/10 ({status_msg})\n"
-            f" **AI Signal**: {need_record['emotional_signal']}\n"
+            f"📌 **Domain**: {domain.upper()}\n"
+            f"📋 **Type**: {need_type}\n"
+            f"🎯 **Urgency**: {urgency_score}/10 ({status_msg})\n"
+            f"💭 **AI Signal**: {need_record['emotional_signal']}\n"
             f"━━━━━━━━━━━━━━━\n"
             f"Visible on Command Center Priority Queue."
         )
@@ -187,7 +195,7 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             
             needs_ref.push(fallback_record)
-            logger.warning(f"Fallback report saved for {user.username} due to AI analysis failure")
+            logger.warning(f"⚠️ Fallback report saved for {user.username} due to AI analysis failure")
             await update.message.reply_text("⚠️ AI analysis limited, but report saved with default priority.")
         except Exception as db_error:
             logger.error(f"Error saving fallback to Firebase: {str(db_error)}", exc_info=True)

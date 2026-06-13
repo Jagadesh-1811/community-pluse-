@@ -402,14 +402,20 @@ export default function IntakeForm({
           throw new Error("Failed to create a report ID");
         }
 
+        // Ensure only valid finite coordinates are saved
+        const safeCoordinates: { lat: number | null; lng: number | null } = {
+          lat: Number.isFinite(lat) ? lat : null,
+          lng: Number.isFinite(lng) ? lng : null,
+        };
+
         await set(newNeedRef, {
           id: newNeedRef.key,
           raw_text: report.trim(),
           need_type: domain === "animal" ? "animal" : "safety",
           domain,
           location_name: "Reporter GPS location",
-          lat,
-          lng,
+          lat: safeCoordinates.lat,
+          lng: safeCoordinates.lng,
           urgency_score: 5,
           emotional_signal: "concerned",
           status: "open",

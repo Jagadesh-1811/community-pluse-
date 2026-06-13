@@ -57,10 +57,27 @@ export function useRealtimeNeeds() {
     const unsubscribe = onValue(q, (snapshot) => {
       const needsData: Need[] = [];
       snapshot.forEach((childSnapshot) => {
-        needsData.push({ 
+        const data = { 
           id: childSnapshot.key, 
           ...childSnapshot.val() 
-        } as Need);
+        } as Need;
+        
+        // Sanitize coordinates: if not finite, set to null
+        if (!Number.isFinite(data.lat)) {
+          data.lat = null;
+        }
+        if (!Number.isFinite(data.lng)) {
+          data.lng = null;
+        }
+        // Also sanitize urgency_score and people_affected
+        if (!Number.isFinite(data.urgency_score)) {
+          data.urgency_score = 5; // default
+        }
+        if (!Number.isFinite(data.people_affected)) {
+          data.people_affected = null;
+        }
+        
+        needsData.push(data);
       });
       // Sort desc (newest first)
       needsData.reverse();
