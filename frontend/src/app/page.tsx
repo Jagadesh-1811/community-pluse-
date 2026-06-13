@@ -37,8 +37,8 @@ export default function LandingPage() {
       <section className="w-full flex flex-col lg:flex-row border-y border-(--border-color)">
         {/* The Old Way */}
         <div className="flex-1 bg-charcoal text-white p-12 md:p-24 flex flex-col justify-start">
-            <h2 className="text-5xl md:text-7xl font-anton uppercase text-sage/50 mb-12 transform -rotate-2 origin-left">The Old Way</h2>
-            <ul className="space-y-10 font-medium text-lg md:text-xl text-sage">
+            <h2 className="text-5xl md:text-7xl font-anton uppercase text-white mb-12 transform -rotate-2 origin-left">The Old Way</h2>
+            <ul className="space-y-10 font-medium text-lg md:text-xl text-white">
                 <li className="flex items-start gap-6">
                     <XIcon className="text-red-500 shrink-0 mt-1" size={32} strokeWidth={3} />
                     Disjointed communication lines, dropped calls, and unreliable infrastructure.

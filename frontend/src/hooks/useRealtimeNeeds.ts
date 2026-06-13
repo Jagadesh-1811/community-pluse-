@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue, query } from 'firebase/database';
+import * as Sentry from '@sentry/nextjs';
 
 export interface Need {
   id: string;
@@ -23,6 +24,18 @@ export interface Need {
   sentiment?: string;
   tactical_assessment?: string;
   life_threat?: boolean;
+  reporter_email?: string;
+  ai_heading?: string | null;
+  caller_phone?: string;
+  category?: string;
+  webrtc_conversation?: any[];
+  image_url?: string;
+  visual_severity?: string;
+  visual_hazards?: string[];
+  is_major_incident?: boolean;
+  parent_incident_id?: string;
+  child_reports_count?: number;
+  sla_escalated?: boolean;
 }
 
 export function useRealtimeNeeds() {
@@ -48,6 +61,11 @@ export function useRealtimeNeeds() {
       setLoading(false);
     }, (error) => {
       console.error("Error listening to needs:", error);
+      Sentry.captureException(error, {
+        tags: {
+          listener: 'incident_realtime_listener'
+        }
+      });
       setLoading(false);
     });
 

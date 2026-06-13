@@ -1,0 +1,39 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "12345",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "15550000000",
+              "phone_number_id": "1234567890"
+            },
+            "contacts": [
+              {
+                "profile": {
+                  "name": "John Doe"
+                },
+                "wa_id": "15551234567"
+              }
+            ],
+            "messages": [
+              {
+                "from": "15551234567",
+                "id": "wamid.HBgLMTU1NTAwMDAwMDAVAgARGBI1Q...",
+                "timestamp": "1678220000",
+                "type": "text",
+                "text": {
+                  "body": "Need medical assistance immediately, two people injured in sector 4 building collapse."
+                }
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}

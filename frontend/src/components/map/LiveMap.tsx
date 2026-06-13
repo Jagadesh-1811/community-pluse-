@@ -174,7 +174,7 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
           >
             <Popup className="custom-popup">
               <div className="p-2 text-center">
-                <h4 className="font-bold text-slate-900">📍 Your Location</h4>
+                <h4 className="font-bold text-slate-900">Your Location</h4>
                 <p className="text-xs text-blue-600 font-bold uppercase">Active Volunteer</p>
                 <p className="text-[10px] text-slate-500 mt-1 font-mono">
                   {volunteerLocation.lat.toFixed(5)}, {volunteerLocation.lng.toFixed(5)}

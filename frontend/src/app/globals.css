@@ -113,3 +113,41 @@ body {
   animation: marker-pulse 2s infinite ease-in-out;
 }
 
+@keyframes glitch-bw {
+  0% {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+  }
+  20% {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+  40% {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+  }
+  60% {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+  80% {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+  }
+  100% {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
+  }
+}
+
+.animate-glitch-bw {
+  animation: glitch-bw 0.15s steps(2, start) 3;
+}
+
+

@@ -41,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
-      <body className={`${anton.variable} ${roboto.variable} ${inter.variable} ${outfit.variable} min-h-full flex flex-col pt-20`} suppressHydrationWarning>
+      <body className={`${anton.variable} ${roboto.variable} ${inter.variable} ${outfit.variable} min-h-full flex flex-col`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
             <GlobalNav />

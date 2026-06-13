@@ -5,11 +5,18 @@ import dynamic from 'next/dynamic';
 import { useRealtimeNeeds, Need } from '@/hooks/useRealtimeNeeds';
 
 const LiveMap = dynamic(() => import('@/components/map/LiveMap'), { ssr: false });
-import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Truck, CheckCircle2, Activity, MapPin, Phone, Navigation2, X, Signal, LogOut, Bot, ChevronUp, Loader2, Mic, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { rtdb } from '@/lib/firebase';
-import { ref, update, onValue, query, limitToLast } from 'firebase/database';
+import { rtdb, auth } from '@/lib/firebase';
+import { ref, update, onValue, query, limitToLast, get, set } from 'firebase/database';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
+import { Mail, Key, ArrowRight, Shield } from 'lucide-react';
 import ChatPanel from '@/components/chat/ChatPanel';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
@@ -20,17 +27,11 @@ export default function Home() {
     process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ||
     'http://localhost:8000';
   const { needs, loading: needsLoading, refresh } = useRealtimeNeeds();
-  const { user, role, domain, loading: authLoading, signOut } = useAuth();
+  const { user, role, domain, categories: volunteerCategories, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
   // AUTH PROTECTION
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    } else if (!authLoading && user && role !== 'VOLUNTEER') {
-      router.push('/field');
-    }
-  }, [user, role, authLoading, router]);
+  // Handled inline in the render block to allow dedicated volunteer authentication.
 
 
 
@@ -40,9 +41,42 @@ export default function Home() {
   const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'alerts' | 'dispatched' | 'resolved' | 'comms' | 'intel'>('map');
   const [manualSector, setManualSector] = useState<'all' | 'human' | 'animal'>('all');
+  const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
+  const [glitchingCategory, setGlitchingCategory] = useState<string | null>(null);
+  const [selectedSourceFilter, setSelectedSourceFilter] = useState<'all' | 'voice_agent' | 'telegram' | 'web'>('all');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<'all' | 'today' | '24h' | '7d'>('all');
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationData, setRecommendationData] = useState<any>(null);
+  const [recommendationError, setRecommendationError] = useState<string | null>(null);
+
+
+
+  // INLINE VOLUNTEER AUTH STATES
+  const [volEmail, setVolEmail] = useState("");
+  const [volPassword, setVolPassword] = useState("");
+  const [volAccessCode, setVolAccessCode] = useState("");
+  const [volDomainSelect, setVolDomainSelect] = useState<"human" | "animal">("human");
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [localAuthLoading, setLocalAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
   
   // Derived state: Use domain if locked, otherwise use manual selection
   const activeSector = domain || manualSector;
+
+  // Listen to categories from Firebase Realtime Database
+  useEffect(() => {
+    const categoriesRef = ref(rtdb, 'categories');
+    const unsubscribe = onValue(categoriesRef, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((child) => {
+        list.push({ id: child.key!, ...child.val() });
+      });
+      setCategories(list);
+    });
+    return () => unsubscribe();
+  }, []);
   const [volunteerLocation, setVolunteerLocation] = useState<{lat: number; lng: number; accuracy?: number} | null>(null);
   const [locationStatus, setLocationStatus] = useState<'detecting' | 'found' | 'denied' | 'idle'>('idle');
   const [showLocationToast, setShowLocationToast] = useState(false);
@@ -87,6 +121,7 @@ interface TelegramAction {
   sentiment?: string;
   urgency?: number;
   created_at: number;
+  source?: string;
 }
 
   const [commsMessages, setCommsMessages] = useState<CommMessage[]>([]);
@@ -206,6 +241,9 @@ interface TelegramAction {
       setSelectedNeed(need);
       setCollapsedNeed(null);
       setActiveTab(tab);
+      setRecommendationData(null);
+      setRecommendationLoading(false);
+      setRecommendationError(null);
   };
 
   const closeNeedPanel = () => {
@@ -213,6 +251,36 @@ interface TelegramAction {
           setCollapsedNeed(selectedNeed);
       }
       setSelectedNeed(null);
+      setRecommendationData(null);
+      setRecommendationLoading(false);
+      setRecommendationError(null);
+  };
+
+  const fetchVolunteerRecommendation = async (incidentId: string) => {
+      setRecommendationLoading(true);
+      setRecommendationError(null);
+      setRecommendationData(null);
+      try {
+          const res = await fetch(`${apiBaseUrl}/incidents/${incidentId}/recommend-volunteer`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+          });
+          if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.detail || `Server responded with ${res.status}`);
+          }
+          const data = await res.json();
+          if (data.status === 'success' && data.recommendation) {
+              setRecommendationData(data.recommendation);
+          } else {
+              throw new Error("Invalid response from dispatch recommendation service.");
+          }
+      } catch (err: any) {
+          console.error("Failed to fetch volunteer recommendation:", err);
+          setRecommendationError(err.message || "Failed to load recommendation.");
+      } finally {
+          setRecommendationLoading(false);
+      }
   };
 
   const handleDeploy = async (needId: string, status: string) => {
@@ -291,18 +359,59 @@ interface TelegramAction {
     return () => unsubscribe();
   }, []);
 
-  // Filter needs by sector (Strictly locked to volunteer domain if set)
+  // Filter needs by sector (Strictly locked to volunteer domain if set) and custom categories
   const filteredNeeds = needs.filter(need => {
-    // If a domain is assigned to the user profile, STRICTLY only show that domain
+    // 1. Domain Filter
     if (domain) {
-      if (domain === 'animal') return need.need_type === 'animal';
-      return need.need_type !== 'animal';
+      if (domain === 'animal') {
+        if (need.need_type !== 'animal') return false;
+      } else {
+        if (need.need_type === 'animal') return false;
+      }
+    } else {
+      if (activeSector === 'animal') {
+        if (need.need_type !== 'animal') return false;
+      } else if (activeSector === 'human') {
+        if (need.need_type === 'animal') return false;
+      }
     }
-    
-    // Fallback for cases where domain is not yet assigned (e.g. manual switching allowed)
-    if (activeSector === 'all') return true;
-    if (activeSector === 'animal') return need.need_type === 'animal';
-    return need.need_type !== 'animal';
+
+    // 1.5. Volunteer Category Filter
+    if (role === 'VOLUNTEER' && volunteerCategories && volunteerCategories.length > 0) {
+      const needType = need.need_type || 'general';
+      const isMatched = volunteerCategories.some(cat => cat.toLowerCase() === needType.toLowerCase());
+      if (!isMatched) return false;
+    }
+
+    // 2. Custom Category Filter
+    if (selectedCategoryFilter !== 'all') {
+      const needType = need.need_type || 'general';
+      if (needType.toLowerCase() !== selectedCategoryFilter.toLowerCase()) return false;
+    }
+
+    // 3. Source Channel Filter
+    if (selectedSourceFilter !== 'all') {
+      if (need.source !== selectedSourceFilter) return false;
+    }
+
+    // 4. Date & Time Filter
+    if (selectedDateFilter !== 'all') {
+      const now = Date.now();
+      const createdAt = need.created_at || 0;
+      if (selectedDateFilter === 'today') {
+        const todayStart = new Date().setHours(0,0,0,0);
+        if (createdAt < todayStart) return false;
+      } else if (selectedDateFilter === '24h') {
+        const oneDayAgo = now - 24 * 60 * 60 * 1000;
+        if (createdAt < oneDayAgo) return false;
+      } else if (selectedDateFilter === '7d') {
+        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+        if (createdAt < sevenDaysAgo) return false;
+      }
+    }
+
+    return true;
+
   });
 
   // Sort filtered needs by urgency
@@ -310,7 +419,84 @@ interface TelegramAction {
   const dispatchedNeeds = [...filteredNeeds].filter(n => n.status === 'in-progress').sort((a, b) => b.urgency_score - a.urgency_score);
   const resolvedNeeds = [...filteredNeeds].filter(n => n.status === 'resolved').sort((a, b) => b.urgency_score - a.urgency_score);
 
-  if (authLoading || !user || role !== 'VOLUNTEER') {
+  // INLINE VOLUNTEER AUTH HANDLERS
+  const handleVolSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalAuthLoading(true);
+    setAuthError(null);
+    try {
+      // 1. Verify code on backend
+      const verifyRes = await fetch(`${apiBaseUrl}/auth/verify-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: volAccessCode, role: "VOLUNTEER" }),
+      });
+      if (!verifyRes.ok) {
+        throw new Error("INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.");
+      }
+
+      // 2. Create User in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, volEmail, volPassword);
+      const userObj = userCredential.user;
+
+      // 3. Send Verification Email
+      const actionCodeSettings = {
+        url: window.location.origin + "/volunteer",
+        handleCodeInApp: true,
+      };
+      await sendEmailVerification(userObj, actionCodeSettings);
+
+      // 4. Save User details in RTDB
+      await set(ref(rtdb, `users/${userObj.uid}`), {
+        email: volEmail,
+        role: "VOLUNTEER",
+        domain: volDomainSelect,
+        created_at: new Date().toISOString(),
+      });
+
+      setVerificationSent(true);
+    } catch (err: any) {
+      setAuthError(err.message || "Failed to create Volunteer account");
+    } finally {
+      setLocalAuthLoading(false);
+    }
+  };
+
+  const handleVolSignin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalAuthLoading(true);
+    setAuthError(null);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, volEmail, volPassword);
+      const userObj = userCredential.user;
+
+      if (!userObj.emailVerified) {
+        setAuthError("ACCESS DENIED: Please verify your email first. Check your inbox.");
+        // Resend email verification
+        const actionCodeSettings = {
+          url: window.location.origin + "/volunteer",
+          handleCodeInApp: true,
+        };
+        await sendEmailVerification(userObj, actionCodeSettings);
+        await firebaseSignOut(auth);
+        return;
+      }
+
+      // Check database role
+      const snapshot = await get(ref(rtdb, `users/${userObj.uid}`));
+      const userData = snapshot.val();
+      if (userData?.role !== "VOLUNTEER" && userData?.role !== "ADMIN") {
+        await firebaseSignOut(auth);
+        setAuthError("ACCESS DENIED: This account is not registered as a volunteer.");
+      }
+    } catch (err: any) {
+      setAuthError(err.message || "Invalid credentials");
+    } finally {
+      setLocalAuthLoading(false);
+    }
+  };
+
+  if (authLoading) {
     return (
         <div className="fixed inset-0 z-200 bg-(--background) brutalist-grid flex flex-col items-center justify-center gap-10">
             <div className="relative animate-pulse">
@@ -321,6 +507,185 @@ interface TelegramAction {
             </div>
             <p className="text-sm font-black uppercase tracking-[0.3em] opacity-40 font-roboto">Verifying Credentials...</p>
         </div>
+    );
+  }
+
+  // RENDER DEDICATED INLINE AUTH PAGE IF NOT A VOLUNTEER/ADMIN
+  if (!user || (role !== 'VOLUNTEER' && role !== 'ADMIN')) {
+    return (
+      <main className="min-h-screen bg-(--background) brutalist-grid flex items-center justify-center p-6 relative overflow-hidden font-roboto pt-20">
+        <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-12 items-center z-10">
+          {/* LEFT: Branding */}
+          <div className="lg:w-1/2 flex flex-col text-left">
+            <div className="w-20 h-20 bg-charcoal rounded-xl mb-8 flex items-center justify-center brutalist-border shadow-2xl transform -rotate-3">
+              <Shield className="text-yellow" size={40} />
+            </div>
+            <h1 className="text-6xl md:text-8xl font-anton uppercase tracking-normal leading-[0.9] mb-4 text-(--foreground)">
+              Volunteer
+              <br />
+              <span className="text-yellow">Gateway</span>
+            </h1>
+            <p className="text-sm text-(--foreground) opacity-50 font-bold uppercase tracking-[0.2em] mt-6">
+              Authorized Response Personnel Only
+            </p>
+          </div>
+
+          {/* RIGHT: Login Card */}
+          <div className="lg:w-1/2 w-full bg-(--background) border border-(--border-color) rounded-2xl p-8 lg:p-12 shadow-2xl brutalist-border">
+            {user && role !== 'VOLUNTEER' && role !== 'ADMIN' ? (
+              <div className="text-center space-y-6 animate-in zoom-in duration-300">
+                <ShieldAlert className="text-red-500 mx-auto" size={48} />
+                <h3 className="text-xl font-anton uppercase text-red-500">ACCESS DENIED</h3>
+                <p className="text-sm text-sage leading-relaxed">
+                  Your current account (<strong>{user.email}</strong>) is registered as a <strong>Reporter</strong>. Standard reporters do not have command clearance.
+                </p>
+                <button
+                  onClick={() => signOut()}
+                  className="w-full py-4 bg-red-500 text-white font-anton uppercase tracking-widest rounded-xl transition-all"
+                >
+                  Log Out / Switch Account
+                </button>
+              </div>
+            ) : verificationSent ? (
+              <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-4 animate-in zoom-in duration-300">
+                <CheckCircle2 className="text-emerald-400 mx-auto" size={48} />
+                <h3 className="text-xl font-anton uppercase text-emerald-400 font-black">COMMISSION DISPATCHED</h3>
+                <p className="text-sm text-sage leading-relaxed">
+                  We have sent an authentication link to <strong>{volEmail}</strong>. Please verify your email, then return here to log in.
+                </p>
+                <button
+                  onClick={() => {
+                    setVerificationSent(false);
+                    setAuthMode("signin");
+                  }}
+                  className="w-full py-4 bg-yellow text-charcoal font-anton uppercase tracking-widest rounded-xl transition-all"
+                >
+                  Continue to Sign In
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={authMode === "signin" ? handleVolSignin : handleVolSignup} className="space-y-6">
+                <h2 className="text-4xl font-anton uppercase text-(--foreground) mb-6 tracking-wide">
+                  {authMode === "signin" ? "Volunteer Sign In" : "Register Volunteer"}
+                </h2>
+
+                <div>
+                  <label className="block text-xs text-(--foreground) font-bold uppercase tracking-widest mb-2.5 opacity-60">
+                    Personnel ID (Email)
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-(--foreground)/30" size={18} />
+                    <input
+                      type="email"
+                      required
+                      value={volEmail}
+                      onChange={(e) => setVolEmail(e.target.value)}
+                      className="w-full bg-(--background) border border-(--border-color) rounded-xl py-4 pl-14 pr-6 text-lg focus:outline-none focus:border-yellow transition-all font-semibold"
+                      placeholder="agent.name@emergency.net"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-(--foreground) font-bold uppercase tracking-widest mb-2.5 opacity-60">
+                    Security Key (Password)
+                  </label>
+                  <div className="relative">
+                    <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-(--foreground)/30" size={18} />
+                    <input
+                      type="password"
+                      required
+                      value={volPassword}
+                      onChange={(e) => setVolPassword(e.target.value)}
+                      className="w-full bg-(--background) border border-(--border-color) rounded-xl py-4 pl-14 pr-6 text-lg focus:outline-none focus:border-yellow transition-all font-semibold tracking-widest"
+                      placeholder="••••••••••••"
+                    />
+                  </div>
+                </div>
+
+                {authMode === "signup" && (
+                  <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                    <div>
+                      <label className="block text-xs text-yellow font-black uppercase tracking-widest mb-2.5">
+                        Operational Domain
+                      </label>
+                      <div className="flex gap-4 p-1 bg-white/5 rounded-xl border border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => setVolDomainSelect("human")}
+                          className={cn(
+                            "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer",
+                            volDomainSelect === "human" ? "bg-yellow text-charcoal shadow-md" : "text-(--foreground) opacity-40 hover:opacity-100"
+                          )}
+                        >
+                          Human Health
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVolDomainSelect("animal")}
+                          className={cn(
+                            "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer",
+                            volDomainSelect === "animal" ? "bg-blue-500 text-white shadow-md" : "text-(--foreground) opacity-40 hover:opacity-100"
+                          )}
+                        >
+                          Animal Health
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-yellow font-black uppercase tracking-widest mb-2.5">
+                        Tactical Clearance Code
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={volAccessCode}
+                        onChange={(e) => setVolAccessCode(e.target.value)}
+                        className="w-full bg-yellow/5 border border-yellow/30 rounded-xl py-4 px-6 text-yellow text-lg focus:outline-none focus:border-yellow transition-all placeholder:text-yellow/20 font-black tracking-widest"
+                        placeholder="ENTER ACCESS CODE"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {authError && (
+                  <div className="text-red-500 font-bold text-sm text-center bg-red-500/10 py-3 rounded-lg border border-red-500/20 font-outfit animate-in zoom-in duration-300">
+                    {authError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={localAuthLoading}
+                  className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-3">
+                  {localAuthLoading ? (
+                    <Loader2 className="animate-spin" size={24} />
+                  ) : (
+                    <>
+                      {authMode === "signin" ? "Verify Identity" : "Commission Account"}
+                      <ArrowRight size={24} strokeWidth={3} />
+                    </>
+                  )}
+                </button>
+
+                <div className="text-center pt-6 border-t border-(--border-color)">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthError(null);
+                      setAuthMode(authMode === "signin" ? "signup" : "signin");
+                    }}
+                    className="text-xs text-sage uppercase font-black tracking-widest hover:text-yellow transition-colors"
+                  >
+                    {authMode === "signin" ? "Request Volunteer Commissioning →" : "Already commissioned? Sign In →"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </main>
     );
   }
 
@@ -439,6 +804,8 @@ interface TelegramAction {
 
                 <div className="w-10 h-px bg-(--border-color)"></div>
 
+
+
                 <div className="relative group">
                     <button 
                         onClick={() => signOut()}
@@ -453,6 +820,7 @@ interface TelegramAction {
             </div>
         </nav>
       </aside>
+
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 transition-all duration-500 ease-out h-[calc(100vh-80px)] relative flex flex-col pl-24">
@@ -645,6 +1013,97 @@ interface TelegramAction {
                       exit={{ opacity: 0, x: -20 }}
                       className="h-full glass rounded-[3rem] p-12 overflow-y-auto no-scrollbar shadow-2xl"
                   >
+                      <div className="flex flex-col gap-4 mb-8 p-6 bg-white/5 rounded-3xl border border-white/5">
+                          {/* Row 1: Need Categories / Sectors */}
+                          {categories.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[9px] font-black uppercase tracking-widest text-sage/75 w-24">Sector:</span>
+                                  <button
+                                      onClick={() => {
+                                          setSelectedCategoryFilter('all');
+                                          setGlitchingCategory('all');
+                                          setTimeout(() => setGlitchingCategory(null), 450);
+                                      }}
+                                      className={cn(
+                                          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
+                                          glitchingCategory === 'all' ? "animate-glitch-bw" :
+                                          selectedCategoryFilter === 'all' ? "bg-yellow text-charcoal shadow-md" : "bg-white/5 text-sage"
+                                      )}
+                                  >
+                                      All Sectors
+                                  </button>
+                                  {categories.map((cat) => (
+                                      <button
+                                          key={cat.id}
+                                          onClick={() => {
+                                              setSelectedCategoryFilter(cat.name);
+                                              setGlitchingCategory(cat.id);
+                                              setTimeout(() => setGlitchingCategory(null), 450);
+                                          }}
+                                          className={cn(
+                                              "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer select-none",
+                                              glitchingCategory === cat.id ? "animate-glitch-bw" :
+                                              selectedCategoryFilter.toLowerCase() === cat.name.toLowerCase()
+                                                  ? "bg-white text-black shadow-md"
+                                                  : "bg-white/5 text-sage"
+                                          )}
+                                      >
+                                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                                          {cat.name}
+                                      </button>
+                                  ))}
+                              </div>
+                          )}
+
+                          {/* Row 2: Date & Time Filters */}
+                          <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-sage/75 w-24">Date Range:</span>
+                              {[
+                                  { value: 'all', label: 'All Time' },
+                                  { value: 'today', label: 'Today' },
+                                  { value: '24h', label: 'Last 24 Hours' },
+                                  { value: '7d', label: 'Last 7 Days' }
+                              ].map((opt) => (
+                                  <button
+                                      key={opt.value}
+                                      onClick={() => setSelectedDateFilter(opt.value as any)}
+                                      className={cn(
+                                          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
+                                          selectedDateFilter === opt.value
+                                              ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                                              : "bg-white/5 text-sage"
+                                      )}
+                                  >
+                                      {opt.label}
+                                  </button>
+                              ))}
+                          </div>
+
+                          {/* Row 3: Response Channels (Source Category Filters) */}
+                          <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-sage/75 w-24">Channel:</span>
+                              {[
+                                  { value: 'all', label: 'All Channels' },
+                                  { value: 'voice_agent', label: 'WebRTC Voice' },
+                                  { value: 'telegram', label: 'Telegram Bot' },
+                                  { value: 'web', label: 'Web Portal' }
+                              ].map((opt) => (
+                                  <button
+                                      key={opt.value}
+                                      onClick={() => setSelectedSourceFilter(opt.value as any)}
+                                      className={cn(
+                                          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
+                                          selectedSourceFilter === opt.value
+                                              ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                                              : "bg-white/5 text-sage"
+                                      )}
+                                  >
+                                      {opt.label}
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+                      
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-32">
                           {(activeTab === 'alerts' ? sortedNeeds : activeTab === 'dispatched' ? dispatchedNeeds : resolvedNeeds).map((need) => (
                               <div 
@@ -653,19 +1112,57 @@ interface TelegramAction {
                                   className="group relative p-6 bg-(--card-bg) rounded-4xl border border-(--border-color) hover:border-emergency/30 hover:bg-(--foreground)/5 cursor-pointer transition-all duration-500 shadow-xl flex flex-col"
                               >
                                   <div className="flex justify-between items-start mb-4">
-                                      <div className={cn(
-                                          "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                                          need.urgency_score >= 8 ? "bg-emergency/20 text-emergency border border-emergency/30" : 
-                                          need.urgency_score >= 5 ? "bg-orange-500/20 text-orange-500 border border-orange-500/30" : 
-                                          "bg-success/20 text-success border border-success/30"
-                                      )}>
-                                          {need.urgency_score >= 8 ? 'CRITICAL' : need.urgency_score >= 5 ? 'URGENT' : 'STABLE'}
-                                      </div>
+                                      <div className="flex flex-col gap-1.5">
+                                           <div className={cn(
+                                               "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest self-start",
+                                               need.urgency_score >= 8 ? "bg-emergency/20 text-emergency border border-emergency/30" : 
+                                               need.urgency_score >= 5 ? "bg-orange-500/20 text-orange-500 border border-orange-500/30" : 
+                                               "bg-success/20 text-success border border-success/30"
+                                           )}>
+                                               {need.urgency_score >= 8 ? 'CRITICAL' : need.urgency_score >= 5 ? 'URGENT' : 'STABLE'}
+                                           </div>
+                                           {(need as any).is_major_incident && (
+                                               <span className="px-2 py-0.5 bg-red-500/25 text-red-400 text-[8px] font-black rounded uppercase tracking-widest border border-red-500/50 animate-pulse self-start">
+                                                   ⚠️ MAJOR CLUSTER
+                                               </span>
+                                           )}
+                                           {(need as any).child_reports_count > 0 && (
+                                               <span className="px-2 py-0.5 bg-amber-500/25 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/50 self-start">
+                                                   👥 CLUSTERED ({1 + (need as any).child_reports_count})
+                                               </span>
+                                           )}
+                                           {(need as any).sla_escalated && (
+                                               <span className="px-2 py-0.5 bg-indigo-500/25 text-indigo-400 text-[8px] font-black rounded uppercase tracking-widest border border-indigo-500/50 animate-bounce self-start">
+                                                   ⚡ SLA ESCALATED
+                                               </span>
+                                           )}
+                                       </div>
                                       <div className="flex items-center gap-2">
                                           {need.source === 'telegram' && (
                                               <div className="flex flex-col items-end gap-1">
                                                   <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black rounded uppercase tracking-widest border border-blue-500/20">
                                                       via Telegram
+                                                  </span>
+                                                  <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
+                                                      {formatDate(need.created_at)}
+                                                  </span>
+                                              </div>
+                                          )}
+                                          {need.source === 'voice_agent' && (
+                                              <div className="flex flex-col items-end gap-1">
+                                                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-black rounded uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
+                                                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                      via WebRTC
+                                                  </span>
+                                                  <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
+                                                      {formatDate(need.created_at)}
+                                                  </span>
+                                              </div>
+                                          )}
+                                          {need.source !== 'telegram' && need.source !== 'voice_agent' && (
+                                              <div className="flex flex-col items-end gap-1">
+                                                  <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/20">
+                                                      via Web Portal
                                                   </span>
                                                   <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
                                                       {formatDate(need.created_at)}
@@ -678,7 +1175,8 @@ interface TelegramAction {
                                       </div>
                                   </div>
                                   <h4 className="text-lg font-black text-(--foreground) mb-1 group-hover:text-emergency transition-colors leading-tight">
-                                      {need.location_name || 'Unspecified Sector'}
+                                      {(need as any).ai_heading || need.location_name || 
+                                       (need.raw_text ? need.raw_text.split(' ').slice(0, 5).join(' ') + '...' : 'Field Report')}
                                   </h4>
                                   {need.lat && need.lng && (
                                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -836,13 +1334,43 @@ interface TelegramAction {
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs font-black text-(--foreground) uppercase tracking-wide">@{action.username}</span>
-                                                        <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black rounded uppercase tracking-widest border border-blue-500/20">
-                                                            via Telegram
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            {action.source === 'telegram' && (
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black rounded uppercase tracking-widest border border-blue-500/20">
+                                                                        via Telegram
+                                                                    </span>
+                                                                    <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
+                                                                        {formatDate(action.created_at)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {action.source === 'voice_agent' && (
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-black rounded uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
+                                                                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                                        via WebRTC
+                                                                    </span>
+                                                                    <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
+                                                                        {formatDate(action.created_at)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {action.source !== 'telegram' && action.source !== 'voice_agent' && (
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/20">
+                                                                        via Web Portal
+                                                                    </span>
+                                                                    <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
+                                                                        {formatDate(action.created_at)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <span className="text-[10px] font-bold text-(--foreground) uppercase tracking-widest font-mono">
+                                                                #{action.id.slice(0, 5)}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-[9px] text-(--foreground) font-black uppercase tracking-widest mt-0.5">
-                                                        {formatDate(action.created_at)}
-                                                    </p>
                                                 </div>
                                             </div>
                                             {action.urgency && (
@@ -932,11 +1460,31 @@ interface TelegramAction {
                        )} size={32} />
                     </div>
                     <div>
-                      <h2 className="text-4xl font-black text-(--foreground) font-anton uppercase tracking-tight flex items-center gap-3">
-                        {selectedNeed.source === 'telegram' ? 'Signal Extraction' : 'Intake Incident'}
+                      <h2 className="text-4xl font-black text-(--foreground) font-anton uppercase tracking-tight flex flex-wrap items-center gap-3">
+                        {(selectedNeed as any).ai_heading || (selectedNeed.source === 'telegram' ? 'Signal Extraction' : 'Intake Incident')}
                         <span className="text-sage text-xl font-mono">#{selectedNeed.id.slice(0, 8)}</span>
+                        {selectedNeed.is_major_incident && (
+                          <span className="px-3 py-1 bg-red-500/20 border border-red-500 text-red-400 text-xs font-black uppercase tracking-wider rounded-lg animate-pulse flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                            <Activity size={12} /> MAJOR INCIDENT CLUSTER
+                          </span>
+                        )}
+                        {(selectedNeed as any).child_reports_count > 0 && (
+                          <span className="px-3 py-1 bg-amber-500/20 border border-amber-500 text-amber-400 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5">
+                            <Signal size={12} /> CLUSTERED ({1 + (selectedNeed as any).child_reports_count} REPORTS)
+                          </span>
+                        )}
+                        {(selectedNeed as any).parent_incident_id && (
+                          <span className="px-3 py-1 bg-gray-500/20 border border-gray-500 text-gray-400 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5 font-mono">
+                            PARENT ID: {(selectedNeed as any).parent_incident_id.slice(0, 8)}
+                          </span>
+                        )}
+                        {(selectedNeed as any).sla_escalated && (
+                          <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-500 text-indigo-400 text-xs font-black uppercase tracking-wider rounded-lg animate-bounce flex items-center gap-1.5">
+                            <ShieldAlert size={12} /> SLA AUTO-ESCALATED (+5KM RANGE)
+                          </span>
+                        )}
                       </h2>
-                      <p className="text-sage font-black uppercase text-[10px] tracking-[0.3em] mt-1">Tactical Intelligence Dossier • Sector: {selectedNeed.location_name || 'Global'}</p>
+                      <p className="text-sage font-black uppercase text-[10px] tracking-[0.3em] mt-1">Tactical Intelligence Dossier • Sector: {(selectedNeed as any).ai_heading || selectedNeed.location_name || 'Field Report'}</p>
                     </div>
                   </div>
                   <button 
@@ -960,6 +1508,98 @@ interface TelegramAction {
                         &ldquo;{selectedNeed.raw_text}&rdquo;
                       </p>
                     </div>
+
+                    {/* Voice Recording & Call Log */}
+                    {selectedNeed.source === 'voice_agent' && (
+                      <div className="p-8 bg-emerald-500/5 rounded-4xl border border-emerald-500/10 space-y-6">
+                        <div className="flex justify-between items-center border-b border-emerald-500/10 pb-4">
+                          <h3 className="text-xs font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Mic size={16} className="text-emerald-400 animate-pulse" /> WebRTC Audio Recording
+                          </h3>
+                          {selectedNeed.caller_phone && (
+                            <span className="text-[10px] font-mono text-emerald-400/70">
+                              Caller: {selectedNeed.caller_phone}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {selectedNeed.recording_url ? (
+                          <div className="flex items-center gap-4 bg-(--background)/50 p-4 rounded-2xl border border-emerald-500/20">
+                            <audio 
+                              src={selectedNeed.recording_url} 
+                              controls 
+                              className="w-full filter invert hue-rotate-180 opacity-90"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-sage italic">No audio recording available for this call.</p>
+                        )}
+
+                        {/* Expandable WebRTC JSON Payload */}
+                        {(selectedNeed as any).webrtc_json && (
+                          <details className="group border border-(--border-color) rounded-2xl bg-(--background)/30 overflow-hidden">
+                            <summary className="px-5 py-4 text-xs font-black text-sage uppercase tracking-widest cursor-pointer select-none hover:bg-(--foreground)/5 transition-colors flex items-center justify-between">
+                              <span>View Raw WebRTC Call JSON Data</span>
+                              <span className="text-[10px] text-emerald-400/50 group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <div className="p-5 border-t border-(--border-color) bg-black/40 overflow-x-auto font-mono text-[10px] leading-relaxed text-emerald-300 max-h-60 no-scrollbar">
+                              <pre>{JSON.stringify((selectedNeed as any).webrtc_json, null, 2)}</pre>
+                            </div>
+                          </details>
+                        )}
+
+                        {/* WebRTC Conversation History Dialogue */}
+                        {selectedNeed.webrtc_conversation && selectedNeed.webrtc_conversation.length > 0 && (
+                          <div className="space-y-4 border-t border-emerald-500/10 pt-6">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
+                              WebRTC Call Conversation Log ({selectedNeed.webrtc_conversation.length})
+                            </p>
+                            <div className="flex flex-col gap-4 max-h-[350px] overflow-y-auto p-4 rounded-3xl bg-(--background)/50 border border-emerald-500/10 no-scrollbar">
+                              {selectedNeed.webrtc_conversation.map((entry: any, index: number) => (
+                                <div
+                                  key={index}
+                                  className={cn(
+                                    "flex gap-3 items-start",
+                                    entry.role === "assistant" ? "flex-row" : "flex-row-reverse"
+                                  )}
+                                >
+                                  {/* Avatar */}
+                                  <div
+                                    className={cn(
+                                      "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-md",
+                                      entry.role === "assistant"
+                                        ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                                        : "bg-white/10 border border-white/10 text-white/70"
+                                    )}
+                                  >
+                                    {entry.role === "assistant" ? <Bot size={13} /> : <User size={13} />}
+                                  </div>
+
+                                  {/* Message Bubble */}
+                                  <div
+                                    className={cn(
+                                      "px-4 py-3 rounded-2xl text-xs font-medium leading-relaxed max-w-[80%] shadow-md",
+                                      entry.role === "assistant"
+                                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 rounded-tl-none"
+                                        : "bg-white/5 border border-white/10 text-white/90 rounded-tr-none"
+                                    )}
+                                  >
+                                    <span className={cn(
+                                      "block text-[8px] font-black uppercase tracking-widest mb-1",
+                                      entry.role === "assistant" ? "text-emerald-400" : "text-white/40"
+                                    )}>
+                                      {entry.role === "assistant" ? "AI Voice Agent" : "Reporter (User)"}
+                                    </span>
+                                    {entry.text}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
 
                     <div className="flex gap-6">
                       {/* Urgency Score with Definition */}
@@ -1009,7 +1649,6 @@ interface TelegramAction {
                     </div>
                   </div>
 
-                  {/* Right Column: Deployment Actions & AI Intel */}
                   <div className="lg:col-span-5 space-y-8 flex flex-col">
                     {/* Tactical Assessment */}
                     {selectedNeed.tactical_assessment && (
@@ -1025,9 +1664,125 @@ interface TelegramAction {
                         </p>
                         <div className="flex gap-3">
                            <div className="px-4 py-2 bg-(--foreground)/5 rounded-full text-[10px] font-black uppercase text-sage border border-(--border-color) tracking-widest">
-                               Sentiment: <span className="text-yellow">{selectedNeed.sentiment || 'NEUTRAL'}</span>
+                                Sentiment: <span className="text-yellow">{selectedNeed.sentiment || 'NEUTRAL'}</span>
                            </div>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Gemini Vision Visual Triage */}
+                    {selectedNeed.image_url && (
+                      <div className="p-10 bg-linear-to-br from-indigo-500/10 to-transparent rounded-4xl border border-indigo-500/20 relative overflow-hidden group shadow-xl space-y-6">
+                        <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                          <Bot size={16} /> Gemini Vision Visual Triage
+                        </h3>
+                        <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                          <img
+                            src={selectedNeed.image_url.startsWith('http') ? selectedNeed.image_url : `${apiBaseUrl}${selectedNeed.image_url}`}
+                            alt="Incident Evidence"
+                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                        {selectedNeed.visual_severity && (
+                          <div className="flex flex-wrap gap-3 items-center">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Visual Severity:</span>
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                              selectedNeed.visual_severity === 'catastrophic' && "bg-red-500/25 border-red-500/50 text-red-400",
+                              selectedNeed.visual_severity === 'high' && "bg-orange-500/25 border-orange-500/50 text-orange-400",
+                              selectedNeed.visual_severity === 'medium' && "bg-yellow/25 border-yellow/50 text-yellow",
+                              selectedNeed.visual_severity === 'low' && "bg-green-500/25 border-green-500/50 text-green-400",
+                            )}>
+                              {selectedNeed.visual_severity}
+                            </span>
+                          </div>
+                        )}
+                        {(selectedNeed as any).visual_hazards && (selectedNeed as any).visual_hazards.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Spotted Hazards:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {(selectedNeed as any).visual_hazards.map((hazard: string, idx: number) => (
+                                <span key={idx} className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-[10px] font-mono text-red-400 flex items-center gap-1.5">
+                                  <ShieldAlert size={12} /> {hazard}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Routes API + Gemini Dispatch Recommendation */}
+                    {selectedNeed.lat != null && selectedNeed.lng != null && (
+                      <div className="p-10 bg-black/40 rounded-4xl border border-white/5 relative overflow-hidden group shadow-xl">
+                        <h3 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                          <Bot size={16} /> Intelligent AI Dispatch Engine (Routes API)
+                        </h3>
+                        
+                        {!recommendationData && !recommendationLoading && (
+                          <button
+                            onClick={() => fetchVolunteerRecommendation(selectedNeed.id)}
+                            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-2xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest cursor-pointer"
+                          >
+                            <Navigation2 size={14} /> Calculate Best Dispatch Route
+                          </button>
+                        )}
+
+                        {recommendationLoading && (
+                          <div className="flex flex-col items-center justify-center py-6 gap-3">
+                            <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin"></div>
+                            <span className="text-[10px] font-black uppercase text-emerald-400/75 tracking-widest animate-pulse">
+                              Querying Google Routes API & Triage Engine...
+                            </span>
+                          </div>
+                        )}
+
+                        {recommendationError && (
+                          <div className="text-xs text-red-400 border border-red-500/20 bg-red-500/5 p-4 rounded-2xl text-center">
+                            {recommendationError}
+                          </div>
+                        )}
+
+                        {recommendationData && (
+                          <div className="space-y-4">
+                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col gap-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-black text-sage uppercase tracking-widest">Recommended Responder</span>
+                                <span className="text-[8px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-black font-mono">
+                                  {recommendationData.route_source || "Routes API"}
+                                </span>
+                              </div>
+                              <div className="text-lg font-black text-white uppercase tracking-tight">
+                                {recommendationData.volunteer_name || "Volunteer Responder"}
+                              </div>
+                              {recommendationData.distance_km != null && (
+                                <div className="grid grid-cols-2 gap-4 mt-1 border-t border-white/5 pt-2">
+                                  <div>
+                                    <span className="text-[8px] text-sage font-black uppercase tracking-widest block">Travel Distance</span>
+                                    <span className="text-sm font-black text-white font-mono">{recommendationData.distance_km} km</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-sage font-black uppercase tracking-widest block">Est. Duration (Traffic)</span>
+                                    <span className="text-sm font-black text-emerald-400 font-mono">{recommendationData.duration_min} min</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <p className="text-xs text-white/80 leading-relaxed italic bg-emerald-950/10 border border-emerald-500/10 p-5 rounded-2xl">
+                              &ldquo;{recommendationData.reasoning}&rdquo;
+                            </p>
+
+                            <button
+                              onClick={() => {
+                                setRecommendationData(null);
+                              }}
+                              className="w-full py-2 bg-white/5 hover:bg-white/10 text-sage hover:text-white font-black rounded-xl text-[9px] uppercase tracking-widest transition-all cursor-pointer"
+                            >
+                              Reset Recommendation
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1047,8 +1802,22 @@ interface TelegramAction {
                             <div className="p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color)">
                                <span className="text-[8px] font-black text-sage uppercase tracking-widest block mb-1">Source Logic</span>
                                <div className="flex items-center gap-2 text-xs font-black text-(--foreground)">
-                                  {selectedNeed.source === 'telegram' ? <Bot size={14} className="text-blue-400" /> : <Phone size={14} className="text-yellow"/>}
-                                  <span className="truncate">{selectedNeed.source === 'telegram' ? 'Telegram' : 'Direct'}</span>
+                                  {selectedNeed.source === 'telegram' ? (
+                                      <>
+                                          <Bot size={14} className="text-blue-400" />
+                                          <span>Telegram Bot</span>
+                                      </>
+                                  ) : selectedNeed.source === 'voice_agent' ? (
+                                      <>
+                                          <Mic size={14} className="text-emerald-400 animate-pulse" />
+                                          <span>WebRTC Voice</span>
+                                      </>
+                                  ) : (
+                                      <>
+                                          <Phone size={14} className="text-yellow"/>
+                                          <span>Web Portal</span>
+                                      </>
+                                  )}
                                </div>
                             </div>
                             <div className="p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color)">
@@ -1143,7 +1912,8 @@ interface TelegramAction {
                 </p>
                 <div className="mt-1 flex items-center gap-3 min-w-0">
                   <span className="truncate text-sm font-black uppercase text-(--foreground)">
-                    {collapsedNeed.location_name || 'Unnamed Mission'}
+                    {(collapsedNeed as any).ai_heading || collapsedNeed.location_name || 
+                     (collapsedNeed.raw_text ? collapsedNeed.raw_text.split(' ').slice(0, 4).join(' ') + '...' : 'Active Mission')}
                   </span>
                   <span className="shrink-0 text-[10px] font-mono text-sage">
                     #{collapsedNeed.id.slice(0, 8)}

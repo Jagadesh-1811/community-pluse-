@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useState } from "react";
 import { auth, rtdb } from "@/lib/firebase";
@@ -14,15 +15,12 @@ import {
   Shield,
   ArrowRight,
   Loader2,
-  Signal,
-  ShieldAlert,
   FingerprintIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 export type AuthMode = "signin" | "signup";
-type UserRole = "REPORTER" | "VOLUNTEER";
 
 interface AuthFormProps {
   initialMode?: AuthMode;
@@ -30,8 +28,11 @@ interface AuthFormProps {
 
 export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
   const router = useRouter();
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+    "http://localhost:8000";
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [role, setRole] = useState<UserRole>("REPORTER");
+  const role: string = "REPORTER";
   const [domain, setDomain] = useState<"human" | "animal">("human");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,13 +40,6 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const VALID_CODES = process.env.NEXT_PUBLIC_VOLUNTEER_CODES?.split(",") || [
-    "PULSE_ADMIN_1",
-    "PULSE_VOLUNTEER_2",
-    "PULSE_RESCUE_3",
-    "PULSE_CORE_4",
-  ];
 
   const handleGoogleAuth = async () => {
     setLoading(true);
@@ -63,7 +57,12 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
       if (!userRole) {
         // New user via Google
         if (role === "VOLUNTEER") {
-          if (!VALID_CODES.includes(volunteerCode)) {
+          const res = await fetch(`${apiBaseUrl}/auth/verify-code`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: volunteerCode, role }),
+          });
+          if (!res.ok) {
             throw new Error(
               "INVALID ACCESS CODE: You do not have volunteer clearance. Please log in as a Reporter.",
             );
@@ -71,6 +70,9 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         }
 
         userRole = role;
+        if (role === "VOLUNTEER" && volunteerCode === "PULSE_ADMIN_1") {
+          userRole = "ADMIN";
+        }
         await set(ref(rtdb, `users/${user.uid}`), {
           email: user.email,
           role: userRole,
@@ -79,7 +81,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         });
       }
 
-      router.push(userRole === "VOLUNTEER" ? "/volunteer" : "/field");
+      router.push(userRole === "ADMIN" ? "/admin" : userRole === "VOLUNTEER" ? "/volunteer" : "/field");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -97,7 +99,12 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
     try {
       if (mode === "signup") {
         if (role === "VOLUNTEER") {
-          if (!VALID_CODES.includes(volunteerCode)) {
+          const res = await fetch(`${apiBaseUrl}/auth/verify-code`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: volunteerCode, role }),
+          });
+          if (!res.ok) {
             throw new Error(
               "INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.",
             );
@@ -118,10 +125,15 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         };
         await sendEmailVerification(user, actionCodeSettings);
 
+        let userRole = role;
+        if (role === "VOLUNTEER" && volunteerCode === "PULSE_ADMIN_1") {
+          userRole = "ADMIN";
+        }
+
         await set(ref(rtdb, `users/${user.uid}`), {
           email,
-          role,
-          domain: role === "VOLUNTEER" ? domain : null,
+          role: userRole,
+          domain: userRole === "VOLUNTEER" ? domain : null,
           created_at: new Date().toISOString(),
         });
 
@@ -154,7 +166,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         const userData = snapshot.val();
         const userRole = userData?.role || "REPORTER";
 
-        router.push(userRole === "VOLUNTEER" ? "/volunteer" : "/field");
+        router.push(userRole === "ADMIN" ? "/admin" : userRole === "VOLUNTEER" ? "/volunteer" : "/field");
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -190,30 +202,14 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
           {mode === "signin" ? "Log In" : "Create Account"}
         </h2>
 
-        {/* Role Switcher */}
-        <div className="flex bg-black/5 dark:bg-white/5 p-1.5 rounded-xl border border-black/5 dark:border-white/5 mb-8">
-          <button
-            onClick={() => setRole("REPORTER")}
-            type="button"
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-anton uppercase tracking-widest transition-all",
-              role === "REPORTER"
-                ? "bg-(--foreground) text-(--background) shadow-md"
-                : "text-(--foreground) opacity-40 hover:opacity-80",
-            )}>
-            <Signal size={16} /> Reporter
-          </button>
-          <button
-            onClick={() => setRole("VOLUNTEER")}
-            type="button"
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-anton uppercase tracking-widest transition-all",
-              role === "VOLUNTEER"
-                ? "bg-(--foreground) text-(--background) shadow-md"
-                : "text-(--foreground) opacity-40 hover:opacity-80",
-            )}>
-            <ShieldAlert size={16} /> Volunteer
-          </button>
+        {/* Volunteer Redirection Info */}
+        <div className="mb-8 p-4 bg-yellow/5 border border-yellow/15 rounded-xl text-center">
+          <p className="text-xs text-sage uppercase font-bold tracking-wider">
+            Are you a volunteer? Use the{" "}
+            <Link href="/volunteer" className="text-yellow hover:underline font-black">
+              Volunteer Gateway
+            </Link>
+          </p>
         </div>
 
         {/* Domain Selection for Volunteers during Signup */}

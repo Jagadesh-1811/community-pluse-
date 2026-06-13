@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['leaflet.offline', '@turf/turf'],
+  
   async redirects() {
     return [
       {
@@ -9,6 +11,16 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
     ];
+  },
+
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        'leaflet': 'commonjs leaflet',
+        'leaflet.offline': 'commonjs leaflet.offline',
+      });
+    }
+    return config;
   },
 };
 

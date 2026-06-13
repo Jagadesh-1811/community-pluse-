@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue, get } from 'firebase/database';
+import * as Sentry from '@sentry/nextjs';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Truck, Clock, ShieldCheck } from 'lucide-react';
 interface StatusTrackerProps {
@@ -58,6 +59,13 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
 
                 publishVolunteerLocation(newData);
             }
+        }, (error) => {
+            console.error("StatusTracker Firebase error:", error);
+            Sentry.captureException(error, {
+                tags: {
+                    listener: 'incident_realtime_listener'
+                }
+            });
         });
 
         return () => unsubscribe();

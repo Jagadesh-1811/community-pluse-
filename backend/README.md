@@ -44,7 +44,6 @@ backend/
 │   ├── ai_service.py          # Gemini AI integration
 │   ├── telegram_service.py    # Telegram bot handler
 │   ├── voice_service.py       # Voice agent integration
-│   ├── sms_service.py         # SMS gateway
 │   └── notif_service.py       # Notification dispatcher
 └── .env                        # Environment variables (DO NOT commit)
 ```
@@ -148,7 +147,7 @@ Process field need submissions with AI analysis.
 ```json
 {
   "text": "String description of the need",
-  "source": "web|voice_agent|telegram|sms",
+  "source": "web|voice_agent|telegram",
   "phone": "+91XXXXXXXXXX",
   "lat": 28.6139,
   "lng": 77.209,
@@ -300,12 +299,6 @@ Generate automated response message for reporters.
 - Emergency call triggering to volunteer phone
 - Call transcription processing
 - Voice message formatting
-
-### SMS Service (`services/sms_service.py`)
-
-- SMS gateway integration
-- Message queue management
-- Delivery tracking
 
 ### Notification Service (`services/notif_service.py`)
 

@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { push, ref, serverTimestamp, set } from "firebase/database";
-import { X, Send, Heart, Phone, MapPin, Target } from "lucide-react";
+import { X, Send, Heart, Phone, MapPin, Target, Camera } from "lucide-react";
 import { rtdb } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { VoiceAgentButton } from "@/components/voice/VoiceAgentButton";
+import { useAuth } from "@/lib/auth-context";
+
+
 
 interface IntakeFormProps {
   pickedLocation?: { lat: number; lng: number } | null;
   onPickModeToggle?: (active: boolean) => void;
   onClose?: () => void;
-  onRefresh?: (needId?: string) => void;
+  /** Called with (needId, aiHeading) after a successful submit */
+  onRefresh?: (needId?: string, aiHeading?: string) => void;
   localCoords?: { lat: number; lng: number } | null;
   setLocalCoords?: (coords: { lat: number; lng: number } | null) => void;
 }
@@ -24,6 +28,7 @@ export default function IntakeForm({
   localCoords,
   setLocalCoords,
 }: IntakeFormProps) {
+  const { user } = useAuth();
   const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
     "http://localhost:8000";
@@ -31,6 +36,11 @@ export default function IntakeForm({
   const [report, setReport] = useState("");
   const [phone, setPhone] = useState("");
   const [domain, setDomain] = useState<"human" | "animal">("human");
+  const [glitchingDomain, setGlitchingDomain] = useState<"human" | "animal" | null>(null);
+  const [webrtcConversation, setWebrtcConversation] = useState<any[]>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [internalLocalCoords, setInternalLocalCoords] = useState<{
     lat: number;
     lng: number;
@@ -39,6 +49,7 @@ export default function IntakeForm({
   const activeLocalCoords =
     localCoords !== undefined ? localCoords : internalLocalCoords;
   const updateLocalCoords = setLocalCoords || setInternalLocalCoords;
+
 
   const activeCoords = pickedLocation || activeLocalCoords;
   const hasValidActiveCoords =
@@ -93,6 +104,89 @@ export default function IntakeForm({
     );
   };
 
+  const handleVoiceCallEnd = async (conversation: any[]) => {
+    if (!conversation || conversation.length === 0) return;
+
+    // Filter to retrieve user's dialogue and construct full report text
+    const userMessages = conversation
+      .filter((entry) => entry.role === "user")
+      .map((entry) => entry.text)
+      .join(" ");
+
+    if (!userMessages.trim()) return;
+
+    setReport(userMessages);
+
+    let finalLat = activeCoords?.lat;
+    let finalLng = activeCoords?.lng;
+
+    // Fetch coords or fall back to standard coordinates (New Delhi) to prevent validation error
+    if (!finalLat || !finalLng) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+        });
+        finalLat = position.coords.latitude;
+        finalLng = position.coords.longitude;
+      } catch {
+        finalLat = 28.6139;
+        finalLng = 77.2090;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/intake`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: userMessages,
+          source: "voice_agent",
+          phone: phone || null,
+          lat: finalLat,
+          lng: finalLng,
+          domain: domain,
+          reporter_email: user?.email || null,
+          webrtc_conversation: conversation,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const needId = result?.data?.id ?? result?.id ?? null;
+        if (needId) {
+          // Generate AI heading if possible
+          let aiHeading: string | undefined;
+          try {
+            const headingRes = await fetch(`${apiBaseUrl}/ai/heading`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: userMessages.trim(), sender: "reporter" }),
+            });
+            if (headingRes.ok) {
+              const headingData = await headingRes.json();
+              aiHeading = headingData?.heading ?? undefined;
+            }
+          } catch {
+            // ignore fallback
+          }
+
+          setReport("");
+          setPhone("");
+          setWebrtcConversation([]);
+          updateLocalCoords(null);
+          if (onPickModeToggle) onPickModeToggle(false);
+          if (onRefresh) onRefresh(needId, aiHeading);
+          if (onClose) onClose();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to auto-submit WebRTC need:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -120,18 +214,38 @@ export default function IntakeForm({
       let needId: string | null = null;
 
       try {
-        const response = await fetch(`${apiBaseUrl}/intake`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: report,
-            source: "web",
-            phone: phone || null,
-            lat: lat,
-            lng: lng,
-            domain: domain,
-          }),
-        });
+        let response;
+        if (selectedImage) {
+          const formData = new FormData();
+          formData.append("text", report);
+          formData.append("source", webrtcConversation.length > 0 ? "voice_agent" : "web");
+          formData.append("phone", phone || "");
+          formData.append("lat", String(lat));
+          formData.append("lng", String(lng));
+          formData.append("domain", domain);
+          formData.append("reporter_email", user?.email || "");
+          formData.append("image", selectedImage);
+
+          response = await fetch(`${apiBaseUrl}/intake/image`, {
+            method: "POST",
+            body: formData,
+          });
+        } else {
+          response = await fetch(`${apiBaseUrl}/intake`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: report,
+              source: webrtcConversation.length > 0 ? "voice_agent" : "web",
+              phone: phone || null,
+              lat: lat,
+              lng: lng,
+              domain: domain,
+              reporter_email: user?.email || null,
+              webrtc_conversation: webrtcConversation.length > 0 ? webrtcConversation : null,
+            }),
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -166,20 +280,42 @@ export default function IntakeForm({
           urgency_score: 5,
           emotional_signal: "concerned",
           status: "open",
-          source: "web",
+          source: webrtcConversation.length > 0 ? "voice_agent" : "web",
           phone: phone || null,
+          reporter_email: user?.email || null,
+          webrtc_conversation: webrtcConversation.length > 0 ? webrtcConversation : null,
           created_at: serverTimestamp(),
         });
+
 
         needId = newNeedRef.key;
       }
 
       if (needId) {
+        // Generate an AI heading based on the submitted report text
+        let aiHeading: string | undefined;
+        try {
+          const headingRes = await fetch(`${apiBaseUrl}/ai/heading`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: report.trim(), sender: "reporter" }),
+          });
+          if (headingRes.ok) {
+            const headingData = await headingRes.json();
+            aiHeading = headingData?.heading ?? undefined;
+          }
+        } catch {
+          // Non-critical — heading will fall back to default in parent
+        }
+
         setReport("");
         setPhone("");
+        setSelectedImage(null);
+        setImagePreview(null);
+        setWebrtcConversation([]);
         updateLocalCoords(null);
         if (onPickModeToggle) onPickModeToggle(false);
-        if (onRefresh) onRefresh(needId);
+        if (onRefresh) onRefresh(needId, aiHeading);
         if (onClose) onClose();
       } else {
         throw new Error("No need ID returned from server");
@@ -234,6 +370,57 @@ export default function IntakeForm({
         </div>
 
         <div className="space-y-3">
+          <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1 flex justify-between items-center font-roboto">
+            <span>Incident Damage Photo</span>
+            {imagePreview && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedImage(null);
+                  setImagePreview(null);
+                }}
+                className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </label>
+          {!imagePreview ? (
+            <label className="flex flex-col items-center justify-center w-full h-32 bg-(--background) hover:bg-(--foreground)/5 border border-(--border-color) border-dashed rounded-3xl cursor-pointer transition-all group p-4 text-center">
+              <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                <Camera className="text-(--foreground)/40 group-hover:scale-110 transition-transform mb-2" size={24} />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-(--foreground)/60">Upload Field Photo</p>
+                <p className="text-[9px] text-(--foreground)/40 font-mono mt-1">PNG, JPG, or WEBP up to 5MB</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    setSelectedImage(file);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setImagePreview(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+          ) : (
+            <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-(--border-color) bg-black/40">
+              <img
+                src={imagePreview}
+                alt="Upload preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
           <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">
             Your Contact Profile
           </label>
@@ -259,9 +446,14 @@ export default function IntakeForm({
           <div className="flex gap-4 p-1 bg-(--foreground)/5 rounded-2xl border border-(--border-color)">
             <button
               type="button"
-              onClick={() => setDomain("human")}
+              onClick={() => {
+                setDomain("human");
+                setGlitchingDomain("human");
+                setTimeout(() => setGlitchingDomain(null), 450);
+              }}
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                glitchingDomain === "human" ? "animate-glitch-bw" :
                 domain === "human"
                   ? "bg-(--foreground) text-(--background) shadow-lg"
                   : "text-(--foreground) hover:text-(--foreground)",
@@ -270,9 +462,14 @@ export default function IntakeForm({
             </button>
             <button
               type="button"
-              onClick={() => setDomain("animal")}
+              onClick={() => {
+                setDomain("animal");
+                setGlitchingDomain("animal");
+                setTimeout(() => setGlitchingDomain(null), 450);
+              }}
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                glitchingDomain === "animal" ? "animate-glitch-bw" :
                 domain === "animal"
                   ? "bg-blue-500 text-white shadow-lg"
                   : "text-(--foreground) hover:text-blue-400",
@@ -281,6 +478,7 @@ export default function IntakeForm({
             </button>
           </div>
         </div>
+
 
         <div className="space-y-4">
           <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">
@@ -346,7 +544,17 @@ export default function IntakeForm({
             Rapid Response Channels
           </label>
           <div className="grid grid-cols-1 gap-3">
-            <VoiceAgentButton />
+            <VoiceAgentButton 
+              onTranscriptUpdate={(transcript) => {
+                if (transcript && transcript.trim()) {
+                  setReport(transcript);
+                }
+              }}
+              onConversationUpdate={(conv) => {
+                setWebrtcConversation(conv);
+              }}
+              onCallEnd={handleVoiceCallEnd}
+            />
             <a
               href="https://t.me/CPFieldBot"
               target="_blank"
@@ -361,6 +569,21 @@ export default function IntakeForm({
                 </p>
                 <p className="text-sm font-black text-(--foreground)">
                   @Community_Pulse_Bot
+                </p>
+              </div>
+            </a>
+            <a
+              href="tel:+19482229326"
+              className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer">
+              <div className="w-10 h-10 rounded-xl bg-(--background) border border-(--border-color) flex items-center justify-center text-emerald-400">
+                <Phone size={18} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">
+                  Vapi Telephony Hotline
+                </p>
+                <p className="text-sm font-black text-(--foreground)">
+                  +1 (948) 222-9326
                 </p>
               </div>
             </a>

@@ -9,12 +9,13 @@ import {
 } from "firebase/auth";
 import { ref, onValue } from "firebase/database";
 
-type UserRole = "REPORTER" | "VOLUNTEER" | null;
+type UserRole = "REPORTER" | "VOLUNTEER" | "ADMIN" | null;
 
 interface AuthContextType {
   user: User | null;
   role: UserRole;
   domain: "human" | "animal" | null;
+  categories: string[] | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [domain, setDomain] = useState<"human" | "animal" | null>(null);
+  const [userCategories, setUserCategories] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,9 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const data = snapshot.val();
               setRole(data.role as UserRole);
               setDomain(data.domain || null);
+              setUserCategories(data.categories || null);
             } else {
               setRole("REPORTER");
               setDomain(null);
+              setUserCategories(null);
             }
             setLoading(false);
           },
@@ -61,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setRole(null);
         setDomain(null);
+        setUserCategories(null);
         setLoading(false);
       }
     });
@@ -76,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     role,
     domain,
+    categories: userCategories,
     loading,
     signOut,
   };

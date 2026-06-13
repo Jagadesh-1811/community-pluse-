@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import { ErrorBoundary } from '@sentry/nextjs';
 
 interface FieldMapProps {
   location: { lat: number; lng: number } | null;
@@ -48,31 +49,31 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
     }
   }, [location, volunteerLocation, map, hasValidLocation, hasValidVolunteerLocation]);
 
-  if (!hasValidLocation) return null;
-
   return (
     <>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; OpenStreetMap contributors'
       />
-      <Marker
-        position={[location.lat, location.lng]}
-        icon={L.divIcon({
-          className: 'custom-field-marker',
-          html: `
-            <div class="relative w-12 h-12 flex items-center justify-center">
-                <div class="absolute inset-0 bg-blue-500/40 rounded-full animate-ping"></div>
-                <div class="absolute inset-2 bg-blue-500/20 rounded-full animate-pulse"></div>
-                <div class="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-[0_0_15px_rgba(37,99,235,0.8)]"></div>
-            </div>
-          `,
-          iconSize: [48, 48],
-          iconAnchor: [24, 24],
-        })}
-      />
+      {hasValidLocation && location && (
+        <Marker
+          position={[location.lat, location.lng]}
+          icon={L.divIcon({
+            className: 'custom-field-marker',
+            html: `
+              <div class="relative w-12 h-12 flex items-center justify-center">
+                  <div class="absolute inset-0 bg-blue-500/40 rounded-full animate-ping"></div>
+                  <div class="absolute inset-2 bg-blue-500/20 rounded-full animate-pulse"></div>
+                  <div class="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-[0_0_15px_rgba(37,99,235,0.8)]"></div>
+              </div>
+            `,
+            iconSize: [48, 48],
+            iconAnchor: [24, 24],
+          })}
+        />
+      )}
 
-      {hasValidVolunteerLocation && volunteerLocation && (
+      {hasValidLocation && location && hasValidVolunteerLocation && volunteerLocation && (
         <>
             <Marker
                 position={[volunteerLocation.lat, volunteerLocation.lng]}
@@ -135,19 +136,22 @@ export default function FieldMap(props: FieldMapProps) {
 
   return (
     <div className="w-full h-full relative overflow-hidden rounded-4xl border border-white/10 shadow-2xl">
-      <MapContainer
-        center={mapCenter}
-        zoom={hasValidCoords(props.location) ? 16 : 5}
-        className="h-full w-full bg-(--background)"
-        zoomControl={false}
-        dragging={true}
-      >
-        <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap'
-        />
-        <FieldMapInner {...props} L={L} />
-      </MapContainer>
+      <ErrorBoundary fallback={
+        <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-xs font-black uppercase tracking-widest text-emergency bg-emergency/10 backdrop-blur-md border border-emergency/25 rounded-4xl">
+          Map unavailable — field reports still active via WhatsApp
+        </div>
+      }>
+        <MapContainer
+          key={`${mapCenter[0]}-${mapCenter[1]}`}
+          center={mapCenter}
+          zoom={hasValidCoords(props.location) ? 16 : 5}
+          className="h-full w-full bg-(--background)"
+          zoomControl={false}
+          dragging={true}
+        >
+          <FieldMapInner {...props} L={L} />
+        </MapContainer>
+      </ErrorBoundary>
     </div>
   );
 }
