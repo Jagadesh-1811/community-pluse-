@@ -321,13 +321,11 @@ async def add_security_headers_and_rate_limiting_middleware(request: Request, ca
 
 
 # Configure CORS based on environment
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-if "production" in os.getenv("ENVIRONMENT", "development"):
-    # Production: Restrict to specific domain
-    CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
-else:
-    # Development: Allow localhost
-    CORS_ORIGINS = ["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:3000"]
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://community-pluse.vercel.app").split(",")
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+if "production" not in os.getenv("ENVIRONMENT", "development"):
+    # Development: Allow local server ports
+    CORS_ORIGINS.extend(["http://localhost:8000", "http://127.0.0.1:3000"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -507,6 +505,93 @@ def dispatch_incident(incident_id: str, radius_km: float = 10.0):
         sentry_sdk.capture_exception(e)
 
 
+async def fetch_recent_needs(lat: Optional[float], lng: Optional[float]) -> list:
+    """Fetch needs from the last 10 minutes for clustering check."""
+    recent_needs = []
+    if lat is not None and lng is not None:
+        try:
+            # Fetch last 50 needs to scan for duplicates
+            needs_snapshot = admin_db.reference("needs").order_by_child("created_at").limit_to_last(50).get()
+            if needs_snapshot and isinstance(needs_snapshot, dict):
+                ten_minutes_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).timestamp() * 1000
+                for nid, ndata in needs_snapshot.items():
+                    if not ndata.get("parent_incident_id") and ndata.get("created_at", 0) >= ten_minutes_ago:
+                        ndata["id"] = nid
+                        recent_needs.append(ndata)
+        except Exception as snap_err:
+            logger.error(f"Error fetching recent needs: {snap_err}")
+    return recent_needs
+
+
+async def merge_under_cluster(
+    parent_id: str,
+    text: str,
+    source: str,
+    phone: Optional[str],
+    reporter_email: Optional[str],
+    image_url: Optional[str],
+    background_tasks: Optional[BackgroundTasks]
+) -> tuple[str, int]:
+    """Merge new report under parent incident and run cluster logic."""
+    child_id = str(uuid.uuid4())
+    child_record = {
+        "id": child_id,
+        "parent_incident_id": parent_id,
+        "raw_text": text,
+        "source": source,
+        "phone": phone,
+        "reporter_email": reporter_email,
+        "created_at": {".sv": "timestamp"},
+        "image_url": image_url
+    }
+    
+    admin_db.reference(f"needs/{child_id}").set(child_record)
+    
+    parent_ref = admin_db.reference(f"needs/{parent_id}")
+    parent_data = parent_ref.get()
+    
+    all_needs = admin_db.reference("needs").get()
+    siblings = []
+    if all_needs and isinstance(all_needs, dict):
+        for nid, ndata in all_needs.items():
+            if ndata.get("parent_incident_id") == parent_id:
+                siblings.append(ndata)
+                
+    updated_description = (parent_data.get("description") or parent_data.get("raw_text") or "")
+    updated_description += f"\n\n[Report #{len(siblings)+1} via {source}]: {text}"
+    
+    escalation_result = await evaluate_escalation(parent_data, siblings)
+    new_urgency = escalation_result.get("new_urgency_score", parent_data.get("urgency_score", 5))
+    
+    updates = {
+        "description": updated_description,
+        "child_reports_count": len(siblings)
+    }
+    
+    # 5+ reports triggers major incident and coordinated dispatch
+    if len(siblings) >= 4:
+        logger.warning(f"Major incident threshold reached (5+ reports) on cluster {parent_id}. Bumping urgency and dispatching single coordinated alert.")
+        new_urgency = max(new_urgency, 9)
+        updates["is_major_incident"] = True
+        
+    if new_urgency != parent_data.get("urgency_score"):
+        logger.info(f"AI Escalation: Incident {parent_id} urgency score updated from {parent_data.get('urgency_score')} to {new_urgency}")
+        updates["urgency_score"] = new_urgency
+        updates["escalation_reasoning"] = escalation_result.get("reasoning")
+        updates["escalated_at"] = {".sv": "timestamp"}
+        
+    parent_ref.update(updates)
+    
+    if len(siblings) == 4 and background_tasks:
+        background_tasks.add_task(dispatch_incident, parent_id, 10.0)
+        if new_urgency >= 10:
+            volunteer_phone = os.getenv("VOLUNTEER_ALERT_PHONE")
+            if volunteer_phone:
+                background_tasks.add_task(trigger_emergency_call, volunteer_phone, f"MAJOR CRITICAL EVENT Clustered: {updated_description[:100]}")
+
+    return parent_id, new_urgency
+
+
 async def process_and_save_need_record(
     text: str,
     source: str,
@@ -524,19 +609,7 @@ async def process_and_save_need_record(
     from services.ai_service import analyze_incident_image
 
     # 1. Fetch recent needs (last 10 minutes) for clustering check
-    recent_needs = []
-    if lat is not None and lng is not None:
-        try:
-            # Fetch last 50 needs to scan for duplicates
-            needs_snapshot = admin_db.reference("needs").order_by_child("created_at").limit_to_last(50).get()
-            if needs_snapshot and isinstance(needs_snapshot, dict):
-                ten_minutes_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).timestamp() * 1000
-                for nid, ndata in needs_snapshot.items():
-                    if not ndata.get("parent_incident_id") and ndata.get("created_at", 0) >= ten_minutes_ago:
-                        ndata["id"] = nid
-                        recent_needs.append(ndata)
-        except Exception as snap_err:
-            logger.error(f"Error fetching recent needs: {snap_err}")
+    recent_needs = await fetch_recent_needs(lat, lng)
 
     # 2. Check for clustering
     parent_id = None
@@ -545,64 +618,15 @@ async def process_and_save_need_record(
 
     if parent_id:
         logger.info(f"Clustering detected: Merging new report under parent incident {parent_id}")
-        
-        child_id = str(uuid.uuid4())
-        child_record = {
-            "id": child_id,
-            "parent_incident_id": parent_id,
-            "raw_text": text,
-            "source": source,
-            "phone": phone,
-            "reporter_email": reporter_email,
-            "created_at": {".sv": "timestamp"},
-            "image_url": image_url
-        }
-        
-        admin_db.reference(f"needs/{child_id}").set(child_record)
-        
-        parent_ref = admin_db.reference(f"needs/{parent_id}")
-        parent_data = parent_ref.get()
-        
-        all_needs = admin_db.reference("needs").get()
-        siblings = []
-        if all_needs and isinstance(all_needs, dict):
-            for nid, ndata in all_needs.items():
-                if ndata.get("parent_incident_id") == parent_id:
-                    siblings.append(ndata)
-                    
-        updated_description = (parent_data.get("description") or parent_data.get("raw_text") or "")
-        updated_description += f"\n\n[Report #{len(siblings)+1} via {source}]: {text}"
-        
-        escalation_result = await evaluate_escalation(parent_data, siblings)
-        new_urgency = escalation_result.get("new_urgency_score", parent_data.get("urgency_score", 5))
-        
-        updates = {
-            "description": updated_description,
-            "child_reports_count": len(siblings)
-        }
-        
-        # 5+ reports triggers major incident and coordinated dispatch
-        if len(siblings) >= 4:
-            logger.warning(f"Major incident threshold reached (5+ reports) on cluster {parent_id}. Bumping urgency and dispatching single coordinated alert.")
-            new_urgency = max(new_urgency, 9)
-            updates["is_major_incident"] = True
-            
-        if new_urgency != parent_data.get("urgency_score"):
-            logger.info(f"AI Escalation: Incident {parent_id} urgency score updated from {parent_data.get('urgency_score')} to {new_urgency}")
-            updates["urgency_score"] = new_urgency
-            updates["escalation_reasoning"] = escalation_result.get("reasoning")
-            updates["escalated_at"] = {".sv": "timestamp"}
-            
-        parent_ref.update(updates)
-        
-        if len(siblings) == 4 and background_tasks:
-            background_tasks.add_task(dispatch_incident, parent_id, 10.0)
-            if new_urgency >= 10:
-                volunteer_phone = os.getenv("VOLUNTEER_ALERT_PHONE")
-                if volunteer_phone:
-                    background_tasks.add_task(trigger_emergency_call, volunteer_phone, f"MAJOR CRITICAL EVENT Clustered: {updated_description[:100]}")
-
-        return parent_id, new_urgency
+        return await merge_under_cluster(
+            parent_id=parent_id,
+            text=text,
+            source=source,
+            phone=phone,
+            reporter_email=reporter_email,
+            image_url=image_url,
+            background_tasks=background_tasks
+        )
 
     # 3. If NOT clustered: standard new need triage
     ai_data = await extract_need_structure(text)
