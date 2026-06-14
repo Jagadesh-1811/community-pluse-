@@ -1,17 +1,9 @@
 'use client';
 
-<<<<<<< HEAD
-import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useRealtimeNeeds } from "@/hooks/useRealtimeNeeds";
-import { rtdb } from "@/lib/firebase";
-import { auth } from "@/lib/firebase";
-=======
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { rtdb } from '@/lib/firebase';
-import { auth } from '@/lib/firebase';
->>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
+import { useRealtimeNeeds } from '@/hooks/useRealtimeNeeds';
+import { rtdb, auth } from '@/lib/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -74,37 +66,30 @@ export default function AdminPage() {
   // Dynamic Stats calculations for Analytics tab
   const totalIncidents = needs.length;
   const activeMissions = needs.filter(
-    (n) => n.status === "in-progress" || n.status === "in_progress",
+    (n) => n.status === 'in-progress' || n.status === 'in_progress',
   ).length;
-  const resolvedMissions = needs.filter((n) => n.status === "resolved").length;
-  const pendingIncidents = needs.filter(
-    (n) => !n.status || n.status === "open",
-  ).length;
+  const resolvedMissions = needs.filter((n) => n.status === 'resolved').length;
+  const pendingIncidents = needs.filter((n) => !n.status || n.status === 'open').length;
 
   const categoriesCount = needs.reduce((acc: Record<string, number>, curr) => {
-    const type = curr.need_type || "unclassified";
+    const type = curr.need_type || 'unclassified';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
 
   const sourcesCount = needs.reduce((acc: Record<string, number>, curr) => {
-    const src = curr.source || "web";
+    const src = curr.source || 'web';
     acc[src] = (acc[src] || 0) + 1;
     return acc;
   }, {});
 
   const urgencyAvg =
     totalIncidents > 0
-      ? (
-          needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) /
-          totalIncidents
-        ).toFixed(1)
-      : "0.0";
+      ? (needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) / totalIncidents).toFixed(1)
+      : '0.0';
 
   const escalatedCount = needs.filter((n) => n.sla_escalated).length;
-  const clusteredCount = needs.filter(
-    (n) => n.is_major_incident || n.parent_incident_id,
-  ).length;
+  const clusteredCount = needs.filter((n) => n.is_major_incident || n.parent_incident_id).length;
 
   // LISTEN TO CATEGORIES
   useEffect(() => {
@@ -779,26 +764,19 @@ export default function AdminPage() {
               </h3>
               <div className="space-y-4">
                 {[
-                  "medical",
-                  "food",
-                  "water",
-                  "shelter",
-                  "animal",
-                  "safety",
-                  "education",
-                  "unclassified",
+                  'medical',
+                  'food',
+                  'water',
+                  'shelter',
+                  'animal',
+                  'safety',
+                  'education',
+                  'unclassified',
                 ].map((cat) => {
                   const count = categoriesCount[cat] || 0;
                   const percent =
-                    totalIncidents > 0
-                      ? ((count / totalIncidents) * 100).toFixed(0)
-                      : "0";
-                  if (
-                    count === 0 &&
-                    cat !== "medical" &&
-                    cat !== "food" &&
-                    cat !== "animal"
-                  )
+                    totalIncidents > 0 ? ((count / totalIncidents) * 100).toFixed(0) : '0';
+                  if (count === 0 && cat !== 'medical' && cat !== 'food' && cat !== 'animal')
                     return null;
                   return (
                     <div key={cat} className="space-y-2">
@@ -811,7 +789,8 @@ export default function AdminPage() {
                       <div className="h-2 w-full bg-(--foreground)/5 rounded-full overflow-hidden border border-(--border-color)">
                         <div
                           className="h-full bg-yellow transition-all duration-500"
-                          style={{ width: `${percent}%` }}></div>
+                          style={{ width: `${percent}%` }}
+                        ></div>
                       </div>
                     </div>
                   );
@@ -826,32 +805,25 @@ export default function AdminPage() {
                   Intake Channels Distribution
                 </h3>
                 <div className="grid grid-cols-2 gap-6">
-                  {["web", "voice_agent", "telegram", "whatsapp"].map(
-                    (src) => {
-                      const count = sourcesCount[src] || 0;
-                      const percent =
-                        totalIncidents > 0
-                          ? ((count / totalIncidents) * 100).toFixed(0)
-                          : "0";
-                      return (
-                        <div
-                          key={src}
-                          className="bg-(--foreground)/5 border border-(--border-color) rounded-2xl p-5 flex flex-col justify-between">
-                          <span className="text-sage text-[10px] font-black uppercase tracking-wider">
-                            {src.replace("_", " ")}
-                          </span>
-                          <div className="flex justify-between items-end mt-4">
-                            <span className="text-2xl font-anton text-(--foreground)">
-                              {count}
-                            </span>
-                            <span className="text-[10px] text-sage font-black">
-                              {percent}%
-                            </span>
-                          </div>
+                  {['web', 'voice_agent', 'telegram', 'whatsapp'].map((src) => {
+                    const count = sourcesCount[src] || 0;
+                    const percent =
+                      totalIncidents > 0 ? ((count / totalIncidents) * 100).toFixed(0) : '0';
+                    return (
+                      <div
+                        key={src}
+                        className="bg-(--foreground)/5 border border-(--border-color) rounded-2xl p-5 flex flex-col justify-between"
+                      >
+                        <span className="text-sage text-[10px] font-black uppercase tracking-wider">
+                          {src.replace('_', ' ')}
+                        </span>
+                        <div className="flex justify-between items-end mt-4">
+                          <span className="text-2xl font-anton text-(--foreground)">{count}</span>
+                          <span className="text-[10px] text-sage font-black">{percent}%</span>
                         </div>
-                      );
-                    },
-                  )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

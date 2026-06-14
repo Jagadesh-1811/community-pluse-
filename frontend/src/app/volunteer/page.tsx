@@ -41,13 +41,8 @@ import { Mail, Key, ArrowRight, Shield } from 'lucide-react';
 import ChatPanel from '@/components/chat/ChatPanel';
 import { useAuth } from '@/lib/auth-context';
 
-<<<<<<< HEAD
 const getDisplayHeading = (need?: Need | null) => {
-  if (!need) return "Field Incident Report";
-=======
-const getDisplayHeading = (need?: any) => {
   if (!need) return 'Field Incident Report';
->>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
   if (need.ai_heading && need.ai_heading.trim()) {
     return need.ai_heading;
   }
@@ -317,16 +312,9 @@ export default function Home() {
     }
   }, [trackingNeedId, volunteerLocation]);
 
-<<<<<<< HEAD
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
-  const openNeed = (
-    need: Need,
-    tab: "map" | "alerts" | "dispatched" | "resolved" = "map",
-  ) => {
-=======
   const openNeed = (need: Need, tab: 'map' | 'alerts' | 'dispatched' | 'resolved' = 'map') => {
->>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
     setSelectedNeed(need);
     setCollapsedNeed(null);
     setActiveTab(tab);
@@ -2207,14 +2195,9 @@ export default function Home() {
                     {/* Emergency YouTube First Aid Video Guidance */}
                     {selectedNeed.video_recommendations && activeVideoId && (
                       <div className="p-10 bg-linear-to-br from-red-500/10 to-transparent rounded-4xl border border-red-500/20 relative overflow-hidden group shadow-xl space-y-6">
-<<<<<<< HEAD
                         <h3 className="text-xs font-black text-red-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                          <Activity size={16} className="text-red-500 animate-pulse" /> Emergency First Aid Guidance Videos
-=======
-                        <h3 className="text-xs font-black text-red-400 uppercase tracking-[0.3em] flex items-center gap-2">
                           <Activity size={16} className="text-red-500 animate-pulse" /> Emergency
                           First Aid Guidance Videos
->>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
                         </h3>
 
                         <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-inner">
@@ -2268,24 +2251,15 @@ export default function Home() {
                                   className={cn(
                                     'p-4 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer',
                                     isActive
-<<<<<<< HEAD
-                                      ? "bg-red-500/25 border-red-500/50 text-red-500 dark:text-red-400 font-bold"
-                                      : "bg-(--card-bg) border-(--border-color) text-(--foreground)/75 hover:bg-(--foreground)/10 hover:border-(--foreground)/20"
+                                      ? 'bg-red-500/25 border-red-500/50 text-red-500 dark:text-red-400 font-bold'
+                                      : 'bg-(--card-bg) border-(--border-color) text-(--foreground)/75 hover:bg-(--foreground)/10 hover:border-(--foreground)/20',
                                   )}
                                 >
                                   <span className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-1 block">
-                                    {idx === 0 ? "Best Video" : `Alternative ${idx}`}
-=======
-                                      ? 'bg-red-500/20 border-red-500/40 text-white'
-                                      : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:border-white/10',
-                                  )}
-                                >
-                                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400 mb-1 block">
                                     {idx === 0 ? 'Best Video' : `Alternative ${idx}`}
                                   </span>
                                   <span className="text-xs font-bold line-clamp-2">
                                     {video.title}
->>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
                                   </span>
                                 </button>
                               );
