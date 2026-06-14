@@ -277,7 +277,7 @@ export default function LeafletOfflineMap({
         {/* Empty Cache Warn Banner */}
         {!isOnline && cacheCount === 0 && (
           <div className="bg-amber-950/25 border border-amber-500/25 text-amber-400 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl flex items-center gap-2 pointer-events-auto max-w-sm">
-            ⚠️ Map cache empty — download tiles while online
+             Map cache empty — download tiles while online
           </div>
         )}
       </div>

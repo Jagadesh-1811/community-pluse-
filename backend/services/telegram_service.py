@@ -28,11 +28,11 @@ def get_needs_ref():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🛡️ **COMMUNITYPULSE OPERATIONAL RULES** 🛡️\n\n"
+        " **COMMUNITYPULSE OPERATIONAL RULES** \n\n"
         "1. **Accuracy**: Only report real-time field needs.\n"
         "2. **Format**: Use the specific commands below.\n"
         "3. **Tone**: Be clear and descriptive for AI analysis.\n\n"
-        "🚀 **COMMAND CENTER CONTROLS**\n"
+        " **COMMAND CENTER CONTROLS**\n"
         "• `/report [desc]` - Human Health Need (Medical/Food/Shelter)\n"
         "• `/animal [desc]` - Animal Health Need (Vet/Rescue)\n"
         "• `/action [msg]` - Log a field update/status\n"
@@ -51,11 +51,11 @@ async def accept_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
         need_ref = db.reference(f"needs/{incident_id}")
         need = need_ref.get()
         if not need:
-            await update.message.reply_text(f"❌ Incident ID `{incident_id}` not found.")
+            await update.message.reply_text(f" Incident ID `{incident_id}` not found.")
             return
         
         need_ref.update({"status": "in-progress"})
-        await update.message.reply_text(f"✅ Mission accepted for Incident ID `{incident_id}`. Status set to IN-PROGRESS.")
+        await update.message.reply_text(f" Mission accepted for Incident ID `{incident_id}`. Status set to IN-PROGRESS.")
         
         # Log to message feed
         db.reference(f"messages/{incident_id}").push({
@@ -67,7 +67,7 @@ async def accept_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
         })
     except Exception as e:
         logger.error(f"Error accepting need in Telegram: {e}")
-        await update.message.reply_text(f"❌ Error updating incident: {str(e)}")
+        await update.message.reply_text(f" Error updating incident: {str(e)}")
 
 async def resolve_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -78,11 +78,11 @@ async def resolve_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
         need_ref = db.reference(f"needs/{incident_id}")
         need = need_ref.get()
         if not need:
-            await update.message.reply_text(f"❌ Incident ID `{incident_id}` not found.")
+            await update.message.reply_text(f" Incident ID `{incident_id}` not found.")
             return
         
         need_ref.update({"status": "resolved"})
-        await update.message.reply_text(f"✅ Mission resolved for Incident ID `{incident_id}`. Status set to RESOLVED.")
+        await update.message.reply_text(f" Mission resolved for Incident ID `{incident_id}`. Status set to RESOLVED.")
         
         # Log to message feed
         db.reference(f"messages/{incident_id}").push({
@@ -94,7 +94,7 @@ async def resolve_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
         })
     except Exception as e:
         logger.error(f"Error resolving need in Telegram: {e}")
-        await update.message.reply_text(f"❌ Error updating incident: {str(e)}")
+        await update.message.reply_text(f" Error updating incident: {str(e)}")
 
 async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -109,16 +109,16 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
     domain = "animal" if "/animal" in command else "human"
     
     # Notify user that analysis is starting
-    await update.message.reply_text("🔍 Analyzing report via Tactical AI...")
+    await update.message.reply_text(" Analyzing report via Tactical AI...")
 
     # AI Analysis Pipeline
     try:
-        logger.info(f"🤖 Starting AI analysis for Telegram report: {text[:100]}...")
+        logger.info(f" Starting AI analysis for Telegram report: {text[:100]}...")
         extracted_data = await extract_need_structure(text)
-        logger.info(f"✅ Need structure extracted: {extracted_data}")
+        logger.info(f" Need structure extracted: {extracted_data}")
         
         scoring_data = await score_urgency(text)
-        logger.info(f"✅ Urgency scoring complete: Score={scoring_data.get('urgency_score')}, Signal={scoring_data.get('emotional_signal')}")
+        logger.info(f" Urgency scoring complete: Score={scoring_data.get('urgency_score')}, Signal={scoring_data.get('emotional_signal')}")
         
         need_type = extracted_data.get("need_type")
         if domain == "animal":
@@ -150,23 +150,23 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if needs_ref is None:
             logger.error("Cannot get Firebase reference - Firebase may not be initialized")
             await update.message.reply_text(
-                "❌ Failed to log report - Backend Firebase not configured.\n"
+                " Failed to log report - Backend Firebase not configured.\n"
                 "Please contact admin. Backend needs TELEGRAM_BOT_TOKEN and Firebase credentials."
             )
             return
         
         needs_ref.push(need_record)
-        logger.info(f"✅ Telegram need saved with urgency score: {urgency_score}/10")
+        logger.info(f" Telegram need saved with urgency score: {urgency_score}/10")
         
-        status_msg = "🔴 CRITICAL" if urgency_score > 7 else "🟠 STABLE" if urgency_score > 4 else "🟢 LOW"
+        status_msg = " CRITICAL" if urgency_score > 7 else " STABLE" if urgency_score > 4 else " LOW"
         
         await update.message.reply_text(
-            f"✅ **NEED LOGGED**\n"
+            f" **NEED LOGGED**\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"📌 **Domain**: {domain.upper()}\n"
-            f"📋 **Type**: {need_type}\n"
-            f"🎯 **Urgency**: {urgency_score}/10 ({status_msg})\n"
-            f"💭 **AI Signal**: {need_record['emotional_signal']}\n"
+            f" **Domain**: {domain.upper()}\n"
+            f" **Type**: {need_type}\n"
+            f" **Urgency**: {urgency_score}/10 ({status_msg})\n"
+            f" **AI Signal**: {need_record['emotional_signal']}\n"
             f"━━━━━━━━━━━━━━━\n"
             f"Visible on Command Center Priority Queue."
         )
@@ -189,18 +189,18 @@ async def log_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if needs_ref is None:
                 logger.error("Cannot save fallback - Firebase not initialized")
                 await update.message.reply_text(
-                    "❌ Failed to save report. Backend Firebase not initialized.\n"
+                    " Failed to save report. Backend Firebase not initialized.\n"
                     "Contact admin - check FIREBASE_SERVICE_ACCOUNT_PATH and FIREBASE_DATABASE_URL"
                 )
                 return
             
             needs_ref.push(fallback_record)
-            logger.warning(f"⚠️ Fallback report saved for {user.username} due to AI analysis failure")
-            await update.message.reply_text("⚠️ AI analysis limited, but report saved with default priority.")
+            logger.warning(f" Fallback report saved for {user.username} due to AI analysis failure")
+            await update.message.reply_text(" AI analysis limited, but report saved with default priority.")
         except Exception as db_error:
             logger.error(f"Error saving fallback to Firebase: {str(db_error)}", exc_info=True)
             await update.message.reply_text(
-                f"❌ Failed to log need. Backend Firebase error:\n"
+                f" Failed to log need. Backend Firebase error:\n"
                 f"{str(db_error)[:100]}\n\n"
                 f"Contact admin or check backend configuration."
             )
@@ -232,16 +232,16 @@ async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if needs_ref is None:
             logger.error("Cannot get Firebase reference - Firebase may not be initialized")
             await update.message.reply_text(
-                "❌ Failed to log action - Backend Firebase not configured.\n"
+                " Failed to log action - Backend Firebase not configured.\n"
                 "Please contact admin to check backend deployment."
             )
             return
         
         needs_ref.push(action_record)
         
-        logger.info(f"✅ Action logged via Telegram from {user.username}: {action_text[:50]}...")
+        logger.info(f" Action logged via Telegram from {user.username}: {action_text[:50]}...")
         await update.message.reply_text(
-            f"✅ **Action Logged to Dashboard**\n"
+            f" **Action Logged to Dashboard**\n"
             f"━━━━━━━━━━━━━━━━━\n"
             f"Message: {action_text}\n"
             f"Status: Visible in Command Center"
@@ -249,7 +249,7 @@ async def log_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error logging telegram action: {str(e)}", exc_info=True)
         await update.message.reply_text(
-            f"❌ Failed to log action to dashboard.\n"
+            f" Failed to log action to dashboard.\n"
             f"Error: {str(e)[:100]}"
         )
 
@@ -259,7 +259,7 @@ async def run_bot():
         logger.warning("To enable: Set TELEGRAM_BOT_TOKEN environment variable on Render")
         return
 
-    logger.info("🤖 Starting Telegram Bot listener...")
+    logger.info(" Starting Telegram Bot listener...")
     try:
         application = ApplicationBuilder().token(TOKEN).build()
         
@@ -285,13 +285,13 @@ async def run_bot():
         await application.start()
         await application.updater.start_polling()
         
-        logger.info("✅ Telegram Bot is ACTIVE and listening for commands")
+        logger.info(" Telegram Bot is ACTIVE and listening for commands")
         
         # Keep the bot running
         while True:
             await asyncio.sleep(1)
     except Exception as e:
-        logger.error(f"❌ Telegram Bot Error: {str(e)}", exc_info=True)
+        logger.error(f" Telegram Bot Error: {str(e)}", exc_info=True)
         raise
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -306,7 +306,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     needs_ref = get_needs_ref()
     if needs_ref is None:
         logger.warning(f"Cannot handle message - Firebase not initialized for chat {chat_id}")
-        await update.message.reply_text("⚠️ Backend connection issue. Please try again later.")
+        await update.message.reply_text(" Backend connection issue. Please try again later.")
         return
     
     snapshot = needs_ref.get()
@@ -339,7 +339,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Error logging message to Firebase: {str(e)}", exc_info=True)
     else:
-        await update.message.reply_text("❓ No active mission found. Use `/report` to start one.")
+        await update.message.reply_text(" No active mission found. Use `/report` to start one.")
 
 async def send_telegram_message(chat_id: int, text: str):
     """
@@ -380,15 +380,15 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         needs_ref = get_needs_ref()
         if needs_ref is None:
             logger.error("Cannot save location - Firebase not initialized")
-            await update.message.reply_text("❌ Failed to save location - Backend Firebase not configured.")
+            await update.message.reply_text(" Failed to save location - Backend Firebase not configured.")
             return
         
         needs_ref.child(need_id).set(need_record)
-        logger.info(f"✅ Location saved from {user.username}: ({lat}, {lng})")
-        await update.message.reply_text(f"✅ **Location Received!**\nCoordinates: `{lat}, {lng}`\n\nOur team is monitoring this area. Please type a brief description of the emergency.")
+        logger.info(f" Location saved from {user.username}: ({lat}, {lng})")
+        await update.message.reply_text(f" **Location Received!**\nCoordinates: `{lat}, {lng}`\n\nOur team is monitoring this area. Please type a brief description of the emergency.")
     except Exception as e:
         logger.error(f"Error saving location: {str(e)}", exc_info=True)
-        await update.message.reply_text(f"❌ Failed to save location.\nError: {str(e)[:100]}")
+        await update.message.reply_text(f" Failed to save location.\nError: {str(e)[:100]}")
 
 if __name__ == "__main__":
     asyncio.run(run_bot())

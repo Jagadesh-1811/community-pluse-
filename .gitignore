@@ -36,6 +36,8 @@ DEPLOYMENT_CHECKLIST.md
 DEPLOYMENT_SUMMARY.md
 CODE_QUALITY.md
 CLAUDE.md
+ANALYSIS_RESULTS.md
+PUSH_READINESS.md
 
 # Frontend internal docs
 frontend/AGENTS.md
@@ -64,3 +66,9 @@ htmlcov/
 # Temporary files
 *.tmp
 *.temp
+
+# Manually added ignores
+frontend/lint_output.txt
+backend/uploads/
+backend/venv/
+frontend/fix_*.ps1

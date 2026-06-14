@@ -13,7 +13,8 @@ sentry_sdk.init(
     environment="prod" if "production" in os.getenv("ENVIRONMENT", "development") else "dev"
 )
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, File, UploadFile
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, File, UploadFile, Request, Depends, Header
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, Literal, List
@@ -21,7 +22,7 @@ import uuid
 import datetime
 from database import get_db
 from firebase_admin import db as admin_db, auth as admin_auth
-from services.ai_service import extract_need_structure, score_urgency, generate_tactical_reply, generate_message_heading, check_gemini_status, check_for_incident_clustering, evaluate_escalation
+from services.ai_service import extract_need_structure, score_urgency, generate_tactical_reply, generate_message_heading, check_gemini_status, check_for_incident_clustering, evaluate_escalation, get_video_recommendations
 from services.telegram_service import run_bot, send_telegram_message
 from services.voice_service import trigger_emergency_call
 from services.whatsapp_service import router as whatsapp_router
@@ -50,12 +51,59 @@ async def lifespan(app: FastAPI):
     try:
         test_ref = root_ref
         if test_ref is None:
-            logger.warning("⚠️  Firebase reference is None - database operations may fail")
+            logger.warning("  Firebase reference is None - database operations may fail")
         else:
-            logger.info("✅ Firebase database connection verified")
+            logger.info(" Firebase database connection verified")
     except Exception as e:
-        logger.error(f"❌ Firebase verification failed: {e}")
+        logger.error(f" Firebase verification failed: {e}")
     
+    def is_fallback_heading(heading: str | None) -> bool:
+        if not heading:
+            return True
+        h = heading.strip().lower()
+        return h in ("field report", "field incident report", "intake incident", "signal extraction")
+
+    # Run a background task to backfill missing AI headings or video recommendations for past reports
+    async def backfill_missing_headings():
+        try:
+            logger.info("[Backfill] Scanning database for reports missing AI headings or video recommendations...")
+            needs_ref = admin_db.reference("needs")
+            needs = needs_ref.get()
+            if not needs or not isinstance(needs, dict):
+                logger.info("[Backfill] No reports found to check.")
+                return
+            
+            backfilled_headings = 0
+            backfilled_videos = 0
+            for nid, ndata in needs.items():
+                raw_text = ndata.get("raw_text") or ndata.get("description") or ""
+                if not raw_text.strip():
+                    continue
+
+                # 1. Backfill Headings
+                if is_fallback_heading(ndata.get("ai_heading")):
+                    logger.info(f"[Backfill] Generating AI heading for need {nid} (current: {ndata.get('ai_heading')})...")
+                    ai_heading = await generate_message_heading(raw_text, "reporter")
+                    admin_db.reference(f"needs/{nid}/ai_heading").set(ai_heading)
+                    backfilled_headings += 1
+
+                # 2. Backfill Video Recommendations
+                if not ndata.get("video_recommendations"):
+                    logger.info(f"[Backfill] Generating video recommendations for need {nid}...")
+                    ai_data = await extract_need_structure(raw_text)
+                    video_recs = get_video_recommendations(ai_data.get("emergency_category"))
+                    admin_db.reference(f"needs/{nid}/video_recommendations").set(video_recs)
+                    backfilled_videos += 1
+
+            if backfilled_headings > 0 or backfilled_videos > 0:
+                logger.info(f"[Backfill] Complete. Headings backfilled: {backfilled_headings}, Videos backfilled: {backfilled_videos}")
+            else:
+                logger.info("[Backfill] All existing reports are fully up to date.")
+        except Exception as e:
+            logger.error(f"[Backfill] Error during database backfill: {e}")
+
+    asyncio.create_task(backfill_missing_headings())
+
     # Telegram bot enabled for production deployment
     try:
         asyncio.create_task(run_bot())
@@ -92,9 +140,9 @@ async def lifespan(app: FastAPI):
 
         # Starts listening in a background thread
         admin_db.reference("needs").listen(db_listener)
-        logger.info("✅ Firebase RTDB listener for Google Sheets auto-export: ACTIVE")
+        logger.info(" Firebase RTDB listener for Google Sheets auto-export: ACTIVE")
     except Exception as e:
-        logger.error(f"❌ Failed to start Firebase RTDB Sheets listener: {e}")
+        logger.error(f" Failed to start Firebase RTDB Sheets listener: {e}")
 
     # Start periodic SLA escalation task
     async def periodic_sla_check():
@@ -108,6 +156,15 @@ async def lifespan(app: FastAPI):
                 needs = needs_ref.get()
                 if not needs or not isinstance(needs, dict):
                     continue
+
+                # Periodically generate missing headings for any reports in the database
+                for nid, ndata in needs.items():
+                    if is_fallback_heading(ndata.get("ai_heading")):
+                        raw_text = ndata.get("raw_text") or ndata.get("description") or ""
+                        if raw_text.strip():
+                            logger.info(f"[SLA Checker] Need {nid} has missing or fallback heading. Generating...")
+                            ai_heading = await generate_message_heading(raw_text, "reporter")
+                            admin_db.reference(f"needs/{nid}/ai_heading").set(ai_heading)
                 
                 now_ts = datetime.datetime.utcnow().timestamp() * 1000
                 five_minutes_ms = 5 * 60 * 1000 # 5 minutes in milliseconds
@@ -155,9 +212,58 @@ async def lifespan(app: FastAPI):
                 logger.error(f"[SLA Checker] Error in periodic SLA check: {e}")
 
     asyncio.create_task(periodic_sla_check())
-    logger.info("✅ Periodic SLA Escalation check task initialized")
+    logger.info(" Periodic SLA Escalation check task initialized")
 
     yield
+
+import time
+from collections import defaultdict
+import threading
+
+class InMemoryRateLimiter:
+    def __init__(self):
+        self.history = defaultdict(list)
+        self.lock = threading.Lock()
+
+    def is_allowed(self, ip: str, endpoint: str, limit: int, window: int) -> bool:
+        now = time.time()
+        key = f"{ip}:{endpoint}"
+        with self.lock:
+            self.history[key] = [t for t in self.history[key] if now - t < window]
+            if len(self.history[key]) < limit:
+                self.history[key].append(now)
+                return True
+            return False
+
+rate_limiter = InMemoryRateLimiter()
+
+class BruteForceProtector:
+    def __init__(self):
+        self.failed_attempts = defaultdict(int)
+        self.blocked_until = defaultdict(float)
+        self.lock = threading.Lock()
+
+    def is_blocked(self, ip: str) -> tuple[bool, float]:
+        now = time.time()
+        with self.lock:
+            until = self.blocked_until[ip]
+            if until > now:
+                return True, until - now
+            return False, 0.0
+
+    def record_failure(self, ip: str):
+        with self.lock:
+            self.failed_attempts[ip] += 1
+            if self.failed_attempts[ip] >= 5:
+                self.blocked_until[ip] = time.time() + 900  # 15 minutes block
+                self.failed_attempts[ip] = 0
+
+    def record_success(self, ip: str):
+        with self.lock:
+            self.failed_attempts[ip] = 0
+            self.blocked_until[ip] = 0.0
+
+brute_force_protector = BruteForceProtector()
 
 app = FastAPI(
     title="CommunityPulse API",
@@ -166,15 +272,60 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+@app.middleware("http")
+async def add_security_headers_and_rate_limiting_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    path = request.url.path
+
+    if path in ("/docs", "/redoc", "/openapi.json") or path.startswith("/openapi.json"):
+        response = await call_next(request)
+        return response
+
+    if path == "/auth/verify-code":
+        blocked, remaining = brute_force_protector.is_blocked(client_ip)
+        if blocked:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": f"Brute force protection active. IP is blocked. Try again in {int(remaining)} seconds."}
+            )
+        if not rate_limiter.is_allowed(client_ip, "/auth/verify-code", limit=10, window=60):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many code verification attempts. Please try again later."}
+            )
+    elif path == "/intake":
+        if not rate_limiter.is_allowed(client_ip, "/intake", limit=60, window=60):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many reports. Please try again later."}
+            )
+
+    response = await call_next(request)
+    
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com; "
+        "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self' https://*.googleapis.com wss://*.googleapis.com; "
+        "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com;"
+    )
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    return response
+
 
 # Configure CORS based on environment
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-if "production" in os.getenv("ENVIRONMENT", "development"):
-    # Production: Restrict to specific domain
-    CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
-else:
-    # Development: Allow localhost
-    CORS_ORIGINS = ["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:3000"]
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://community-pluse.vercel.app").split(",")
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+if "production" not in os.getenv("ENVIRONMENT", "development"):
+    # Development: Allow local server ports
+    CORS_ORIGINS.extend(["http://localhost:8000", "http://127.0.0.1:3000"])
 
 app.add_middleware(
     CORSMiddleware,
@@ -227,6 +378,52 @@ class CreateVolunteerRequest(BaseModel):
 class VerifyCodeRequest(BaseModel):
     code: str
     role: str
+
+async def verify_volunteer_auth(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    """
+    Verify the Firebase ID token in the Authorization header.
+    Asserts that the user role is VOLUNTEER or ADMIN.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid Authorization header. Bearer token required."
+        )
+    token = authorization.split("Bearer ")[1].strip()
+    try:
+        decoded_token = admin_auth.verify_id_token(token)
+        uid = decoded_token.get("uid")
+        user_ref = admin_db.reference(f"users/{uid}")
+        user_data = user_ref.get()
+        if not user_data or user_data.get("role") not in ("VOLUNTEER", "ADMIN"):
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: Volunteer or Admin credentials required."
+            )
+        return decoded_token
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Unauthorized: Invalid token or session expired. {e}"
+        )
+
+async def verify_admin_auth(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    """
+    Verify the Firebase ID token in the Authorization header.
+    Asserts that the user role is strictly ADMIN.
+    """
+    decoded_token = await verify_volunteer_auth(authorization)
+    uid = decoded_token.get("uid")
+    user_ref = admin_db.reference(f"users/{uid}")
+    user_data = user_ref.get()
+    if not user_data or user_data.get("role") != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Administrative clearance required."
+        )
+    return decoded_token
 
 @app.get("/")
 async def root():
@@ -308,6 +505,93 @@ def dispatch_incident(incident_id: str, radius_km: float = 10.0):
         sentry_sdk.capture_exception(e)
 
 
+async def fetch_recent_needs(lat: Optional[float], lng: Optional[float]) -> list:
+    """Fetch needs from the last 10 minutes for clustering check."""
+    recent_needs = []
+    if lat is not None and lng is not None:
+        try:
+            # Fetch last 50 needs to scan for duplicates
+            needs_snapshot = admin_db.reference("needs").order_by_child("created_at").limit_to_last(50).get()
+            if needs_snapshot and isinstance(needs_snapshot, dict):
+                ten_minutes_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).timestamp() * 1000
+                for nid, ndata in needs_snapshot.items():
+                    if not ndata.get("parent_incident_id") and ndata.get("created_at", 0) >= ten_minutes_ago:
+                        ndata["id"] = nid
+                        recent_needs.append(ndata)
+        except Exception as snap_err:
+            logger.error(f"Error fetching recent needs: {snap_err}")
+    return recent_needs
+
+
+async def merge_under_cluster(
+    parent_id: str,
+    text: str,
+    source: str,
+    phone: Optional[str],
+    reporter_email: Optional[str],
+    image_url: Optional[str],
+    background_tasks: Optional[BackgroundTasks]
+) -> tuple[str, int]:
+    """Merge new report under parent incident and run cluster logic."""
+    child_id = str(uuid.uuid4())
+    child_record = {
+        "id": child_id,
+        "parent_incident_id": parent_id,
+        "raw_text": text,
+        "source": source,
+        "phone": phone,
+        "reporter_email": reporter_email,
+        "created_at": {".sv": "timestamp"},
+        "image_url": image_url
+    }
+    
+    admin_db.reference(f"needs/{child_id}").set(child_record)
+    
+    parent_ref = admin_db.reference(f"needs/{parent_id}")
+    parent_data = parent_ref.get()
+    
+    all_needs = admin_db.reference("needs").get()
+    siblings = []
+    if all_needs and isinstance(all_needs, dict):
+        for nid, ndata in all_needs.items():
+            if ndata.get("parent_incident_id") == parent_id:
+                siblings.append(ndata)
+                
+    updated_description = (parent_data.get("description") or parent_data.get("raw_text") or "")
+    updated_description += f"\n\n[Report #{len(siblings)+1} via {source}]: {text}"
+    
+    escalation_result = await evaluate_escalation(parent_data, siblings)
+    new_urgency = escalation_result.get("new_urgency_score", parent_data.get("urgency_score", 5))
+    
+    updates = {
+        "description": updated_description,
+        "child_reports_count": len(siblings)
+    }
+    
+    # 5+ reports triggers major incident and coordinated dispatch
+    if len(siblings) >= 4:
+        logger.warning(f"Major incident threshold reached (5+ reports) on cluster {parent_id}. Bumping urgency and dispatching single coordinated alert.")
+        new_urgency = max(new_urgency, 9)
+        updates["is_major_incident"] = True
+        
+    if new_urgency != parent_data.get("urgency_score"):
+        logger.info(f"AI Escalation: Incident {parent_id} urgency score updated from {parent_data.get('urgency_score')} to {new_urgency}")
+        updates["urgency_score"] = new_urgency
+        updates["escalation_reasoning"] = escalation_result.get("reasoning")
+        updates["escalated_at"] = {".sv": "timestamp"}
+        
+    parent_ref.update(updates)
+    
+    if len(siblings) == 4 and background_tasks:
+        background_tasks.add_task(dispatch_incident, parent_id, 10.0)
+        if new_urgency >= 10:
+            volunteer_phone = os.getenv("VOLUNTEER_ALERT_PHONE")
+            if volunteer_phone:
+                background_tasks.add_task(trigger_emergency_call, volunteer_phone, f"MAJOR CRITICAL EVENT Clustered: {updated_description[:100]}")
+
+    return parent_id, new_urgency
+
+
 async def process_and_save_need_record(
     text: str,
     source: str,
@@ -325,19 +609,7 @@ async def process_and_save_need_record(
     from services.ai_service import analyze_incident_image
 
     # 1. Fetch recent needs (last 10 minutes) for clustering check
-    recent_needs = []
-    if lat is not None and lng is not None:
-        try:
-            # Fetch last 50 needs to scan for duplicates
-            needs_snapshot = admin_db.reference("needs").order_by_child("created_at").limit_to_last(50).get()
-            if needs_snapshot and isinstance(needs_snapshot, dict):
-                ten_minutes_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=10)).timestamp() * 1000
-                for nid, ndata in needs_snapshot.items():
-                    if not ndata.get("parent_incident_id") and ndata.get("created_at", 0) >= ten_minutes_ago:
-                        ndata["id"] = nid
-                        recent_needs.append(ndata)
-        except Exception as snap_err:
-            logger.error(f"Error fetching recent needs: {snap_err}")
+    recent_needs = await fetch_recent_needs(lat, lng)
 
     # 2. Check for clustering
     parent_id = None
@@ -346,64 +618,15 @@ async def process_and_save_need_record(
 
     if parent_id:
         logger.info(f"Clustering detected: Merging new report under parent incident {parent_id}")
-        
-        child_id = str(uuid.uuid4())
-        child_record = {
-            "id": child_id,
-            "parent_incident_id": parent_id,
-            "raw_text": text,
-            "source": source,
-            "phone": phone,
-            "reporter_email": reporter_email,
-            "created_at": {".sv": "timestamp"},
-            "image_url": image_url
-        }
-        
-        admin_db.reference(f"needs/{child_id}").set(child_record)
-        
-        parent_ref = admin_db.reference(f"needs/{parent_id}")
-        parent_data = parent_ref.get()
-        
-        all_needs = admin_db.reference("needs").get()
-        siblings = []
-        if all_needs and isinstance(all_needs, dict):
-            for nid, ndata in all_needs.items():
-                if ndata.get("parent_incident_id") == parent_id:
-                    siblings.append(ndata)
-                    
-        updated_description = (parent_data.get("description") or parent_data.get("raw_text") or "")
-        updated_description += f"\n\n[Report #{len(siblings)+1} via {source}]: {text}"
-        
-        escalation_result = await evaluate_escalation(parent_data, siblings)
-        new_urgency = escalation_result.get("new_urgency_score", parent_data.get("urgency_score", 5))
-        
-        updates = {
-            "description": updated_description,
-            "child_reports_count": len(siblings)
-        }
-        
-        # 5+ reports triggers major incident and coordinated dispatch
-        if len(siblings) >= 4:
-            logger.warning(f"Major incident threshold reached (5+ reports) on cluster {parent_id}. Bumping urgency and dispatching single coordinated alert.")
-            new_urgency = max(new_urgency, 9)
-            updates["is_major_incident"] = True
-            
-        if new_urgency != parent_data.get("urgency_score"):
-            logger.info(f"AI Escalation: Incident {parent_id} urgency score updated from {parent_data.get('urgency_score')} to {new_urgency}")
-            updates["urgency_score"] = new_urgency
-            updates["escalation_reasoning"] = escalation_result.get("reasoning")
-            updates["escalated_at"] = {".sv": "timestamp"}
-            
-        parent_ref.update(updates)
-        
-        if len(siblings) == 4 and background_tasks:
-            background_tasks.add_task(dispatch_incident, parent_id, 10.0)
-            if new_urgency >= 10:
-                volunteer_phone = os.getenv("VOLUNTEER_ALERT_PHONE")
-                if volunteer_phone:
-                    background_tasks.add_task(trigger_emergency_call, volunteer_phone, f"MAJOR CRITICAL EVENT Clustered: {updated_description[:100]}")
-
-        return parent_id, new_urgency
+        return await merge_under_cluster(
+            parent_id=parent_id,
+            text=text,
+            source=source,
+            phone=phone,
+            reporter_email=reporter_email,
+            image_url=image_url,
+            background_tasks=background_tasks
+        )
 
     # 3. If NOT clustered: standard new need triage
     ai_data = await extract_need_structure(text)
@@ -464,7 +687,8 @@ async def process_and_save_need_record(
         "created_at": {".sv": "timestamp"},
         "visual_severity": visual_data.get("visual_severity"),
         "visual_hazards": visual_data.get("visual_hazards"),
-        "tactical_assessment": tactical_assessment
+        "tactical_assessment": tactical_assessment,
+        "video_recommendations": get_video_recommendations(ai_data.get("emergency_category"))
     }
 
     admin_db.reference(f"needs/{need_id}").set(need_record)
@@ -481,7 +705,7 @@ async def process_and_save_need_record(
     return need_id, urgency_score
 
 
-@app.post("/intake")
+@app.post("/intake", tags=["Intake"], summary="Ingest and triage field report")
 async def process_intake(request: IntakeRequest, background_tasks: BackgroundTasks):
     """
     Primary intake for Web and WhatsApp reports.
@@ -514,7 +738,7 @@ async def process_intake(request: IntakeRequest, background_tasks: BackgroundTas
         logger.error(f"Error in process_intake: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.post("/intake/image")
+@app.post("/intake/image", tags=["Intake"], summary="Ingest and triage field report with image analysis")
 async def process_intake_image(
     background_tasks: BackgroundTasks,
     text: str = Form(...),
@@ -653,7 +877,8 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
             "life_threat": scoring_data.get("life_threat", False),
             "webrtc_json": payload,
             "webrtc_conversation": webrtc_conv if webrtc_conv else None,
-            "created_at": {".sv": "timestamp"}
+            "created_at": {".sv": "timestamp"},
+            "video_recommendations": get_video_recommendations(ai_data.get("emergency_category"))
         }
         
         try:
@@ -679,8 +904,12 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
         logger.error(f"Error handling voice webhook: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.post("/status/update")
-async def update_status(request: StatusUpdateRequest, background_tasks: BackgroundTasks):
+@app.post("/status/update", tags=["Missions"], summary="Update incident status")
+async def update_status(
+    request: StatusUpdateRequest, 
+    background_tasks: BackgroundTasks,
+    decoded_token: dict = Depends(verify_volunteer_auth)
+):
     """
     Update mission status and notify reporter.
     
@@ -717,7 +946,7 @@ async def update_status(request: StatusUpdateRequest, background_tasks: Backgrou
             if snapshot and snapshot.get("source") == "telegram":
                 chat_id = snapshot.get("telegram_chat_id")
                 if chat_id:
-                    msg = f"ℹ**STATUS UPDATE**: Your request is now {status}."
+                    msg = f"**STATUS UPDATE**: Your request is now {status}."
                     if request.notes:
                         msg += f"\n\n{request.notes}"
                     background_tasks.add_task(send_telegram_message, chat_id, msg)
@@ -740,7 +969,7 @@ class HeadingRequest(BaseModel):
     text: str
     sender: str = "reporter"  # "reporter" | "volunteer"
 
-@app.post("/ai/heading")
+@app.post("/ai/heading", tags=["Triage"], summary="Generate AI heading for messages")
 async def get_message_heading(request: HeadingRequest):
     """
     Generate a short, context-aware AI heading for a chat message.
@@ -753,12 +982,12 @@ async def get_message_heading(request: HeadingRequest):
         return {"heading": heading}
     except Exception as e:
         logger.error(f"Heading generation failed: {e}")
-        return {"heading": "📍 Field Report" if request.sender == "reporter" else "🛡️ Volunteer Update"}
+        return {"heading": " Field Report" if request.sender == "reporter" else " Volunteer Update"}
 
 
 # ── Gemini Status / Credit Check Endpoint ───────────────────────────────────
-@app.get("/gemini/status")
-async def gemini_status():
+@app.get("/gemini/status", tags=["Admin"], summary="Retrieve AI engine status")
+async def gemini_status(decoded_token: dict = Depends(verify_admin_auth)):
     """
     Check Gemini API connectivity and quota availability.
     Useful for debugging 429 quota errors or 404 model-not-found errors.
@@ -768,8 +997,12 @@ async def gemini_status():
     status = await loop.run_in_executor(None, check_gemini_status)
     return status
 
-@app.post("/admin/create-volunteer")
-async def create_volunteer(request: CreateVolunteerRequest, background_tasks: BackgroundTasks):
+@app.post("/admin/create-volunteer", tags=["Admin"], summary="Onboard a new volunteer")
+async def create_volunteer(
+    request: CreateVolunteerRequest, 
+    background_tasks: BackgroundTasks,
+    decoded_token: dict = Depends(verify_admin_auth)
+):
     """
     Create a volunteer account programmatically and email credentials.
     """
@@ -833,17 +1066,20 @@ async def create_volunteer(request: CreateVolunteerRequest, background_tasks: Ba
         logger.error(f"Unexpected error in create_volunteer: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/auth/verify-code")
-async def verify_code(request: VerifyCodeRequest):
+@app.post("/auth/verify-code", tags=["Authentication"], summary="Verify volunteer/admin entry credentials code")
+async def verify_code(request_body: VerifyCodeRequest, request: Request):
     """
     Verify the volunteer/admin access code securely on the backend.
     """
+    client_ip = request.client.host if request.client else "unknown"
     valid_codes = os.getenv("VOLUNTEER_CODES", "PULSE_ADMIN_1,PULSE_VOLUNTEER_2,PULSE_RESCUE_3,PULSE_CORE_4").split(",")
     valid_codes = [c.strip() for c in valid_codes]
     
-    if request.code in valid_codes:
+    if request_body.code in valid_codes:
+        brute_force_protector.record_success(client_ip)
         return {"status": "success", "valid": True}
     else:
+        brute_force_protector.record_failure(client_ip)
         raise HTTPException(status_code=400, detail="INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.")
 
 
@@ -905,8 +1141,11 @@ async def handle_post_acceptance_dispatch(incident_id: str, volunteer_id: str, a
         logger.error(f"Error in post acceptance dispatch: {e}")
 
 
-@app.post("/incidents/{incident_id}/recommend-volunteer")
-async def recommend_volunteer_for_incident(incident_id: str):
+@app.post("/incidents/{incident_id}/recommend-volunteer", tags=["Missions"], summary="Recommend best volunteer for incident")
+async def recommend_volunteer_for_incident(
+    incident_id: str,
+    decoded_token: dict = Depends(verify_volunteer_auth)
+):
     """
     Geospatial routing + Gemini intelligence: recommendation of best volunteer.
     """
@@ -958,11 +1197,12 @@ async def recommend_volunteer_for_incident(incident_id: str):
         raise HTTPException(status_code=500, detail=f"Recommendation engine failed: {str(e)}")
 
 
-@app.post("/incidents/{incident_id}/accept")
+@app.post("/incidents/{incident_id}/accept", tags=["Missions"], summary="Accept incident dispatch mission")
 async def accept_incident_mission(
     incident_id: str,
     payload: AcceptMissionRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    decoded_token: dict = Depends(verify_volunteer_auth)
 ):
     import time
     volunteer_id = payload.volunteer_id

@@ -123,9 +123,13 @@ export default function AdminPage() {
       "http://localhost:8000";
 
     try {
+      const token = user ? await user.getIdToken() : "";
       const response = await fetch(`${apiBaseUrl}/admin/create-volunteer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           email: volEmail.trim(),
           domain: volDomain,
@@ -302,6 +306,7 @@ export default function AdminPage() {
                       onChange={(e) => setAdminEmail(e.target.value)}
                       className="w-full bg-(--background) border border-(--border-color) rounded-xl py-4 pl-14 pr-6 text-lg focus:outline-none focus:border-yellow transition-all font-semibold"
                       placeholder="admin@emergency.net"
+                      aria-label="Administrator ID Email"
                     />
                   </div>
                 </div>
@@ -319,6 +324,7 @@ export default function AdminPage() {
                       onChange={(e) => setAdminPassword(e.target.value)}
                       className="w-full bg-(--background) border border-(--border-color) rounded-xl py-4 pl-14 pr-6 text-lg focus:outline-none focus:border-yellow transition-all font-semibold tracking-widest"
                       placeholder="••••••••••••"
+                      aria-label="Security Key Password"
                     />
                   </div>
                 </div>
@@ -434,6 +440,7 @@ export default function AdminPage() {
                   onChange={(e) => setNewCatName(e.target.value)}
                   placeholder="e.g. Medical, Rescue, Fire..."
                   className="w-full bg-(--background) border border-(--border-color) rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-yellow transition-all font-semibold"
+                  aria-label="New Sector Category Name"
                 />
               </div>
 
@@ -447,6 +454,7 @@ export default function AdminPage() {
                     value={newCatColor}
                     onChange={(e) => setNewCatColor(e.target.value)}
                     className="w-14 h-14 bg-transparent border-0 rounded-2xl cursor-pointer"
+                    aria-label="New Sector Color Selector"
                   />
                   <span className="font-mono text-xs uppercase text-(--foreground)/60">
                     {newCatColor}
@@ -497,6 +505,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleDeleteCategory(cat.id)}
                         className="p-2.5 text-red-400 hover:text-white hover:bg-red-500 rounded-xl transition-all border border-red-500/10 hover:border-red-500 cursor-pointer"
+                        aria-label={`Delete sector ${cat.name}`}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -535,6 +544,7 @@ export default function AdminPage() {
                     onChange={(e) => setVolEmail(e.target.value)}
                     placeholder="agent.name@emergency.net"
                     className="w-full bg-(--background) border border-(--border-color) rounded-2xl py-4.5 pl-14 pr-6 text-sm focus:outline-none focus:border-yellow transition-all font-semibold"
+                    aria-label="Volunteer Gateway Email Address"
                   />
                 </div>
               </div>
@@ -547,6 +557,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => setVolDomain("human")}
+                    aria-label="Set Operational Domain to Human Health"
                     className={cn(
                       "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
                       volDomain === "human"
@@ -559,6 +570,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => setVolDomain("animal")}
+                    aria-label="Set Operational Domain to Animal Health"
                     className={cn(
                       "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
                       volDomain === "animal"
@@ -589,6 +601,7 @@ export default function AdminPage() {
                           key={cat.id}
                           type="button"
                           onClick={() => toggleCategorySelection(cat.name)}
+                          aria-label={`Assign sector ${cat.name}`}
                           className={cn(
                             "px-4 py-2 text-xs font-black uppercase tracking-widest border rounded-xl transition-all cursor-pointer",
                             isSelected
@@ -615,6 +628,7 @@ export default function AdminPage() {
                   onChange={(e) => setVolPassword(e.target.value)}
                   placeholder="Auto-generated if left blank"
                   className="w-full bg-(--background) border border-(--border-color) rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-yellow transition-all font-semibold"
+                  aria-label="Custom Password for Volunteer"
                 />
                 <p className="text-[9px] text-sage/70 pl-1 uppercase font-bold tracking-wider">
                   Leave empty to generate a secure random 12-character token.

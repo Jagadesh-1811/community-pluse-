@@ -59,6 +59,13 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
         }
       } catch { /* ignore sizing */ }
     }
+    return () => {
+      if (map) {
+        try {
+          map.stop();
+        } catch { /* ignore */ }
+      }
+    };
   }, [volunteerLocation, map]);
 
   const createCustomIcon = (need: Need) => {
@@ -96,6 +103,13 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
         }
       } catch { /* ignore */ }
     }
+    return () => {
+      if (map) {
+        try {
+          map.stop();
+        } catch { /* ignore */ }
+      }
+    };
   }, [focusNeed, volunteerLocation, map]);
 
   // Handle manual re-center when trigger changes
@@ -105,6 +119,13 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
         map.flyTo([volunteerLocation.lat, volunteerLocation.lng], 16, { duration: 1.5 });
       } catch { /* ignore */ }
     }
+    return () => {
+      if (map) {
+        try {
+          map.stop();
+        } catch { /* ignore */ }
+      }
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterTrigger]);
 

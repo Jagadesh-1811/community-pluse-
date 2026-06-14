@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils";
 import { VoiceAgentButton } from "@/components/voice/VoiceAgentButton";
 import { useAuth } from "@/lib/auth-context";
 
-
-
 import Image from "next/image";
 import { useCallback } from "react";
 import { ConversationEntry } from "@/hooks/useRealtimeNeeds";
@@ -54,8 +52,12 @@ export default function IntakeForm({
   const [report, setReport] = useState("");
   const [phone, setPhone] = useState("");
   const [domain, setDomain] = useState<"human" | "animal">("human");
-  const [glitchingDomain, setGlitchingDomain] = useState<"human" | "animal" | null>(null);
-  const [webrtcConversation, setWebrtcConversation] = useState<ConversationEntry[]>([]);
+  const [glitchingDomain, setGlitchingDomain] = useState<
+    "human" | "animal" | null
+  >(null);
+  const [webrtcConversation, setWebrtcConversation] = useState<
+    ConversationEntry[]
+  >([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -66,14 +68,18 @@ export default function IntakeForm({
       const queue = JSON.parse(queueStr) as OfflineReport[];
       if (queue.length === 0) return;
       console.log(`Flushing ${queue.length} offline reports...`);
-      
+
       const remaining: OfflineReport[] = [];
       for (const item of queue) {
         try {
           let response;
           if (item.image_base64) {
-            const blob = await fetch(item.image_base64).then(r => r.blob());
-            const file = new File([blob], item.image_name || "offline_upload.jpg", { type: blob.type });
+            const blob = await fetch(item.image_base64).then((r) => r.blob());
+            const file = new File(
+              [blob],
+              item.image_name || "offline_upload.jpg",
+              { type: blob.type },
+            );
             const formData = new FormData();
             formData.append("text", item.text);
             formData.append("source", item.source);
@@ -83,7 +89,7 @@ export default function IntakeForm({
             formData.append("domain", item.domain);
             formData.append("reporter_email", item.reporter_email || "");
             formData.append("image", file);
-            
+
             response = await fetch(`${apiBaseUrl}/intake/image`, {
               method: "POST",
               body: formData,
@@ -112,10 +118,15 @@ export default function IntakeForm({
         }
       }
       if (remaining.length > 0) {
-        localStorage.setItem("communitypulse_offline_queue", JSON.stringify(remaining));
+        localStorage.setItem(
+          "communitypulse_offline_queue",
+          JSON.stringify(remaining),
+        );
       } else {
         localStorage.removeItem("communitypulse_offline_queue");
-        alert("✅ All offline reports have been synchronized with the command center!");
+        alert(
+          " All offline reports have been synchronized with the command center!",
+        );
       }
     } catch (e) {
       console.error("Error flushing queue", e);
@@ -127,7 +138,7 @@ export default function IntakeForm({
       const handleOnline = () => {
         flushOfflineQueue();
       };
-      
+
       window.addEventListener("online", handleOnline);
       return () => {
         window.removeEventListener("online", handleOnline);
@@ -143,7 +154,6 @@ export default function IntakeForm({
   const activeLocalCoords =
     localCoords !== undefined ? localCoords : internalLocalCoords;
   const updateLocalCoords = setLocalCoords || setInternalLocalCoords;
-
 
   const activeCoords = pickedLocation || activeLocalCoords;
   const hasValidActiveCoords =
@@ -217,14 +227,18 @@ export default function IntakeForm({
     // Fetch coords or fall back to standard coordinates (New Delhi) to prevent validation error
     if (!finalLat || !finalLng) {
       try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
-        });
+        const position = await new Promise<GeolocationPosition>(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 3000,
+            });
+          },
+        );
         finalLat = position.coords.latitude;
         finalLng = position.coords.longitude;
       } catch {
         finalLat = 28.6139;
-        finalLng = 77.2090;
+        finalLng = 77.209;
       }
     }
 
@@ -255,7 +269,10 @@ export default function IntakeForm({
             const headingRes = await fetch(`${apiBaseUrl}/ai/heading`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: userMessages.trim(), sender: "reporter" }),
+              body: JSON.stringify({
+                text: userMessages.trim(),
+                sender: "reporter",
+              }),
             });
             if (headingRes.ok) {
               const headingData = await headingRes.json();
@@ -310,7 +327,7 @@ export default function IntakeForm({
         if (selectedImage && imagePreview) {
           imageBase64 = imagePreview;
         }
-        
+
         const offlineReport = {
           id: `offline-${Date.now()}`,
           text: report,
@@ -322,16 +339,21 @@ export default function IntakeForm({
           reporter_email: user?.email || null,
           image_base64: imageBase64,
           image_name: selectedImage?.name || null,
-          created_at: Date.now()
+          created_at: Date.now(),
         };
-        
+
         const queueStr = localStorage.getItem("communitypulse_offline_queue");
         const queue = queueStr ? JSON.parse(queueStr) : [];
         queue.push(offlineReport);
-        localStorage.setItem("communitypulse_offline_queue", JSON.stringify(queue));
-        
-        alert("⚠️ OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.");
-        
+        localStorage.setItem(
+          "communitypulse_offline_queue",
+          JSON.stringify(queue),
+        );
+
+        alert(
+          " OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.",
+        );
+
         setReport("");
         setPhone("");
         setSelectedImage(null);
@@ -351,7 +373,10 @@ export default function IntakeForm({
         if (selectedImage) {
           const formData = new FormData();
           formData.append("text", report);
-          formData.append("source", webrtcConversation.length > 0 ? "voice_agent" : "web");
+          formData.append(
+            "source",
+            webrtcConversation.length > 0 ? "voice_agent" : "web",
+          );
           formData.append("phone", phone || "");
           formData.append("lat", String(lat));
           formData.append("lng", String(lng));
@@ -375,7 +400,8 @@ export default function IntakeForm({
               lng: lng,
               domain: domain,
               reporter_email: user?.email || null,
-              webrtc_conversation: webrtcConversation.length > 0 ? webrtcConversation : null,
+              webrtc_conversation:
+                webrtcConversation.length > 0 ? webrtcConversation : null,
             }),
           });
         }
@@ -404,8 +430,8 @@ export default function IntakeForm({
 
         // Ensure only valid finite coordinates are saved
         const safeCoordinates: { lat: number | null; lng: number | null } = {
-          lat: (typeof lat === "number" && Number.isFinite(lat)) ? lat : null,
-          lng: (typeof lng === "number" && Number.isFinite(lng)) ? lng : null,
+          lat: typeof lat === "number" && Number.isFinite(lat) ? lat : null,
+          lng: typeof lng === "number" && Number.isFinite(lng) ? lng : null,
         };
 
         await set(newNeedRef, {
@@ -422,10 +448,10 @@ export default function IntakeForm({
           source: webrtcConversation.length > 0 ? "voice_agent" : "web",
           phone: phone || null,
           reporter_email: user?.email || null,
-          webrtc_conversation: webrtcConversation.length > 0 ? webrtcConversation : null,
+          webrtc_conversation:
+            webrtcConversation.length > 0 ? webrtcConversation : null,
           created_at: serverTimestamp(),
         });
-
 
         needId = newNeedRef.key;
       }
@@ -487,6 +513,7 @@ export default function IntakeForm({
         </div>
         <button
           onClick={onClose}
+          aria-label="Close Intake Form"
           className="p-3 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-2xl transition-all text-(--foreground)/50 hover:text-(--foreground)">
           <X size={20} />
         </button>
@@ -505,6 +532,7 @@ export default function IntakeForm({
             onChange={(e) => setReport(e.target.value)}
             placeholder="e.g. 50 people need water in Sector 7..."
             className="w-full bg-(--background) border border-(--border-color) rounded-3xl p-6 text-(--foreground) font-medium placeholder:text-(--foreground)/40 focus:outline-none focus:border-yellow focus:ring-4 focus:ring-yellow/10 min-h-[160px] transition-all resize-none leading-relaxed shadow-inner"
+            aria-label="Incident Description"
           />
         </div>
 
@@ -518,8 +546,7 @@ export default function IntakeForm({
                   setSelectedImage(null);
                   setImagePreview(null);
                 }}
-                className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest cursor-pointer"
-              >
+                className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest cursor-pointer">
                 Clear
               </button>
             )}
@@ -527,14 +554,22 @@ export default function IntakeForm({
           {!imagePreview ? (
             <label className="flex flex-col items-center justify-center w-full h-32 bg-(--background) hover:bg-(--foreground)/5 border border-(--border-color) border-dashed rounded-3xl cursor-pointer transition-all group p-4 text-center">
               <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                <Camera className="text-(--foreground)/40 group-hover:scale-110 transition-transform mb-2" size={24} />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-(--foreground)/60">Upload Field Photo</p>
-                <p className="text-[9px] text-(--foreground)/40 font-mono mt-1">PNG, JPG, or WEBP up to 5MB</p>
+                <Camera
+                  className="text-(--foreground)/40 group-hover:scale-110 transition-transform mb-2"
+                  size={24}
+                />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-(--foreground)/60">
+                  Upload Field Photo
+                </p>
+                <p className="text-[9px] text-(--foreground)/40 font-mono mt-1">
+                  PNG, JPG, or WEBP up to 5MB
+                </p>
               </div>
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
+                aria-label="Upload field photo"
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
                     const file = e.target.files[0];
@@ -577,6 +612,7 @@ export default function IntakeForm({
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+91..."
               className="w-full bg-(--background) border border-(--border-color) rounded-2xl py-5 pl-14 pr-6 text-(--foreground) font-medium focus:outline-none focus:border-yellow focus:ring-4 focus:ring-yellow/10 transition-all shadow-inner"
+              aria-label="Emergency Contact Phone Number"
             />
           </div>
         </div>
@@ -593,12 +629,14 @@ export default function IntakeForm({
                 setGlitchingDomain("human");
                 setTimeout(() => setGlitchingDomain(null), 450);
               }}
+              aria-label="Set operational domain to Human Health"
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                glitchingDomain === "human" ? "animate-glitch-bw" :
-                domain === "human"
-                  ? "bg-(--foreground) text-(--background) shadow-lg"
-                  : "text-(--foreground) hover:text-(--foreground)",
+                glitchingDomain === "human"
+                  ? "animate-glitch-bw"
+                  : domain === "human"
+                    ? "bg-(--foreground) text-(--background) shadow-lg"
+                    : "text-(--foreground) hover:text-(--foreground)",
               )}>
               Human Health
             </button>
@@ -609,18 +647,19 @@ export default function IntakeForm({
                 setGlitchingDomain("animal");
                 setTimeout(() => setGlitchingDomain(null), 450);
               }}
+              aria-label="Set operational domain to Animal Health"
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                glitchingDomain === "animal" ? "animate-glitch-bw" :
-                domain === "animal"
-                  ? "bg-blue-500 text-white shadow-lg"
-                  : "text-(--foreground) hover:text-blue-400",
+                glitchingDomain === "animal"
+                  ? "animate-glitch-bw"
+                  : domain === "animal"
+                    ? "bg-blue-500 text-white shadow-lg"
+                    : "text-(--foreground) hover:text-blue-400",
               )}>
               Animal Health
             </button>
           </div>
         </div>
-
 
         <div className="space-y-4">
           <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">
@@ -630,6 +669,7 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={handleDetectLocation}
+              aria-label="Detect GPS coordinates"
               className={cn(
                 "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
                 activeLocalCoords
@@ -651,6 +691,7 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={() => onPickModeToggle?.(true)}
+              aria-label="Pick location on map"
               className={cn(
                 "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
                 pickedLocation
@@ -686,7 +727,7 @@ export default function IntakeForm({
             Rapid Response Channels
           </label>
           <div className="grid grid-cols-1 gap-3">
-            <VoiceAgentButton 
+            <VoiceAgentButton
               onTranscriptUpdate={(transcript) => {
                 if (transcript && transcript.trim()) {
                   setReport(transcript);
@@ -753,6 +794,7 @@ export default function IntakeForm({
 
         <button
           disabled={isSubmitting}
+          aria-label="Broadcast Incident Intelligence"
           className={cn(
             "w-full py-6 bg-linear-to-r from-emergency to-orange-600 text-white font-black rounded-3xl uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all mt-6 shadow-2xl shadow-emergency/20",
             isSubmitting

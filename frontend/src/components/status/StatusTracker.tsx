@@ -138,7 +138,7 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
                 )}>
                     {status === 'open' ? 'Waiting for Volunteer...' :
                      status === 'in-progress' ? 'Volunteer Dispatched — Help is on the way!' :
-                     'Mission Resolved ✓'}
+                     'Mission Resolved '}
                 </span>
             </div>
         </div>

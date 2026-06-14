@@ -29,24 +29,30 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
   const hasValidVolunteerLocation = hasValidCoords(volunteerLocation);
 
   useEffect(() => {
-    if (map) {
-      setTimeout(() => {
-        try {
-            map.invalidateSize();
-            if (hasValidLocation && hasValidVolunteerLocation) {
-                // Fit bounds to show both
-                map.fitBounds([
-                    [location.lat, location.lng],
-                    [volunteerLocation.lat, volunteerLocation.lng]
-                ], { padding: [50, 50], duration: 1 });
-            } else if (hasValidLocation) {
-                map.flyTo([location.lat, location.lng], 16, { duration: 1 });
-            }
-        } catch {
-            // Ignore sizing issues
-        }
-      }, 300);
-    }
+    if (!map) return;
+    const timer = setTimeout(() => {
+      try {
+          map.invalidateSize();
+          if (hasValidLocation && hasValidVolunteerLocation) {
+              // Fit bounds to show both
+              map.fitBounds([
+                  [location.lat, location.lng],
+                  [volunteerLocation.lat, volunteerLocation.lng]
+              ], { padding: [50, 50], duration: 1 });
+          } else if (hasValidLocation) {
+              map.flyTo([location.lat, location.lng], 16, { duration: 1 });
+          }
+      } catch {
+          // Ignore sizing issues
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      try {
+        map.stop();
+      } catch { /* ignore */ }
+    };
   }, [location, volunteerLocation, map, hasValidLocation, hasValidVolunteerLocation]);
 
   return (

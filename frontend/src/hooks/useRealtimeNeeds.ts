@@ -43,6 +43,19 @@ export interface Need {
   parent_incident_id?: string;
   child_reports_count?: number;
   sla_escalated?: boolean;
+  video_recommendations?: {
+    category: string;
+    primary: {
+      title: string;
+      youtube_id: string;
+      description: string;
+    };
+    alternatives: Array<{
+      title: string;
+      youtube_id: string;
+      description: string;
+    }>;
+  };
 }
 
 export function useRealtimeNeeds() {

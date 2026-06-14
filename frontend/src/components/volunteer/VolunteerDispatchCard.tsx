@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth-context';
 
 interface Incident {
   id: string;
@@ -35,6 +36,7 @@ export default function VolunteerDispatchCard({
   onAcceptSuccess,
   onAcceptFailure,
 }: DispatchCardProps) {
+  const { user } = useAuth();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [isAccepting, setIsAccepting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -61,10 +63,12 @@ export default function VolunteerDispatchCard({
     setErrorMessage(null);
 
     try {
+      const token = user ? await user.getIdToken() : '';
       const response = await fetch(`${apiBaseUrl}/incidents/${incidentId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           volunteer_id: currentVolunteer.id,
@@ -147,6 +151,7 @@ export default function VolunteerDispatchCard({
           <button
             onClick={handleAcceptMission}
             disabled={isAccepting}
+            aria-label={`Accept Mission: ${incident.summary}`}
             className={cn(
               "w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-xs font-mono transition-all duration-300",
               isAccepting 
@@ -161,7 +166,7 @@ export default function VolunteerDispatchCard({
 
       {errorMessage && (
         <div className="mt-3 text-[10px] text-red-500 font-mono text-center">
-          ⚠️ CONFLICT: {errorMessage.toUpperCase()}
+           CONFLICT: {errorMessage.toUpperCase()}
         </div>
       )}
     </div>
