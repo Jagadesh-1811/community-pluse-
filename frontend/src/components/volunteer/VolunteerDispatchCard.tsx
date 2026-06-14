@@ -68,7 +68,7 @@ export default function VolunteerDispatchCard({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           volunteer_id: currentVolunteer.id,
@@ -97,15 +97,21 @@ export default function VolunteerDispatchCard({
     );
   }
 
-  const isAcceptedByMe = incident.status === 'accepted' && incident.accepted_by === currentVolunteer.id;
-  const isAcceptedByOther = incident.status === 'accepted' && incident.accepted_by !== currentVolunteer.id;
-  
+  const isAcceptedByMe =
+    incident.status === 'accepted' && incident.accepted_by === currentVolunteer.id;
+  const isAcceptedByOther =
+    incident.status === 'accepted' && incident.accepted_by !== currentVolunteer.id;
+
   return (
     <div className="w-full bg-[#050505] border border-white/5 rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all duration-300">
-      <div 
+      <div
         className={cn(
-          "absolute top-0 left-0 w-full h-[3px]",
-          incident.urgency_score >= 8 ? "bg-[#FF4D00]" : incident.urgency_score >= 5 ? "bg-orange-500" : "bg-emerald-500"
+          'absolute top-0 left-0 w-full h-[3px]',
+          incident.urgency_score >= 8
+            ? 'bg-[#FF4D00]'
+            : incident.urgency_score >= 5
+              ? 'bg-orange-500'
+              : 'bg-emerald-500',
         )}
       />
 
@@ -113,10 +119,12 @@ export default function VolunteerDispatchCard({
         <span className="text-[10px] font-black uppercase tracking-widest text-white/40 font-mono">
           Sector {incident.category ? incident.category.toUpperCase() : 'GENERAL'}
         </span>
-        <span 
+        <span
           className={cn(
-            "text-xs px-2.5 py-0.5 rounded-full font-black font-mono",
-            incident.urgency_score >= 8 ? "bg-[#FF4D00]/10 text-[#FF4D00]" : "bg-orange-500/10 text-orange-500"
+            'text-xs px-2.5 py-0.5 rounded-full font-black font-mono',
+            incident.urgency_score >= 8
+              ? 'bg-[#FF4D00]/10 text-[#FF4D00]'
+              : 'bg-orange-500/10 text-orange-500',
           )}
         >
           PRIORITY {incident.urgency_score}/10
@@ -153,10 +161,10 @@ export default function VolunteerDispatchCard({
             disabled={isAccepting}
             aria-label={`Accept Mission: ${incident.summary}`}
             className={cn(
-              "w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-xs font-mono transition-all duration-300",
-              isAccepting 
-                ? "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed" 
-                : "bg-white text-black hover:bg-neutral-200 border border-white active:scale-95 shadow-[0_4px_20px_rgba(255,255,255,0.1)]"
+              'w-full py-3.5 rounded-xl font-black uppercase tracking-widest text-xs font-mono transition-all duration-300',
+              isAccepting
+                ? 'bg-white/5 border border-white/10 text-white/30 cursor-not-allowed'
+                : 'bg-white text-black hover:bg-neutral-200 border border-white active:scale-95 shadow-[0_4px_20px_rgba(255,255,255,0.1)]',
             )}
           >
             {isAccepting ? 'ACQUIRING DISPATCH LOCK...' : 'ACCEPT MISSION'}
@@ -166,7 +174,7 @@ export default function VolunteerDispatchCard({
 
       {errorMessage && (
         <div className="mt-3 text-[10px] text-red-500 font-mono text-center">
-           CONFLICT: {errorMessage.toUpperCase()}
+          CONFLICT: {errorMessage.toUpperCase()}
         </div>
       )}
     </div>

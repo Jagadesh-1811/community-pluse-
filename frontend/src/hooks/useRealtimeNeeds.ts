@@ -6,7 +6,7 @@ import { ref, onValue, query } from 'firebase/database';
 import * as Sentry from '@sentry/nextjs';
 
 export interface ConversationEntry {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   text: string;
   timestamp: number;
 }
@@ -66,45 +66,49 @@ export function useRealtimeNeeds() {
     const needsRef = ref(rtdb, 'needs');
     // Sort by key (which is a push ID, usually chronological)
     const q = query(needsRef);
-    
-    const unsubscribe = onValue(q, (snapshot) => {
-      const needsData: Need[] = [];
-      snapshot.forEach((childSnapshot) => {
-        const data = { 
-          id: childSnapshot.key, 
-          ...childSnapshot.val() 
-        } as Need;
-        
-        // Sanitize coordinates: if not finite, set to null
-        if (!Number.isFinite(data.lat)) {
-          data.lat = null;
-        }
-        if (!Number.isFinite(data.lng)) {
-          data.lng = null;
-        }
-        // Also sanitize urgency_score and people_affected
-        if (!Number.isFinite(data.urgency_score)) {
-          data.urgency_score = 5; // default
-        }
-        if (!Number.isFinite(data.people_affected)) {
-          data.people_affected = null;
-        }
-        
-        needsData.push(data);
-      });
-      // Sort desc (newest first)
-      needsData.reverse();
-      setNeeds(needsData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error listening to needs:", error);
-      Sentry.captureException(error, {
-        tags: {
-          listener: 'incident_realtime_listener'
-        }
-      });
-      setLoading(false);
-    });
+
+    const unsubscribe = onValue(
+      q,
+      (snapshot) => {
+        const needsData: Need[] = [];
+        snapshot.forEach((childSnapshot) => {
+          const data = {
+            id: childSnapshot.key,
+            ...childSnapshot.val(),
+          } as Need;
+
+          // Sanitize coordinates: if not finite, set to null
+          if (!Number.isFinite(data.lat)) {
+            data.lat = null;
+          }
+          if (!Number.isFinite(data.lng)) {
+            data.lng = null;
+          }
+          // Also sanitize urgency_score and people_affected
+          if (!Number.isFinite(data.urgency_score)) {
+            data.urgency_score = 5; // default
+          }
+          if (!Number.isFinite(data.people_affected)) {
+            data.people_affected = null;
+          }
+
+          needsData.push(data);
+        });
+        // Sort desc (newest first)
+        needsData.reverse();
+        setNeeds(needsData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to needs:', error);
+        Sentry.captureException(error, {
+          tags: {
+            listener: 'incident_realtime_listener',
+          },
+        });
+        setLoading(false);
+      },
+    );
 
     return () => {
       unsubscribe();

@@ -1,17 +1,24 @@
-"use client";
+'use client';
 
+<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRealtimeNeeds } from "@/hooks/useRealtimeNeeds";
 import { rtdb } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
+=======
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { rtdb } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
+>>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendEmailVerification,
   signOut as firebaseSignOut,
-} from "firebase/auth";
-import { ref, onValue, push, set, remove, get } from "firebase/database";
+} from 'firebase/auth';
+import { ref, onValue, push, set, remove, get } from 'firebase/database';
 import {
   Shield,
   Plus,
@@ -26,8 +33,8 @@ import {
   FolderPlus,
   Key,
   ArrowRight,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -39,22 +46,24 @@ export default function AdminPage() {
   const { user, role, loading: globalAuthLoading, signOut } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatColor, setNewCatColor] = useState("#facc15");
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatColor, setNewCatColor] = useState('#facc15');
 
-  const [volEmail, setVolEmail] = useState("");
-  const [volDomain, setVolDomain] = useState<"human" | "animal">("human");
+  const [volEmail, setVolEmail] = useState('');
+  const [volDomain, setVolDomain] = useState<'human' | 'animal'>('human');
   const [volCategories, setVolCategories] = useState<string[]>([]);
-  const [volPassword, setVolPassword] = useState("");
+  const [volPassword, setVolPassword] = useState('');
 
   const [isSubmittingVol, setIsSubmittingVol] = useState(false);
   const [isSubmittingCat, setIsSubmittingCat] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   // INLINE ADMIN AUTH STATES
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -99,9 +108,9 @@ export default function AdminPage() {
 
   // LISTEN TO CATEGORIES
   useEffect(() => {
-    if (role !== "ADMIN") return;
+    if (role !== 'ADMIN') return;
 
-    const categoriesRef = ref(rtdb, "categories");
+    const categoriesRef = ref(rtdb, 'categories');
     const unsubscribe = onValue(categoriesRef, (snapshot) => {
       const list: Category[] = [];
       snapshot.forEach((child) => {
@@ -120,17 +129,17 @@ export default function AdminPage() {
 
     setIsSubmittingCat(true);
     try {
-      const categoriesRef = ref(rtdb, "categories");
+      const categoriesRef = ref(rtdb, 'categories');
       const newCatRef = push(categoriesRef);
       await set(newCatRef, {
         name: newCatName.trim(),
         color: newCatColor,
       });
-      setNewCatName("");
-      setFeedback({ type: "success", message: `Category "${newCatName}" added successfully.` });
+      setNewCatName('');
+      setFeedback({ type: 'success', message: `Category "${newCatName}" added successfully.` });
       setTimeout(() => setFeedback(null), 4000);
     } catch {
-      setFeedback({ type: "error", message: "Failed to add category." });
+      setFeedback({ type: 'error', message: 'Failed to add category.' });
       setTimeout(() => setFeedback(null), 4000);
     } finally {
       setIsSubmittingCat(false);
@@ -141,10 +150,10 @@ export default function AdminPage() {
     try {
       const catRef = ref(rtdb, `categories/${id}`);
       await remove(catRef);
-      setFeedback({ type: "success", message: "Category removed successfully." });
+      setFeedback({ type: 'success', message: 'Category removed successfully.' });
       setTimeout(() => setFeedback(null), 4000);
     } catch {
-      setFeedback({ type: "error", message: "Failed to remove category." });
+      setFeedback({ type: 'error', message: 'Failed to remove category.' });
       setTimeout(() => setFeedback(null), 4000);
     }
   };
@@ -158,16 +167,15 @@ export default function AdminPage() {
     setFeedback(null);
 
     const apiBaseUrl =
-      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-      "http://localhost:8000";
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
 
     try {
-      const token = user ? await user.getIdToken() : "";
+      const token = user ? await user.getIdToken() : '';
       const response = await fetch(`${apiBaseUrl}/admin/create-volunteer`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           email: volEmail.trim(),
@@ -179,22 +187,22 @@ export default function AdminPage() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || "Failed to create volunteer");
+        throw new Error(errData.detail || 'Failed to create volunteer');
       }
 
       const result = await response.json();
-      setVolEmail("");
-      setVolPassword("");
+      setVolEmail('');
+      setVolPassword('');
       setVolCategories([]);
       setFeedback({
-        type: "success",
+        type: 'success',
         message: `VOLUNTEER COMMISSIONED! Account created for ${volEmail.trim()}. Credentials dispatched via Gmail. Default Password: ${result.generated_password}`,
       });
     } catch (err: unknown) {
       const error = err as Error;
       setFeedback({
-        type: "error",
-        message: error.message || "Failed to create volunteer account.",
+        type: 'error',
+        message: error.message || 'Failed to create volunteer account.',
       });
     } finally {
       setIsSubmittingVol(false);
@@ -212,7 +220,7 @@ export default function AdminPage() {
 
       // Send verification email with redirect back to admin portal
       const actionCodeSettings = {
-        url: window.location.origin + "/admin",
+        url: window.location.origin + '/admin',
         handleCodeInApp: true,
       };
       await sendEmailVerification(user, actionCodeSettings);
@@ -220,14 +228,14 @@ export default function AdminPage() {
       // Save user details with role: ADMIN directly in RTDB
       await set(ref(rtdb, `users/${user.uid}`), {
         email: adminEmail,
-        role: "ADMIN",
+        role: 'ADMIN',
         created_at: new Date().toISOString(),
       });
 
       setVerificationSent(true);
     } catch (err: unknown) {
       const error = err as Error;
-      setAuthError(error.message || "Failed to create Admin account");
+      setAuthError(error.message || 'Failed to create Admin account');
     } finally {
       setAuthLoading(false);
     }
@@ -243,10 +251,10 @@ export default function AdminPage() {
       const user = userCredential.user;
 
       if (!user.emailVerified) {
-        setAuthError("ACCESS DENIED: Please verify your email first. Check your inbox.");
+        setAuthError('ACCESS DENIED: Please verify your email first. Check your inbox.');
         // Resend email verification
         const actionCodeSettings = {
-          url: window.location.origin + "/admin",
+          url: window.location.origin + '/admin',
           handleCodeInApp: true,
         };
         await sendEmailVerification(user, actionCodeSettings);
@@ -257,13 +265,13 @@ export default function AdminPage() {
       // Check if role is ADMIN in database
       const snapshot = await get(ref(rtdb, `users/${user.uid}`));
       const userData = snapshot.val();
-      if (userData?.role !== "ADMIN") {
+      if (userData?.role !== 'ADMIN') {
         await firebaseSignOut(auth);
-        setAuthError("ACCESS DENIED: You do not have administrator privileges.");
+        setAuthError('ACCESS DENIED: You do not have administrator privileges.');
       }
     } catch (err: unknown) {
       const error = err as Error;
-      setAuthError(error.message || "Invalid credentials");
+      setAuthError(error.message || 'Invalid credentials');
     } finally {
       setAuthLoading(false);
     }
@@ -271,7 +279,7 @@ export default function AdminPage() {
 
   const toggleCategorySelection = (name: string) => {
     setVolCategories((prev) =>
-      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name],
     );
   };
 
@@ -288,7 +296,7 @@ export default function AdminPage() {
   }
 
   // RENDER DEDICATED INLINE AUTH PAGE IF NOT AN ADMIN
-  if (!user || role !== "ADMIN") {
+  if (!user || role !== 'ADMIN') {
     return (
       <main className="min-h-screen bg-(--background) brutalist-grid flex items-center justify-center p-6 relative overflow-hidden font-outfit">
         <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-12 items-center z-10">
@@ -310,20 +318,23 @@ export default function AdminPage() {
           {/* RIGHT: Login Card */}
           <div className="lg:w-1/2 w-full bg-(--background) border border-(--border-color) rounded-2xl p-8 lg:p-12 shadow-2xl brutalist-border">
             <h2 className="text-4xl font-anton uppercase text-(--foreground) mb-8 tracking-wide">
-              {authMode === "signin" ? "Admin Sign In" : "Register Admin"}
+              {authMode === 'signin' ? 'Admin Sign In' : 'Register Admin'}
             </h2>
 
             {verificationSent ? (
               <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-4 animate-in zoom-in duration-300">
                 <CheckCircle className="text-emerald-400 mx-auto" size={48} />
-                <h3 className="text-xl font-anton uppercase text-emerald-400">VERIFICATION DISPATCHED</h3>
+                <h3 className="text-xl font-anton uppercase text-emerald-400">
+                  VERIFICATION DISPATCHED
+                </h3>
                 <p className="text-sm text-sage leading-relaxed">
-                  We have sent an authentication link to <strong>{adminEmail}</strong>. Please verify your email, then return here to log in.
+                  We have sent an authentication link to <strong>{adminEmail}</strong>. Please
+                  verify your email, then return here to log in.
                 </p>
                 <button
                   onClick={() => {
                     setVerificationSent(false);
-                    setAuthMode("signin");
+                    setAuthMode('signin');
                   }}
                   className="w-full py-4 bg-yellow text-charcoal font-anton uppercase tracking-widest rounded-xl transition-all"
                 >
@@ -331,13 +342,19 @@ export default function AdminPage() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={authMode === "signin" ? handleAdminSignin : handleAdminSignup} className="space-y-6">
+              <form
+                onSubmit={authMode === 'signin' ? handleAdminSignin : handleAdminSignup}
+                className="space-y-6"
+              >
                 <div>
                   <label className="block text-xs text-(--foreground) font-bold uppercase tracking-widest mb-2.5 opacity-60">
                     Administrator ID (Email)
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-(--foreground)/30" size={18} />
+                    <Mail
+                      className="absolute left-5 top-1/2 -translate-y-1/2 text-(--foreground)/30"
+                      size={18}
+                    />
                     <input
                       type="email"
                       required
@@ -355,7 +372,10 @@ export default function AdminPage() {
                     Security Key (Password)
                   </label>
                   <div className="relative">
-                    <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-(--foreground)/30" size={18} />
+                    <Key
+                      className="absolute left-5 top-1/2 -translate-y-1/2 text-(--foreground)/30"
+                      size={18}
+                    />
                     <input
                       type="password"
                       required
@@ -377,12 +397,13 @@ export default function AdminPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-3">
+                  className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-3"
+                >
                   {authLoading ? (
                     <Loader2 className="animate-spin" size={24} />
                   ) : (
                     <>
-                      {authMode === "signin" ? "Verify Admin" : "Register Admin"}
+                      {authMode === 'signin' ? 'Verify Admin' : 'Register Admin'}
                       <ArrowRight size={24} strokeWidth={3} />
                     </>
                   )}
@@ -393,11 +414,13 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => {
                       setAuthError(null);
-                      setAuthMode(authMode === "signin" ? "signup" : "signin");
+                      setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
                     }}
                     className="text-xs text-sage uppercase font-black tracking-widest hover:text-yellow transition-colors"
                   >
-                    {authMode === "signin" ? "Register New Administrator Node →" : "Already registered? Sign In →"}
+                    {authMode === 'signin'
+                      ? 'Register New Administrator Node →'
+                      : 'Already registered? Sign In →'}
                   </button>
                 </div>
               </form>
@@ -439,13 +462,13 @@ export default function AdminPage() {
         {feedback && (
           <div
             className={cn(
-              "p-6 rounded-2xl border font-bold text-sm flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-300",
-              feedback.type === "success"
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                : "bg-red-500/10 border-red-500/30 text-red-400"
+              'p-6 rounded-2xl border font-bold text-sm flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-300',
+              feedback.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400',
             )}
           >
-            {feedback.type === "success" ? (
+            {feedback.type === 'success' ? (
               <CheckCircle size={20} className="shrink-0 mt-0.5" />
             ) : (
               <AlertTriangle size={20} className="shrink-0 mt-0.5" />
@@ -461,9 +484,7 @@ export default function AdminPage() {
               <div className="p-3 bg-(--foreground)/5 rounded-xl border border-(--border-color)">
                 <FolderPlus className="text-yellow" size={20} />
               </div>
-              <h2 className="text-2xl font-anton uppercase tracking-wide">
-                Volunteer Sectors
-              </h2>
+              <h2 className="text-2xl font-anton uppercase tracking-wide">Volunteer Sectors</h2>
             </div>
 
             {/* Category Form */}
@@ -561,9 +582,7 @@ export default function AdminPage() {
               <div className="p-3 bg-(--foreground)/5 rounded-xl border border-(--border-color)">
                 <UserCheck className="text-yellow" size={20} />
               </div>
-              <h2 className="text-2xl font-anton uppercase tracking-wide">
-                Onboard Personnel
-              </h2>
+              <h2 className="text-2xl font-anton uppercase tracking-wide">Onboard Personnel</h2>
             </div>
 
             <form onSubmit={handleCreateVolunteer} className="space-y-6">
@@ -595,26 +614,26 @@ export default function AdminPage() {
                 <div className="flex gap-4 p-1 bg-(--foreground)/5 rounded-2xl border border-(--border-color)">
                   <button
                     type="button"
-                    onClick={() => setVolDomain("human")}
+                    onClick={() => setVolDomain('human')}
                     aria-label="Set Operational Domain to Human Health"
                     className={cn(
-                      "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                      volDomain === "human"
-                        ? "bg-(--foreground) text-(--background) shadow-lg"
-                        : "text-(--foreground) hover:text-(--foreground)"
+                      'flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer',
+                      volDomain === 'human'
+                        ? 'bg-(--foreground) text-(--background) shadow-lg'
+                        : 'text-(--foreground) hover:text-(--foreground)',
                     )}
                   >
                     Human Health
                   </button>
                   <button
                     type="button"
-                    onClick={() => setVolDomain("animal")}
+                    onClick={() => setVolDomain('animal')}
                     aria-label="Set Operational Domain to Animal Health"
                     className={cn(
-                      "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                      volDomain === "animal"
-                        ? "bg-blue-500 text-white shadow-lg"
-                        : "text-(--foreground) hover:text-blue-400"
+                      'flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer',
+                      volDomain === 'animal'
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'text-(--foreground) hover:text-blue-400',
                     )}
                   >
                     Animal Health
@@ -642,10 +661,10 @@ export default function AdminPage() {
                           onClick={() => toggleCategorySelection(cat.name)}
                           aria-label={`Assign sector ${cat.name}`}
                           className={cn(
-                            "px-4 py-2 text-xs font-black uppercase tracking-widest border rounded-xl transition-all cursor-pointer",
+                            'px-4 py-2 text-xs font-black uppercase tracking-widest border rounded-xl transition-all cursor-pointer',
                             isSelected
-                              ? "bg-(--foreground) border-(--foreground) text-(--background) shadow-md"
-                              : "bg-(--background) border-(--border-color) text-(--foreground)/70 hover:border-(--foreground)/20"
+                              ? 'bg-(--foreground) border-(--foreground) text-(--background) shadow-md'
+                              : 'bg-(--background) border-(--border-color) text-(--foreground)/70 hover:border-(--foreground)/20',
                           )}
                         >
                           {cat.name}

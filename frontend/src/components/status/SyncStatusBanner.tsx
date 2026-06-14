@@ -40,14 +40,15 @@ export default function SyncStatusBanner() {
   return (
     <div className="w-full bg-[#050505] border-t border-neutral-900 px-6 py-3 flex justify-between items-center text-[10px] font-mono uppercase tracking-widest text-neutral-500">
       <div className="flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}
+        ></span>
         {isOnline ? 'Database Connected' : 'Disconnected — Running Offline Mode'}
       </div>
       <div>
-        {isOnline 
-          ? `Synced ${lastSyncedTime || 'Live'}` 
-          : `Last synced ${lastSyncedTime || 'Recently'} — offline mode`
-        }
+        {isOnline
+          ? `Synced ${lastSyncedTime || 'Live'}`
+          : `Last synced ${lastSyncedTime || 'Recently'} — offline mode`}
       </div>
     </div>
   );

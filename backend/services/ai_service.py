@@ -249,7 +249,12 @@ def heuristic_need_structure(text: str) -> Dict[str, Any]:
     need_type = "safety"
     
     if any(kw in text_lower for kw in ["dog", "cat", "animal", "pet", "cow", "monkey", "stray"]):
-        need_type = "animal"
+        # Prevent false positive animal classification for human children ("kid", "child", etc.)
+        if any(hkw in text_lower for hkw in ["kid", "child", "baby", "toddler", "boy", "girl"]):
+            need_type = "medical" if any(mkw in text_lower for mkw in ["bleed", "hurt", "injury", "hit", "pain", "doctor", "hospital"]) else "safety"
+        else:
+            need_type = "animal"
+
     elif any(kw in text_lower for kw in ["water", "flood", "leak", "drink"]):
         need_type = "water"
     elif any(kw in text_lower for kw in ["food", "hungry", "meal", "starving"]):
@@ -358,6 +363,11 @@ async def extract_need_structure(text: str) -> Dict[str, Any]:
     "reported_by": "name if mentioned or null",
     "emergency_category": "cardiac_cpr"|"choking"|"bleeding"|"heart_stroke"|"seizure_unconscious"|"fracture_sprain"|"burns"|"heat_stroke"|"animal_bite"|"flood_safety"|"food_water_hygiene"|"shelter_safety"|"reassurance_transport"|null
 }}
+
+Guidelines for "need_type":
+- CRITICAL: Do NOT classify reports about human children (frequently referred to as "kid", "kids", "child", "children", "baby", "toddler", "boy", "girl") under the "animal" type. Human child emergencies (such as "kid hit by a car", "kid is bleeding") must be classified as "medical" or "safety".
+- Only classify as "animal" if the report is explicitly about non-human animals (e.g., dogs, cats, cows, pets, strays, birds).
+
 
 Guidelines for "emergency_category":
 - Use "cardiac_cpr" for cardiac arrest, CPR, heart stopping, collapse, unresponsive and not breathing.

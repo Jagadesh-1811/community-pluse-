@@ -1,9 +1,9 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --color-emergency: #FF4D00;
+  --color-emergency: #ff4d00;
   --color-emergency-glow: rgba(255, 77, 0, 0.3);
-  --color-success: #00E676;
+  --color-success: #00e676;
   --color-success-glow: rgba(0, 230, 118, 0.3);
   --color-primary: #ffe17c;
   --color-primary-glow: rgba(255, 225, 124, 0.3);
@@ -42,25 +42,29 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-roboto);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 @layer components {
   .brutalist-grid {
     background-size: 40px 40px;
-    background-image: linear-gradient(to right, rgba(183, 198, 194, 0.4) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(183, 198, 194, 0.4) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right, rgba(183, 198, 194, 0.4) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(183, 198, 194, 0.4) 1px, transparent 1px);
   }
-  
+
   .dark .brutalist-grid {
-    background-image: linear-gradient(to right, rgba(183, 198, 194, 0.1) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(183, 198, 194, 0.1) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right, rgba(183, 198, 194, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(183, 198, 194, 0.1) 1px, transparent 1px);
   }
 
   .brutalist-border {
     border: 1px solid var(--border-color);
   }
-  
+
   /* Glassmorphism */
   .glass {
     background: var(--glass-bg);
@@ -104,9 +108,18 @@ body {
 }
 
 @keyframes marker-pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-marker-pulse {
@@ -149,5 +162,3 @@ body {
 .animate-glitch-bw {
   animation: glitch-bw 0.15s steps(2, start) 3;
 }
-
-

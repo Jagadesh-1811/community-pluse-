@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
-import { useRealtimeNeeds, Need } from "@/hooks/useRealtimeNeeds";
-import Image from "next/image";
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { useRealtimeNeeds, Need } from '@/hooks/useRealtimeNeeds';
+import Image from 'next/image';
 
-const LiveMap = dynamic(() => import("@/components/map/LiveMap"), {
+const LiveMap = dynamic(() => import('@/components/map/LiveMap'), {
   ssr: false,
 });
 import {
@@ -26,45 +26,40 @@ import {
   Mic,
   User,
   BarChart2,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { rtdb, auth } from "@/lib/firebase";
-import {
-  ref,
-  update,
-  onValue,
-  query,
-  limitToLast,
-  get,
-  set,
-} from "firebase/database";
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { rtdb, auth } from '@/lib/firebase';
+import { ref, update, onValue, query, limitToLast, get, set } from 'firebase/database';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendEmailVerification,
   signOut as firebaseSignOut,
-} from "firebase/auth";
-import { Mail, Key, ArrowRight, Shield } from "lucide-react";
-import ChatPanel from "@/components/chat/ChatPanel";
-import { useAuth } from "@/lib/auth-context";
+} from 'firebase/auth';
+import { Mail, Key, ArrowRight, Shield } from 'lucide-react';
+import ChatPanel from '@/components/chat/ChatPanel';
+import { useAuth } from '@/lib/auth-context';
 
+<<<<<<< HEAD
 const getDisplayHeading = (need?: Need | null) => {
   if (!need) return "Field Incident Report";
+=======
+const getDisplayHeading = (need?: any) => {
+  if (!need) return 'Field Incident Report';
+>>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
   if (need.ai_heading && need.ai_heading.trim()) {
     return need.ai_heading;
   }
   if (need.raw_text && need.raw_text.trim()) {
-    const words = need.raw_text.trim().split(/\s+/).slice(0, 5).join(" ");
-    return words.length < need.raw_text.trim().length ? words + "..." : words;
+    const words = need.raw_text.trim().split(/\s+/).slice(0, 5).join(' ');
+    return words.length < need.raw_text.trim().length ? words + '...' : words;
   }
-  return need.location_name || "Field Incident Report";
+  return need.location_name || 'Field Incident Report';
 };
 
 export default function Home() {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:8000";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
   const { needs, loading: needsLoading, refresh } = useRealtimeNeeds();
   const {
     user,
@@ -79,37 +74,30 @@ export default function Home() {
   // Dynamic Stats calculations for Analytics tab
   const totalIncidents = needs.length;
   const activeMissions = needs.filter(
-    (n) => n.status === "in-progress" || n.status === "in_progress",
+    (n) => n.status === 'in-progress' || n.status === 'in_progress',
   ).length;
-  const resolvedMissions = needs.filter((n) => n.status === "resolved").length;
-  const pendingIncidents = needs.filter(
-    (n) => !n.status || n.status === "open",
-  ).length;
+  const resolvedMissions = needs.filter((n) => n.status === 'resolved').length;
+  const pendingIncidents = needs.filter((n) => !n.status || n.status === 'open').length;
 
   const categoriesCount = needs.reduce((acc: Record<string, number>, curr) => {
-    const type = curr.need_type || "unclassified";
+    const type = curr.need_type || 'unclassified';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
 
   const sourcesCount = needs.reduce((acc: Record<string, number>, curr) => {
-    const src = curr.source || "web";
+    const src = curr.source || 'web';
     acc[src] = (acc[src] || 0) + 1;
     return acc;
   }, {});
 
   const urgencyAvg =
     totalIncidents > 0
-      ? (
-          needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) /
-          totalIncidents
-        ).toFixed(1)
-      : "0.0";
+      ? (needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) / totalIncidents).toFixed(1)
+      : '0.0';
 
   const escalatedCount = needs.filter((n) => n.sla_escalated).length;
-  const clusteredCount = needs.filter(
-    (n) => n.is_major_incident || n.parent_incident_id,
-  ).length;
+  const clusteredCount = needs.filter((n) => n.is_major_incident || n.parent_incident_id).length;
 
   // AUTH PROTECTION
   // Handled inline in the render block to allow dedicated volunteer authentication.
@@ -126,46 +114,28 @@ export default function Home() {
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
   const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
   const [activeTab, setActiveTab] = useState<
-    | "map"
-    | "alerts"
-    | "dispatched"
-    | "resolved"
-    | "comms"
-    | "intel"
-    | "analytics"
-  >("map");
-  const [manualSector, setManualSector] = useState<"all" | "human" | "animal">(
-    "all",
-  );
-  const [categories, setCategories] = useState<
-    { id: string; name: string; color: string }[]
-  >([]);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] =
-    useState<string>("all");
-  const [glitchingCategory, setGlitchingCategory] = useState<string | null>(
-    null,
-  );
+    'map' | 'alerts' | 'dispatched' | 'resolved' | 'comms' | 'intel' | 'analytics'
+  >('map');
+  const [manualSector, setManualSector] = useState<'all' | 'human' | 'animal'>('all');
+  const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  const [glitchingCategory, setGlitchingCategory] = useState<string | null>(null);
   const [selectedSourceFilter, setSelectedSourceFilter] = useState<
-    "all" | "voice_agent" | "telegram" | "web"
-  >("all");
-  const [selectedDateFilter, setSelectedDateFilter] = useState<
-    "all" | "today" | "24h" | "7d"
-  >("all");
-  const [recommendationLoading, setRecommendationLoading] = useState(false);
-  const [recommendationData, setRecommendationData] =
-    useState<DispatchRecommendation | null>(null);
-  const [recommendationError, setRecommendationError] = useState<string | null>(
-    null,
+    'all' | 'voice_agent' | 'telegram' | 'web'
+  >('all');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<'all' | 'today' | '24h' | '7d'>(
+    'all',
   );
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationData, setRecommendationData] = useState<DispatchRecommendation | null>(null);
+  const [recommendationError, setRecommendationError] = useState<string | null>(null);
 
   // INLINE VOLUNTEER AUTH STATES
-  const [volEmail, setVolEmail] = useState("");
-  const [volPassword, setVolPassword] = useState("");
-  const [volAccessCode, setVolAccessCode] = useState("");
-  const [volDomainSelect, setVolDomainSelect] = useState<"human" | "animal">(
-    "human",
-  );
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [volEmail, setVolEmail] = useState('');
+  const [volPassword, setVolPassword] = useState('');
+  const [volAccessCode, setVolAccessCode] = useState('');
+  const [volDomainSelect, setVolDomainSelect] = useState<'human' | 'animal'>('human');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [localAuthLoading, setLocalAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -175,7 +145,7 @@ export default function Home() {
 
   // Listen to categories from Firebase Realtime Database
   useEffect(() => {
-    const categoriesRef = ref(rtdb, "categories");
+    const categoriesRef = ref(rtdb, 'categories');
     const unsubscribe = onValue(categoriesRef, (snapshot) => {
       const list: { id: string; name: string; color: string }[] = [];
       snapshot.forEach((child) => {
@@ -190,12 +160,12 @@ export default function Home() {
     lng: number;
     accuracy?: number;
   } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<
-    "detecting" | "found" | "denied" | "idle"
-  >("idle");
+  const [locationStatus, setLocationStatus] = useState<'detecting' | 'found' | 'denied' | 'idle'>(
+    'idle',
+  );
   const [showLocationToast, setShowLocationToast] = useState(false);
   const [actionToast, setActionToast] = useState<{
-    type: "success" | "error";
+    type: 'success' | 'error';
     message: string;
   } | null>(null);
   const [isManualMode, setIsManualMode] = useState(false);
@@ -209,14 +179,14 @@ export default function Home() {
   }, [actionToast]);
 
   const formatDate = (ts: number | string | null | undefined) => {
-    if (!ts) return "Unknown Time";
+    if (!ts) return 'Unknown Time';
     const d = new Date(ts);
-    if (isNaN(d.getTime())) return "Invalid Date";
-    return d.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return d.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
       hour12: true,
     });
   };
@@ -231,7 +201,7 @@ export default function Home() {
 
   interface TelegramAction {
     id: string;
-    type: "report" | "animal" | "start" | "other";
+    type: 'report' | 'animal' | 'start' | 'other';
     user_id: number;
     username: string;
     text: string;
@@ -253,10 +223,10 @@ export default function Home() {
     }
 
     // 1. Hardware Geolocation Hook
-    if ("geolocation" in navigator) {
-      if (locationStatus === "idle") {
+    if ('geolocation' in navigator) {
+      if (locationStatus === 'idle') {
         setTimeout(() => {
-          setLocationStatus("detecting");
+          setLocationStatus('detecting');
           setShowLocationToast(true);
         }, 0);
       }
@@ -267,9 +237,7 @@ export default function Home() {
 
           // Only accept high-accuracy locks (< 100m) for field coordination
           if (accuracy > 100) {
-            console.warn(
-              `Low accuracy GPS: ${accuracy}m. Waiting for better lock...`,
-            );
+            console.warn(`Low accuracy GPS: ${accuracy}m. Waiting for better lock...`);
             return;
           }
 
@@ -279,7 +247,7 @@ export default function Home() {
               lng: longitude,
               accuracy: accuracy,
             });
-            setLocationStatus("found");
+            setLocationStatus('found');
             // Auto-hide toast after 3s if it was just found
             if (showLocationToast) {
               setTimeout(() => setShowLocationToast(false), 3000);
@@ -287,8 +255,8 @@ export default function Home() {
           }
         },
         async (err) => {
-          console.warn("Volunteer GPS error:", err);
-          setLocationStatus("denied");
+          console.warn('Volunteer GPS error:', err);
+          setLocationStatus('denied');
           setTimeout(() => setShowLocationToast(false), 4000);
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
@@ -303,7 +271,7 @@ export default function Home() {
 
   const handleManualLocationSet = (lat: number, lng: number) => {
     setVolunteerLocation({ lat, lng, accuracy: 0 });
-    setLocationStatus("found");
+    setLocationStatus('found');
     setIsManualMode(true);
     setShowLocationToast(true);
     setTimeout(() => setShowLocationToast(false), 2000);
@@ -311,16 +279,11 @@ export default function Home() {
 
   const clearManualOverride = () => {
     setIsManualMode(false);
-    setLocationStatus("idle");
+    setLocationStatus('idle');
   };
 
   // Haversine Distance Formula
-  const calculateDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ) => {
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Earth Radius in km
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -354,12 +317,16 @@ export default function Home() {
     }
   }, [trackingNeedId, volunteerLocation]);
 
+<<<<<<< HEAD
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   const openNeed = (
     need: Need,
     tab: "map" | "alerts" | "dispatched" | "resolved" = "map",
   ) => {
+=======
+  const openNeed = (need: Need, tab: 'map' | 'alerts' | 'dispatched' | 'resolved' = 'map') => {
+>>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
     setSelectedNeed(need);
     setCollapsedNeed(null);
     setActiveTab(tab);
@@ -389,35 +356,28 @@ export default function Home() {
     setRecommendationError(null);
     setRecommendationData(null);
     try {
-      const token = user ? await user.getIdToken() : "";
-      const res = await fetch(
-        `${apiBaseUrl}/incidents/${incidentId}/recommend-volunteer`,
-        {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
+      const token = user ? await user.getIdToken() : '';
+      const res = await fetch(`${apiBaseUrl}/incidents/${incidentId}/recommend-volunteer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(
-          errData.detail || `Server responded with ${res.status}`,
-        );
+        throw new Error(errData.detail || `Server responded with ${res.status}`);
       }
       const data = await res.json();
-      if (data.status === "success" && data.recommendation) {
+      if (data.status === 'success' && data.recommendation) {
         setRecommendationData(data.recommendation);
       } else {
-        throw new Error(
-          "Invalid response from dispatch recommendation service.",
-        );
+        throw new Error('Invalid response from dispatch recommendation service.');
       }
     } catch (err: unknown) {
       const error = err as Error;
-      console.error("Failed to fetch volunteer recommendation:", error);
-      setRecommendationError(error.message || "Failed to load recommendation.");
+      console.error('Failed to fetch volunteer recommendation:', error);
+      setRecommendationError(error.message || 'Failed to load recommendation.');
     } finally {
       setRecommendationLoading(false);
     }
@@ -428,46 +388,46 @@ export default function Home() {
       const needRef = ref(rtdb, `needs/${needId}`);
       await update(needRef, { status });
 
-      if (status === "in-progress" || status === "resolved") {
-        if (status === "in-progress") setTrackingNeedId(needId);
+      if (status === 'in-progress' || status === 'resolved') {
+        if (status === 'in-progress') setTrackingNeedId(needId);
         else setTrackingNeedId(null);
         try {
-          const token = user ? await user.getIdToken() : "";
+          const token = user ? await user.getIdToken() : '';
           await fetch(`${apiBaseUrl}/status/update`, {
-            method: "POST",
-            headers: { 
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ need_id: needId, status }),
           });
         } catch (err) {
-          console.error("Failed to notify dispatch:", err);
+          console.error('Failed to notify dispatch:', err);
         }
-      } else if (status === "resolved" || status === "open") {
+      } else if (status === 'resolved' || status === 'open') {
         setTrackingNeedId(null);
       }
-      if (status === "in-progress") {
+      if (status === 'in-progress') {
         setActionToast({
-          type: "success",
-          message: "Dispatch initiated successfully.",
+          type: 'success',
+          message: 'Dispatch initiated successfully.',
         });
-        setActiveTab("dispatched");
-      } else if (status === "resolved") {
+        setActiveTab('dispatched');
+      } else if (status === 'resolved') {
         setActionToast({
-          type: "success",
-          message: "Issue resolved successfully.",
+          type: 'success',
+          message: 'Issue resolved successfully.',
         });
-        setActiveTab("resolved");
+        setActiveTab('resolved');
       }
       setSelectedNeed(null);
       setCollapsedNeed(null);
       refresh();
     } catch (error) {
-      console.error("Error updating status:", error);
+      console.error('Error updating status:', error);
       setActionToast({
-        type: "error",
-        message: "Failed to update mission status.",
+        type: 'error',
+        message: 'Failed to update mission status.',
       });
     }
   };
@@ -476,7 +436,7 @@ export default function Home() {
   useEffect(() => {
     // In RTDB, we might want to listen to all messages for all needs if that's what was happening before
     // Or just a specific node. Let's assume a global 'all_messages' for the dashboard or listen to the messages root.
-    const messagesRef = ref(rtdb, "messages");
+    const messagesRef = ref(rtdb, 'messages');
     const q = query(messagesRef, limitToLast(50));
 
     const unsubscribe = onValue(q, (snapshot) => {
@@ -496,7 +456,7 @@ export default function Home() {
 
   // LISTEN FOR TELEGRAM ACTIONS
   useEffect(() => {
-    const actionsRef = ref(rtdb, "telegram_actions");
+    const actionsRef = ref(rtdb, 'telegram_actions');
     const q = query(actionsRef, limitToLast(20));
 
     const unsubscribe = onValue(q, (snapshot) => {
@@ -515,26 +475,22 @@ export default function Home() {
   const filteredNeeds = needs.filter((need) => {
     // 1. Domain Filter
     if (domain) {
-      if (domain === "animal") {
-        if (need.need_type !== "animal") return false;
+      if (domain === 'animal') {
+        if (need.need_type !== 'animal') return false;
       } else {
-        if (need.need_type === "animal") return false;
+        if (need.need_type === 'animal') return false;
       }
     } else {
-      if (activeSector === "animal") {
-        if (need.need_type !== "animal") return false;
-      } else if (activeSector === "human") {
-        if (need.need_type === "animal") return false;
+      if (activeSector === 'animal') {
+        if (need.need_type !== 'animal') return false;
+      } else if (activeSector === 'human') {
+        if (need.need_type === 'animal') return false;
       }
     }
 
     // 1.5. Volunteer Category Filter
-    if (
-      role === "VOLUNTEER" &&
-      volunteerCategories &&
-      volunteerCategories.length > 0
-    ) {
-      const needType = need.need_type || "general";
+    if (role === 'VOLUNTEER' && volunteerCategories && volunteerCategories.length > 0) {
+      const needType = need.need_type || 'general';
       const isMatched = volunteerCategories.some(
         (cat) => cat.toLowerCase() === needType.toLowerCase(),
       );
@@ -542,27 +498,26 @@ export default function Home() {
     }
 
     // 2. Custom Category Filter
-    if (selectedCategoryFilter !== "all") {
-      const needType = need.need_type || "general";
-      if (needType.toLowerCase() !== selectedCategoryFilter.toLowerCase())
-        return false;
+    if (selectedCategoryFilter !== 'all') {
+      const needType = need.need_type || 'general';
+      if (needType.toLowerCase() !== selectedCategoryFilter.toLowerCase()) return false;
     }
 
     // 3. Source Channel Filter
-    if (selectedSourceFilter !== "all") {
+    if (selectedSourceFilter !== 'all') {
       if (need.source !== selectedSourceFilter) return false;
     }
 
     // 4. Date & Time Filter
-    if (selectedDateFilter !== "all") {
+    if (selectedDateFilter !== 'all') {
       const createdAt = need.created_at || 0;
-      if (selectedDateFilter === "today") {
+      if (selectedDateFilter === 'today') {
         const todayStart = new Date().setHours(0, 0, 0, 0);
         if (createdAt < todayStart) return false;
-      } else if (selectedDateFilter === "24h") {
+      } else if (selectedDateFilter === '24h') {
         const oneDayAgo = now - 24 * 60 * 60 * 1000;
         if (createdAt < oneDayAgo) return false;
-      } else if (selectedDateFilter === "7d") {
+      } else if (selectedDateFilter === '7d') {
         const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
         if (createdAt < sevenDaysAgo) return false;
       }
@@ -573,13 +528,13 @@ export default function Home() {
 
   // Sort filtered needs by urgency
   const sortedNeeds = [...filteredNeeds]
-    .filter((n) => n.status === "open" || !n.status)
+    .filter((n) => n.status === 'open' || !n.status)
     .sort((a, b) => b.urgency_score - a.urgency_score);
   const dispatchedNeeds = [...filteredNeeds]
-    .filter((n) => n.status === "in-progress")
+    .filter((n) => n.status === 'in-progress')
     .sort((a, b) => b.urgency_score - a.urgency_score);
   const resolvedNeeds = [...filteredNeeds]
-    .filter((n) => n.status === "resolved")
+    .filter((n) => n.status === 'resolved')
     .sort((a, b) => b.urgency_score - a.urgency_score);
 
   // INLINE VOLUNTEER AUTH HANDLERS
@@ -590,27 +545,23 @@ export default function Home() {
     try {
       // 1. Verify code on backend
       const verifyRes = await fetch(`${apiBaseUrl}/auth/verify-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: volAccessCode, role: "VOLUNTEER" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: volAccessCode, role: 'VOLUNTEER' }),
       });
       if (!verifyRes.ok) {
         throw new Error(
-          "INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.",
+          'INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.',
         );
       }
 
       // 2. Create User in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        volEmail,
-        volPassword,
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, volEmail, volPassword);
       const userObj = userCredential.user;
 
       // 3. Send Verification Email
       const actionCodeSettings = {
-        url: window.location.origin + "/volunteer",
+        url: window.location.origin + '/volunteer',
         handleCodeInApp: true,
       };
       await sendEmailVerification(userObj, actionCodeSettings);
@@ -618,7 +569,7 @@ export default function Home() {
       // 4. Save User details in RTDB
       await set(ref(rtdb, `users/${userObj.uid}`), {
         email: volEmail,
-        role: "VOLUNTEER",
+        role: 'VOLUNTEER',
         domain: volDomainSelect,
         created_at: new Date().toISOString(),
       });
@@ -626,7 +577,7 @@ export default function Home() {
       setVerificationSent(true);
     } catch (err: unknown) {
       const error = err as Error;
-      setAuthError(error.message || "Failed to create Volunteer account");
+      setAuthError(error.message || 'Failed to create Volunteer account');
     } finally {
       setLocalAuthLoading(false);
     }
@@ -637,20 +588,14 @@ export default function Home() {
     setLocalAuthLoading(true);
     setAuthError(null);
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        volEmail,
-        volPassword,
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, volEmail, volPassword);
       const userObj = userCredential.user;
 
       if (!userObj.emailVerified) {
-        setAuthError(
-          "ACCESS DENIED: Please verify your email first. Check your inbox.",
-        );
+        setAuthError('ACCESS DENIED: Please verify your email first. Check your inbox.');
         // Resend email verification
         const actionCodeSettings = {
-          url: window.location.origin + "/volunteer",
+          url: window.location.origin + '/volunteer',
           handleCodeInApp: true,
         };
         await sendEmailVerification(userObj, actionCodeSettings);
@@ -661,15 +606,13 @@ export default function Home() {
       // Check database role
       const snapshot = await get(ref(rtdb, `users/${userObj.uid}`));
       const userData = snapshot.val();
-      if (userData?.role !== "VOLUNTEER" && userData?.role !== "ADMIN") {
+      if (userData?.role !== 'VOLUNTEER' && userData?.role !== 'ADMIN') {
         await firebaseSignOut(auth);
-        setAuthError(
-          "ACCESS DENIED: This account is not registered as a volunteer.",
-        );
+        setAuthError('ACCESS DENIED: This account is not registered as a volunteer.');
       }
     } catch (err: unknown) {
       const error = err as Error;
-      setAuthError(error.message || "Invalid credentials");
+      setAuthError(error.message || 'Invalid credentials');
     } finally {
       setLocalAuthLoading(false);
     }
@@ -692,7 +635,7 @@ export default function Home() {
   }
 
   // RENDER DEDICATED INLINE AUTH PAGE IF NOT A VOLUNTEER/ADMIN
-  if (!user || (role !== "VOLUNTEER" && role !== "ADMIN")) {
+  if (!user || (role !== 'VOLUNTEER' && role !== 'ADMIN')) {
     return (
       <main className="min-h-screen bg-(--background) brutalist-grid flex items-center justify-center p-6 relative overflow-hidden font-roboto pt-20">
         <div className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row gap-12 items-center z-10">
@@ -713,20 +656,18 @@ export default function Home() {
 
           {/* RIGHT: Login Card */}
           <div className="lg:w-1/2 w-full bg-(--background) border border-(--border-color) rounded-2xl p-8 lg:p-12 shadow-2xl brutalist-border">
-            {user && role !== "VOLUNTEER" && role !== "ADMIN" ? (
+            {user && role !== 'VOLUNTEER' && role !== 'ADMIN' ? (
               <div className="text-center space-y-6 animate-in zoom-in duration-300">
                 <ShieldAlert className="text-red-500 mx-auto" size={48} />
-                <h3 className="text-xl font-anton uppercase text-red-500">
-                  ACCESS DENIED
-                </h3>
+                <h3 className="text-xl font-anton uppercase text-red-500">ACCESS DENIED</h3>
                 <p className="text-sm text-sage leading-relaxed">
-                  Your current account (<strong>{user.email}</strong>) is
-                  registered as a <strong>Reporter</strong>. Standard reporters
-                  do not have command clearance.
+                  Your current account (<strong>{user.email}</strong>) is registered as a{' '}
+                  <strong>Reporter</strong>. Standard reporters do not have command clearance.
                 </p>
                 <button
                   onClick={() => signOut()}
-                  className="w-full py-4 bg-red-500 text-white font-anton uppercase tracking-widest rounded-xl transition-all">
+                  className="w-full py-4 bg-red-500 text-white font-anton uppercase tracking-widest rounded-xl transition-all"
+                >
                   Log Out / Switch Account
                 </button>
               </div>
@@ -737,29 +678,26 @@ export default function Home() {
                   COMMISSION DISPATCHED
                 </h3>
                 <p className="text-sm text-sage leading-relaxed">
-                  We have sent an authentication link to{" "}
-                  <strong>{volEmail}</strong>. Please verify your email, then
-                  return here to log in.
+                  We have sent an authentication link to <strong>{volEmail}</strong>. Please verify
+                  your email, then return here to log in.
                 </p>
                 <button
                   onClick={() => {
                     setVerificationSent(false);
-                    setAuthMode("signin");
+                    setAuthMode('signin');
                   }}
-                  className="w-full py-4 bg-yellow text-charcoal font-anton uppercase tracking-widest rounded-xl transition-all">
+                  className="w-full py-4 bg-yellow text-charcoal font-anton uppercase tracking-widest rounded-xl transition-all"
+                >
                   Continue to Sign In
                 </button>
               </div>
             ) : (
               <form
-                onSubmit={
-                  authMode === "signin" ? handleVolSignin : handleVolSignup
-                }
-                className="space-y-6">
+                onSubmit={authMode === 'signin' ? handleVolSignin : handleVolSignup}
+                className="space-y-6"
+              >
                 <h2 className="text-4xl font-anton uppercase text-(--foreground) mb-6 tracking-wide">
-                  {authMode === "signin"
-                    ? "Volunteer Sign In"
-                    : "Register Volunteer"}
+                  {authMode === 'signin' ? 'Volunteer Sign In' : 'Register Volunteer'}
                 </h2>
 
                 <div>
@@ -802,7 +740,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {authMode === "signup" && (
+                {authMode === 'signup' && (
                   <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
                     <div>
                       <label className="block text-xs text-yellow font-black uppercase tracking-widest mb-2.5">
@@ -811,24 +749,26 @@ export default function Home() {
                       <div className="flex gap-4 p-1 bg-white/5 rounded-xl border border-white/10">
                         <button
                           type="button"
-                          onClick={() => setVolDomainSelect("human")}
+                          onClick={() => setVolDomainSelect('human')}
                           className={cn(
-                            "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer",
-                            volDomainSelect === "human"
-                              ? "bg-yellow text-charcoal shadow-md"
-                              : "text-(--foreground) opacity-40 hover:opacity-100",
-                          )}>
+                            'flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer',
+                            volDomainSelect === 'human'
+                              ? 'bg-yellow text-charcoal shadow-md'
+                              : 'text-(--foreground) opacity-40 hover:opacity-100',
+                          )}
+                        >
                           Human Health
                         </button>
                         <button
                           type="button"
-                          onClick={() => setVolDomainSelect("animal")}
+                          onClick={() => setVolDomainSelect('animal')}
                           className={cn(
-                            "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer",
-                            volDomainSelect === "animal"
-                              ? "bg-blue-500 text-white shadow-md"
-                              : "text-(--foreground) opacity-40 hover:opacity-100",
-                          )}>
+                            'flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all cursor-pointer',
+                            volDomainSelect === 'animal'
+                              ? 'bg-blue-500 text-white shadow-md'
+                              : 'text-(--foreground) opacity-40 hover:opacity-100',
+                          )}
+                        >
                           Animal Health
                         </button>
                       </div>
@@ -859,14 +799,13 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={localAuthLoading}
-                  className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-3">
+                  className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-3"
+                >
                   {localAuthLoading ? (
                     <Loader2 className="animate-spin" size={24} />
                   ) : (
                     <>
-                      {authMode === "signin"
-                        ? "Verify Identity"
-                        : "Commission Account"}
+                      {authMode === 'signin' ? 'Verify Identity' : 'Commission Account'}
                       <ArrowRight size={24} strokeWidth={3} />
                     </>
                   )}
@@ -877,12 +816,13 @@ export default function Home() {
                     type="button"
                     onClick={() => {
                       setAuthError(null);
-                      setAuthMode(authMode === "signin" ? "signup" : "signin");
+                      setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
                     }}
-                    className="text-xs text-sage uppercase font-black tracking-widest hover:text-yellow transition-colors">
-                    {authMode === "signin"
-                      ? "Request Volunteer Commissioning →"
-                      : "Already commissioned? Sign In →"}
+                    className="text-xs text-sage uppercase font-black tracking-widest hover:text-yellow transition-colors"
+                  >
+                    {authMode === 'signin'
+                      ? 'Request Volunteer Commissioning →'
+                      : 'Already commissioned? Sign In →'}
                   </button>
                 </div>
               </form>
@@ -905,14 +845,15 @@ export default function Home() {
           {/* Dashboard Icon */}
           <div className="relative group">
             <button
-              onClick={() => setActiveTab("map")}
+              onClick={() => setActiveTab('map')}
               aria-label="Operation Map"
               className={cn(
-                "p-4 rounded-2xl transition-all border border-transparent hover:scale-105 active:scale-95",
-                activeTab === "map"
-                  ? "bg-yellow text-black border-black/10 shadow-[0_5px_15px_rgba(255,225,124,0.3)]"
-                  : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-              )}>
+                'p-4 rounded-2xl transition-all border border-transparent hover:scale-105 active:scale-95',
+                activeTab === 'map'
+                  ? 'bg-yellow text-black border-black/10 shadow-[0_5px_15px_rgba(255,225,124,0.3)]'
+                  : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+              )}
+            >
               <LayoutDashboard size={24} />
             </button>
             <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -925,14 +866,15 @@ export default function Home() {
           {/* Priority Intelligence Icon */}
           <div className="relative group">
             <button
-              onClick={() => setActiveTab("alerts")}
+              onClick={() => setActiveTab('alerts')}
               aria-label="Priority Queue"
               className={cn(
-                "p-4 rounded-2xl transition-all relative hover:scale-105 active:scale-95",
-                activeTab === "alerts"
-                  ? "bg-emergency text-(--background) border border-emergency/50 shadow-[0_0_15px_var(--color-emergency-glow)]"
-                  : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-              )}>
+                'p-4 rounded-2xl transition-all relative hover:scale-105 active:scale-95',
+                activeTab === 'alerts'
+                  ? 'bg-emergency text-(--background) border border-emergency/50 shadow-[0_0_15px_var(--color-emergency-glow)]'
+                  : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+              )}
+            >
               <ShieldAlert size={24} />
               {needs.filter((n) => n.urgency_score >= 8).length > 0 && (
                 <div className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full animate-pulse border-2 border-emergency shadow-[0_0_10px_white]"></div>
@@ -946,14 +888,15 @@ export default function Home() {
           {/* Dispatched Icon */}
           <div className="relative group">
             <button
-              onClick={() => setActiveTab("dispatched")}
+              onClick={() => setActiveTab('dispatched')}
               aria-label="Active Dispatch"
               className={cn(
-                "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
-                activeTab === "dispatched"
-                  ? "bg-orange-500 text-(--background) shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-                  : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-              )}>
+                'p-4 rounded-2xl transition-all hover:scale-105 active:scale-95',
+                activeTab === 'dispatched'
+                  ? 'bg-orange-500 text-(--background) shadow-[0_0_15px_rgba(249,115,22,0.4)]'
+                  : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+              )}
+            >
               <Truck size={24} />
             </button>
             <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -964,14 +907,15 @@ export default function Home() {
           {/* Resolved Icon */}
           <div className="relative group">
             <button
-              onClick={() => setActiveTab("resolved")}
+              onClick={() => setActiveTab('resolved')}
               aria-label="Resolved Missions"
               className={cn(
-                "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
-                activeTab === "resolved"
-                  ? "bg-success text-(--background) shadow-[0_0_15px_var(--color-success-glow)]"
-                  : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-              )}>
+                'p-4 rounded-2xl transition-all hover:scale-105 active:scale-95',
+                activeTab === 'resolved'
+                  ? 'bg-success text-(--background) shadow-[0_0_15px_var(--color-success-glow)]'
+                  : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+              )}
+            >
               <CheckCircle2 size={24} />
             </button>
             <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -982,14 +926,15 @@ export default function Home() {
           {/* Analytics Icon */}
           <div className="relative group">
             <button
-              onClick={() => setActiveTab("analytics")}
+              onClick={() => setActiveTab('analytics')}
               aria-label="Command Analytics"
               className={cn(
-                "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
-                activeTab === "analytics"
-                  ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]"
-                  : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-              )}>
+                'p-4 rounded-2xl transition-all hover:scale-105 active:scale-95',
+                activeTab === 'analytics'
+                  ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                  : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+              )}
+            >
               <BarChart2 size={24} />
             </button>
             <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -1000,14 +945,15 @@ export default function Home() {
           <div className="mt-auto flex flex-col items-center gap-6">
             <div className="relative group">
               <button
-                onClick={() => setActiveTab("comms")}
+                onClick={() => setActiveTab('comms')}
                 aria-label="Comms Center"
                 className={cn(
-                  "p-4 transition-all rounded-2xl hover:scale-105 active:scale-95",
-                  activeTab === "comms"
-                    ? "bg-(--foreground) text-(--background) shadow-xl"
-                    : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-                )}>
+                  'p-4 transition-all rounded-2xl hover:scale-105 active:scale-95',
+                  activeTab === 'comms'
+                    ? 'bg-(--foreground) text-(--background) shadow-xl'
+                    : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+                )}
+              >
                 <Phone size={24} />
               </button>
               <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -1017,14 +963,15 @@ export default function Home() {
 
             <div className="relative group">
               <button
-                onClick={() => setActiveTab("intel")}
+                onClick={() => setActiveTab('intel')}
                 aria-label="Telegram Intel"
                 className={cn(
-                  "p-4 transition-all rounded-2xl hover:scale-105 active:scale-95",
-                  activeTab === "intel"
-                    ? "bg-yellow text-black shadow-xl"
-                    : "text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10",
-                )}>
+                  'p-4 transition-all rounded-2xl hover:scale-105 active:scale-95',
+                  activeTab === 'intel'
+                    ? 'bg-yellow text-black shadow-xl'
+                    : 'text-(--foreground)/60 hover:text-(--foreground) hover:bg-(--foreground)/10',
+                )}
+              >
                 <Bot size={24} />
               </button>
               <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-(--foreground) text-(--background) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -1038,7 +985,8 @@ export default function Home() {
               <button
                 onClick={() => signOut()}
                 aria-label="Sign Out"
-                className="p-4 rounded-2xl text-(--foreground)/50 hover:text-(--background) hover:bg-emergency transition-all hover:scale-105 active:scale-95">
+                className="p-4 rounded-2xl text-(--foreground)/50 hover:text-(--background) hover:bg-emergency transition-all hover:scale-105 active:scale-95"
+              >
                 <LogOut size={20} />
               </button>
               <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emergency text-(--foreground) font-bold text-xs uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
@@ -1059,21 +1007,21 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-4xl font-anton text-(--foreground) tracking-wide uppercase leading-none mb-1 shadow-sm">
-                {activeTab === "map"
-                  ? "Operational Hub"
-                  : activeTab === "alerts"
-                    ? "Priority Queue"
-                    : activeTab === "dispatched"
-                      ? "Active Dispatch"
-                      : activeTab === "resolved"
-                        ? "Mission Archive"
-                        : activeTab === "comms"
-                          ? "AI Watch Chatbot"
-                          : activeTab === "intel"
-                            ? "Signals Intel"
-                            : activeTab === "analytics"
-                              ? "Command Analytics"
-                              : "Command Center"}
+                {activeTab === 'map'
+                  ? 'Operational Hub'
+                  : activeTab === 'alerts'
+                    ? 'Priority Queue'
+                    : activeTab === 'dispatched'
+                      ? 'Active Dispatch'
+                      : activeTab === 'resolved'
+                        ? 'Mission Archive'
+                        : activeTab === 'comms'
+                          ? 'AI Watch Chatbot'
+                          : activeTab === 'intel'
+                            ? 'Signals Intel'
+                            : activeTab === 'analytics'
+                              ? 'Command Analytics'
+                              : 'Command Center'}
               </h1>
               <div className="flex items-center gap-4">
                 <p className="text-[10px] text-sage font-bold uppercase tracking-widest pl-0.5">
@@ -1084,47 +1032,48 @@ export default function Home() {
                   {domain ? (
                     <div
                       className={cn(
-                        "px-4 py-1.5 rounded-md text-[9px] font-black uppercase tracking-[0.3em] shadow-lg",
-                        domain === "human"
-                          ? "bg-yellow text-black"
-                          : "bg-blue-500 text-white",
-                      )}>
-                      Locked Domain:{" "}
-                      {domain === "human" ? "Human Health" : "Animal Health"}
+                        'px-4 py-1.5 rounded-md text-[9px] font-black uppercase tracking-[0.3em] shadow-lg',
+                        domain === 'human' ? 'bg-yellow text-black' : 'bg-blue-500 text-white',
+                      )}
+                    >
+                      Locked Domain: {domain === 'human' ? 'Human Health' : 'Animal Health'}
                     </div>
                   ) : (
                     <>
                       <button
-                        onClick={() => setManualSector("human")}
+                        onClick={() => setManualSector('human')}
                         aria-label="Filter by Human Health Sector"
                         className={cn(
-                          "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
-                          activeSector === "human"
-                            ? "bg-yellow text-black"
-                            : "text-sage hover:text-yellow",
-                        )}>
+                          'px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all',
+                          activeSector === 'human'
+                            ? 'bg-yellow text-black'
+                            : 'text-sage hover:text-yellow',
+                        )}
+                      >
                         Human Health
                       </button>
                       <button
-                        onClick={() => setManualSector("animal")}
+                        onClick={() => setManualSector('animal')}
                         aria-label="Filter by Animal Health Sector"
                         className={cn(
-                          "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
-                          activeSector === "animal"
-                            ? "bg-blue-500 text-white"
-                            : "text-sage hover:text-blue-400",
-                        )}>
+                          'px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all',
+                          activeSector === 'animal'
+                            ? 'bg-blue-500 text-white'
+                            : 'text-sage hover:text-blue-400',
+                        )}
+                      >
                         Animal Health
                       </button>
                       <button
-                        onClick={() => setManualSector("all")}
+                        onClick={() => setManualSector('all')}
                         aria-label="Show All Sectors"
                         className={cn(
-                          "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
-                          activeSector === "all"
-                            ? "bg-white/10 text-(--foreground)"
-                            : "text-sage hover:text-(--foreground)",
-                        )}>
+                          'px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all',
+                          activeSector === 'all'
+                            ? 'bg-white/10 text-(--foreground)'
+                            : 'text-sage hover:text-(--foreground)',
+                        )}
+                      >
                         All
                       </button>
                     </>
@@ -1145,8 +1094,7 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-[0_0_6px_rgba(96,165,250,0.8)]"></div>
                   <span className="text-sm font-black text-blue-400 font-mono tracking-tighter tabular-nums">
-                    {volunteerLocation.lat.toFixed(4)},{" "}
-                    {volunteerLocation.lng.toFixed(4)}
+                    {volunteerLocation.lat.toFixed(4)}, {volunteerLocation.lng.toFixed(4)}
                   </span>
                 </div>
               ) : (
@@ -1185,16 +1133,17 @@ export default function Home() {
         {/* View Selection Content */}
         <div className="flex-1 p-6 lg:p-12 overflow-hidden relative flex flex-col">
           <AnimatePresence mode="wait">
-            {activeTab === "map" ? (
+            {activeTab === 'map' ? (
               <motion.div
                 key="map-view"
                 initial={{ opacity: 0, scale: 0.99 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.01 }}
-                className="w-full flex-1 overflow-hidden rounded-4xl border border-(--border-color) shadow-2xl glass brutalist-grid">
+                className="w-full flex-1 overflow-hidden rounded-4xl border border-(--border-color) shadow-2xl glass brutalist-grid"
+              >
                 <LiveMap
                   needs={filteredNeeds}
-                  onMarkerClick={(need) => openNeed(need, "map")}
+                  onMarkerClick={(need) => openNeed(need, 'map')}
                   volunteerLocation={volunteerLocation}
                   focusNeed={selectedNeed}
                   onRecenter={() => {}}
@@ -1209,7 +1158,8 @@ export default function Home() {
                     <button
                       onClick={() => setIsManualMode(true)}
                       aria-label="Manually Correct Location on Map"
-                      className="px-4 py-2 bg-dark-gray/80 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-sage/80 hover:text-(--foreground) hover:border-yellow/50 transition-all flex items-center gap-2 shadow-xl">
+                      className="px-4 py-2 bg-dark-gray/80 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-sage/80 hover:text-(--foreground) hover:border-yellow/50 transition-all flex items-center gap-2 shadow-xl"
+                    >
                       <MapPin size={12} className="text-yellow" />
                       Correct Location
                     </button>
@@ -1222,7 +1172,8 @@ export default function Home() {
                       <button
                         onClick={clearManualOverride}
                         aria-label="Use Automatic GPS Location"
-                        className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-sage hover:text-(--foreground) transition-all">
+                        className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-sage hover:text-(--foreground) transition-all"
+                      >
                         Use GPS Logic
                       </button>
                     </div>
@@ -1237,26 +1188,27 @@ export default function Home() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -20, scale: 0.95 }}
                       transition={{
-                        type: "spring",
+                        type: 'spring',
                         damping: 20,
                         stiffness: 200,
                       }}
                       className="absolute top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl border shadow-2xl backdrop-blur-xl"
                       style={{
                         background:
-                          locationStatus === "found"
-                            ? "rgba(0,230,118,0.12)"
-                            : locationStatus === "denied"
-                              ? "rgba(255,77,0,0.12)"
-                              : "rgba(59,130,246,0.12)",
+                          locationStatus === 'found'
+                            ? 'rgba(0,230,118,0.12)'
+                            : locationStatus === 'denied'
+                              ? 'rgba(255,77,0,0.12)'
+                              : 'rgba(59,130,246,0.12)',
                         borderColor:
-                          locationStatus === "found"
-                            ? "rgba(0,230,118,0.3)"
-                            : locationStatus === "denied"
-                              ? "rgba(255,77,0,0.3)"
-                              : "rgba(59,130,246,0.3)",
-                      }}>
-                      {locationStatus === "detecting" && (
+                          locationStatus === 'found'
+                            ? 'rgba(0,230,118,0.3)'
+                            : locationStatus === 'denied'
+                              ? 'rgba(255,77,0,0.3)'
+                              : 'rgba(59,130,246,0.3)',
+                      }}
+                    >
+                      {locationStatus === 'detecting' && (
                         <>
                           <div className="w-3.5 h-3.5 rounded-full bg-blue-500 animate-ping"></div>
                           <span className="text-xs font-black text-blue-400 uppercase tracking-widest">
@@ -1264,17 +1216,17 @@ export default function Home() {
                           </span>
                         </>
                       )}
-                      {locationStatus === "found" && (
+                      {locationStatus === 'found' && (
                         <>
                           <div className="w-3.5 h-3.5 rounded-full bg-success shadow-[0_0_10px_rgba(0,230,118,0.5)]"></div>
                           <span className="text-xs font-black text-success uppercase tracking-widest">
                             {isManualMode
-                              ? "Location Overridden Manually"
-                              : "Location locked — map centered on you"}
+                              ? 'Location Overridden Manually'
+                              : 'Location locked — map centered on you'}
                           </span>
                         </>
                       )}
-                      {locationStatus === "denied" && (
+                      {locationStatus === 'denied' && (
                         <>
                           <div className="w-3.5 h-3.5 rounded-full bg-emergency shadow-[0_0_10px_rgba(255,77,0,0.5)]"></div>
                           <span className="text-xs font-black text-emergency uppercase tracking-widest">
@@ -1286,15 +1238,14 @@ export default function Home() {
                   )}
                 </AnimatePresence>
               </motion.div>
-            ) : activeTab === "alerts" ||
-              activeTab === "dispatched" ||
-              activeTab === "resolved" ? (
+            ) : activeTab === 'alerts' || activeTab === 'dispatched' || activeTab === 'resolved' ? (
               <motion.div
                 key={`${activeTab}-view`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="h-full glass rounded-[3rem] p-12 overflow-y-auto no-scrollbar shadow-2xl">
+                className="h-full glass rounded-[3rem] p-12 overflow-y-auto no-scrollbar shadow-2xl"
+              >
                 <div className="flex flex-col gap-4 mb-8 p-6 bg-white/5 rounded-3xl border border-white/5">
                   {/* Row 1: Need Categories / Sectors */}
                   {categories.length > 0 && (
@@ -1304,18 +1255,19 @@ export default function Home() {
                       </span>
                       <button
                         onClick={() => {
-                          setSelectedCategoryFilter("all");
-                          setGlitchingCategory("all");
+                          setSelectedCategoryFilter('all');
+                          setGlitchingCategory('all');
                           setTimeout(() => setGlitchingCategory(null), 450);
                         }}
                         className={cn(
-                          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
-                          glitchingCategory === "all"
-                            ? "animate-glitch-bw"
-                            : selectedCategoryFilter === "all"
-                              ? "bg-yellow text-charcoal shadow-md"
-                              : "bg-white/5 text-sage",
-                        )}>
+                          'px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none',
+                          glitchingCategory === 'all'
+                            ? 'animate-glitch-bw'
+                            : selectedCategoryFilter === 'all'
+                              ? 'bg-yellow text-charcoal shadow-md'
+                              : 'bg-white/5 text-sage',
+                        )}
+                      >
                         All Sectors
                       </button>
                       {categories.map((cat) => (
@@ -1327,14 +1279,14 @@ export default function Home() {
                             setTimeout(() => setGlitchingCategory(null), 450);
                           }}
                           className={cn(
-                            "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer select-none",
+                            'px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer select-none',
                             glitchingCategory === cat.id
-                              ? "animate-glitch-bw"
-                              : selectedCategoryFilter.toLowerCase() ===
-                                  cat.name.toLowerCase()
-                                ? "bg-white text-black shadow-md"
-                                : "bg-white/5 text-sage",
-                          )}>
+                              ? 'animate-glitch-bw'
+                              : selectedCategoryFilter.toLowerCase() === cat.name.toLowerCase()
+                                ? 'bg-white text-black shadow-md'
+                                : 'bg-white/5 text-sage',
+                          )}
+                        >
                           <span
                             className="w-1.5 h-1.5 rounded-full"
                             style={{ backgroundColor: cat.color }}
@@ -1351,24 +1303,23 @@ export default function Home() {
                       Date Range:
                     </span>
                     {[
-                      { value: "all", label: "All Time" },
-                      { value: "today", label: "Today" },
-                      { value: "24h", label: "Last 24 Hours" },
-                      { value: "7d", label: "Last 7 Days" },
+                      { value: 'all', label: 'All Time' },
+                      { value: 'today', label: 'Today' },
+                      { value: '24h', label: 'Last 24 Hours' },
+                      { value: '7d', label: 'Last 7 Days' },
                     ].map((opt) => (
                       <button
                         key={opt.value}
                         onClick={() =>
-                          setSelectedDateFilter(
-                            opt.value as "all" | "today" | "24h" | "7d",
-                          )
+                          setSelectedDateFilter(opt.value as 'all' | 'today' | '24h' | '7d')
                         }
                         className={cn(
-                          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
+                          'px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none',
                           selectedDateFilter === opt.value
-                            ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                            : "bg-white/5 text-sage",
-                        )}>
+                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                            : 'bg-white/5 text-sage',
+                        )}
+                      >
                         {opt.label}
                       </button>
                     ))}
@@ -1380,28 +1331,25 @@ export default function Home() {
                       Channel:
                     </span>
                     {[
-                      { value: "all", label: "All Channels" },
-                      { value: "voice_agent", label: "WebRTC Voice" },
-                      { value: "telegram", label: "Telegram Bot" },
-                      { value: "web", label: "Web Portal" },
+                      { value: 'all', label: 'All Channels' },
+                      { value: 'voice_agent', label: 'WebRTC Voice' },
+                      { value: 'telegram', label: 'Telegram Bot' },
+                      { value: 'web', label: 'Web Portal' },
                     ].map((opt) => (
                       <button
                         key={opt.value}
                         onClick={() =>
                           setSelectedSourceFilter(
-                            opt.value as
-                              | "all"
-                              | "voice_agent"
-                              | "telegram"
-                              | "web",
+                            opt.value as 'all' | 'voice_agent' | 'telegram' | 'web',
                           )
                         }
                         className={cn(
-                          "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none",
+                          'px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer select-none',
                           selectedSourceFilter === opt.value
-                            ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
-                            : "bg-white/5 text-sage",
-                        )}>
+                            ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20'
+                            : 'bg-white/5 text-sage',
+                        )}
+                      >
                         {opt.label}
                       </button>
                     ))}
@@ -1409,52 +1357,54 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-32">
-                  {(activeTab === "alerts"
+                  {(activeTab === 'alerts'
                     ? sortedNeeds
-                    : activeTab === "dispatched"
+                    : activeTab === 'dispatched'
                       ? dispatchedNeeds
                       : resolvedNeeds
                   ).map((need) => (
                     <div
                       key={need.id}
-                      onClick={() => openNeed(need, "map")}
-                      className="group relative p-6 bg-(--card-bg) rounded-4xl border border-(--border-color) hover:border-emergency/30 hover:bg-(--foreground)/5 cursor-pointer transition-all duration-500 shadow-xl flex flex-col">
+                      onClick={() => openNeed(need, 'map')}
+                      className="group relative p-6 bg-(--card-bg) rounded-4xl border border-(--border-color) hover:border-emergency/30 hover:bg-(--foreground)/5 cursor-pointer transition-all duration-500 shadow-xl flex flex-col"
+                    >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex flex-col gap-1.5">
                           <div
                             className={cn(
-                              "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest self-start",
+                              'px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest self-start',
                               need.urgency_score >= 8
-                                ? "bg-emergency/20 text-emergency border border-emergency/30"
+                                ? 'bg-emergency/20 text-emergency border border-emergency/30'
                                 : need.urgency_score >= 5
-                                  ? "bg-orange-500/20 text-orange-500 border border-orange-500/30"
-                                  : "bg-success/20 text-success border border-success/30",
-                            )}>
+                                  ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30'
+                                  : 'bg-success/20 text-success border border-success/30',
+                            )}
+                          >
                             {need.urgency_score >= 8
-                              ? "CRITICAL"
+                              ? 'CRITICAL'
                               : need.urgency_score >= 5
-                                ? "URGENT"
-                                : "STABLE"}
+                                ? 'URGENT'
+                                : 'STABLE'}
                           </div>
                           {need.is_major_incident && (
                             <span className="px-2 py-0.5 bg-red-500/25 text-red-400 text-[8px] font-black rounded uppercase tracking-widest border border-red-500/50 animate-pulse self-start">
-                               MAJOR CLUSTER
+                              MAJOR CLUSTER
                             </span>
                           )}
                           {need.child_reports_count !== undefined &&
                             need.child_reports_count > 0 && (
                               <span className="px-2 py-0.5 bg-amber-500/25 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/50 self-start">
-                                 CLUSTERED ({1 + need.child_reports_count})
+                                CLUSTERED ({1 + need.child_reports_count})
                               </span>
                             )}
                           {need.sla_escalated && (
                             <span className="px-2 py-0.5 bg-indigo-500/25 text-indigo-400 text-[8px] font-black rounded uppercase tracking-widest border border-indigo-500/50 animate-bounce self-start">
-                               SLA ESCALATED
+                              SLA ESCALATED
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {need.source === "telegram" && (
+                          {need.source === 'telegram' && (
                             <div className="flex flex-col items-end gap-1">
                               <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black rounded uppercase tracking-widest border border-blue-500/20">
                                 via Telegram
@@ -1464,7 +1414,7 @@ export default function Home() {
                               </span>
                             </div>
                           )}
-                          {need.source === "voice_agent" && (
+                          {need.source === 'voice_agent' && (
                             <div className="flex flex-col items-end gap-1">
                               <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-black rounded uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
                                 <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -1475,17 +1425,16 @@ export default function Home() {
                               </span>
                             </div>
                           )}
-                          {need.source !== "telegram" &&
-                            need.source !== "voice_agent" && (
-                              <div className="flex flex-col items-end gap-1">
-                                <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/20">
-                                  via Web Portal
-                                </span>
-                                <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
-                                  {formatDate(need.created_at)}
-                                </span>
-                              </div>
-                            )}
+                          {need.source !== 'telegram' && need.source !== 'voice_agent' && (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/20">
+                                via Web Portal
+                              </span>
+                              <span className="text-[7px] font-black text-(--foreground) opacity-60 uppercase">
+                                {formatDate(need.created_at)}
+                              </span>
+                            </div>
+                          )}
                           <span className="text-[10px] font-bold text-(--foreground) uppercase tracking-widest font-mono">
                             #{need.id.slice(0, 5)}
                           </span>
@@ -1507,7 +1456,7 @@ export default function Home() {
                                 volunteerLocation.lng,
                                 need.lat,
                                 need.lng,
-                              )}{" "}
+                              )}{' '}
                               km
                             </span>
                           )}
@@ -1520,7 +1469,7 @@ export default function Home() {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2 text-[9px] text-(--foreground) font-black uppercase tracking-widest">
                             <Activity size={10} className="text-emergency" />
-                            {need.need_type || "general"}
+                            {need.need_type || 'general'}
                           </div>
                           <div className="text-[8px] font-black text-(--foreground) uppercase tracking-widest opacity-70">
                             {formatDate(need.created_at)}
@@ -1530,30 +1479,30 @@ export default function Home() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              openNeed(need, "map");
+                              openNeed(need, 'map');
                             }}
-                            className="px-2.5 py-1 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-full text-[8px] font-black uppercase tracking-widest text-yellow flex items-center gap-1 transition-colors border border-(--border-color)">
+                            className="px-2.5 py-1 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-full text-[8px] font-black uppercase tracking-widest text-yellow flex items-center gap-1 transition-colors border border-(--border-color)"
+                          >
                             <MapPin size={9} /> Locate
                           </button>
                           <span className="text-xl font-black text-(--foreground) italic">
                             {need.urgency_score}
                           </span>
-                          {need.life_threat && (
-                            <ShieldAlert size={16} className="text-emergency" />
-                          )}
+                          {need.life_threat && <ShieldAlert size={16} className="text-emergency" />}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </motion.div>
-            ) : activeTab === "comms" ? (
+            ) : activeTab === 'comms' ? (
               <motion.div
                 key="comms-view"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="h-full glass rounded-[3rem] p-8 overflow-hidden shadow-2xl flex flex-col relative">
+                className="h-full glass rounded-[3rem] p-8 overflow-hidden shadow-2xl flex flex-col relative"
+              >
                 <div className="flex items-center justify-between mb-8 px-4">
                   <div>
                     <h2 className="text-3xl font-black text-(--foreground) uppercase tracking-tighter font-outfit">
@@ -1568,7 +1517,8 @@ export default function Home() {
                           href="https://t.me/CPFieldBot"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[9px] font-black text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-[0.2em] bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                          className="text-[9px] font-black text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-[0.2em] bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20"
+                        >
                           Connect Bot
                         </a>
                         <div className="text-[9px] font-black text-emergency uppercase tracking-[0.2em] bg-emergency/10 px-2 py-0.5 rounded border border-emergency/20">
@@ -1599,7 +1549,8 @@ export default function Home() {
                         key={msg.id}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="bg-(--card-bg) border border-(--border-color) rounded-2xl p-5 flex gap-5 hover:bg-(--foreground)/5 transition-colors">
+                        className="bg-(--card-bg) border border-(--border-color) rounded-2xl p-5 flex gap-5 hover:bg-(--foreground)/5 transition-colors"
+                      >
                         <div className="w-10 h-10 rounded-xl bg-dark-gray border border-white/10 flex items-center justify-center shrink-0">
                           <Signal size={18} className="text-yellow" />
                         </div>
@@ -1623,11 +1574,12 @@ export default function Home() {
                           <div className="mt-2 flex items-center gap-2">
                             <div
                               className={cn(
-                                "px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter",
-                                msg.status === "sent"
-                                  ? "bg-emerald-500/20 text-emerald-500"
-                                  : "bg-orange-500/20 text-orange-500",
-                              )}>
+                                'px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter',
+                                msg.status === 'sent'
+                                  ? 'bg-emerald-500/20 text-emerald-500'
+                                  : 'bg-orange-500/20 text-orange-500',
+                              )}
+                            >
                               Status: {msg.status}
                             </div>
                           </div>
@@ -1640,13 +1592,14 @@ export default function Home() {
                 {/* Aesthetic HUD Overlay */}
                 <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-slate-950 to-transparent pointer-events-none"></div>
               </motion.div>
-            ) : activeTab === "intel" ? (
+            ) : activeTab === 'intel' ? (
               <motion.div
                 key="intel-view"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="h-full glass rounded-[3rem] p-8 overflow-hidden shadow-2xl flex flex-col">
+                className="h-full glass rounded-[3rem] p-8 overflow-hidden shadow-2xl flex flex-col"
+              >
                 <div className="flex items-center justify-between mb-8 px-4">
                   <div>
                     <h2 className="text-3xl font-black text-(--foreground) uppercase tracking-tighter font-outfit">
@@ -1667,10 +1620,7 @@ export default function Home() {
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 px-4 pb-20">
                   {telegramActions.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-                      <Signal
-                        size={48}
-                        className="text-sage mb-4 animate-pulse"
-                      />
+                      <Signal size={48} className="text-sage mb-4 animate-pulse" />
                       <p className="text-xs font-bold text-sage uppercase tracking-[0.2em]">
                         Listening for field signals...
                       </p>
@@ -1679,7 +1629,8 @@ export default function Home() {
                     telegramActions.map((action) => (
                       <motion.div
                         key={action.id}
-                        className="bg-(--card-bg) border border-(--border-color) rounded-3xl p-6 hover:bg-(--foreground)/5 transition-all group">
+                        className="bg-(--card-bg) border border-(--border-color) rounded-3xl p-6 hover:bg-(--foreground)/5 transition-all group"
+                      >
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-2xl bg-black/40 flex items-center justify-center border border-white/10 group-hover:border-yellow/50 transition-colors">
@@ -1691,7 +1642,7 @@ export default function Home() {
                                   @{action.username}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  {action.source === "telegram" && (
+                                  {action.source === 'telegram' && (
                                     <div className="flex flex-col items-end gap-1">
                                       <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black rounded uppercase tracking-widest border border-blue-500/20">
                                         via Telegram
@@ -1701,7 +1652,7 @@ export default function Home() {
                                       </span>
                                     </div>
                                   )}
-                                  {action.source === "voice_agent" && (
+                                  {action.source === 'voice_agent' && (
                                     <div className="flex flex-col items-end gap-1">
                                       <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[8px] font-black rounded uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
                                         <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -1712,8 +1663,8 @@ export default function Home() {
                                       </span>
                                     </div>
                                   )}
-                                  {action.source !== "telegram" &&
-                                    action.source !== "voice_agent" && (
+                                  {action.source !== 'telegram' &&
+                                    action.source !== 'voice_agent' && (
                                       <div className="flex flex-col items-end gap-1">
                                         <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[8px] font-black rounded uppercase tracking-widest border border-amber-500/20">
                                           via Web Portal
@@ -1733,11 +1684,12 @@ export default function Home() {
                           {action.urgency && (
                             <div
                               className={cn(
-                                "px-3 py-1 rounded-xl text-[10px] font-black border",
+                                'px-3 py-1 rounded-xl text-[10px] font-black border',
                                 action.urgency >= 8
-                                  ? "bg-emergency/20 text-emergency border-emergency/30"
-                                  : "bg-orange-500/10 text-orange-400 border-orange-500/20",
-                              )}>
+                                  ? 'bg-emergency/20 text-emergency border-emergency/30'
+                                  : 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+                              )}
+                            >
                               PRIORITY {action.urgency}/10
                             </div>
                           )}
@@ -1750,10 +1702,7 @@ export default function Home() {
                         {action.sentiment && (
                           <div className="flex items-center gap-4">
                             <div className="flex-1 flex items-center gap-3 bg-(--foreground)/5 px-4 py-2 rounded-xl border border-(--border-color)">
-                              <Activity
-                                size={14}
-                                className="text-(--foreground) opacity-50"
-                              />
+                              <Activity size={14} className="text-(--foreground) opacity-50" />
                               <span className="text-[10px] font-black text-(--foreground) uppercase tracking-widest">
                                 Sentiment:
                               </span>
@@ -1768,13 +1717,14 @@ export default function Home() {
                   )}
                 </div>
               </motion.div>
-            ) : activeTab === "analytics" ? (
+            ) : activeTab === 'analytics' ? (
               <motion.div
                 key="analytics-view"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="h-full glass rounded-[3rem] p-8 overflow-y-auto no-scrollbar shadow-2xl flex flex-col gap-8 text-(--foreground)">
+                className="h-full glass rounded-[3rem] p-8 overflow-y-auto no-scrollbar shadow-2xl flex flex-col gap-8 text-(--foreground)"
+              >
                 <div className="flex justify-between items-center px-4">
                   <div>
                     <h2 className="text-3xl font-black uppercase tracking-tighter font-outfit text-white">
@@ -1785,10 +1735,7 @@ export default function Home() {
                     </p>
                   </div>
                   <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center gap-3">
-                    <Activity
-                      size={16}
-                      className="text-blue-400 animate-pulse"
-                    />
+                    <Activity size={16} className="text-blue-400 animate-pulse" />
                     <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
                       Real-time Telemetry Sync
                     </span>
@@ -1840,26 +1787,19 @@ export default function Home() {
                     </h3>
                     <div className="space-y-4">
                       {[
-                        "medical",
-                        "food",
-                        "water",
-                        "shelter",
-                        "animal",
-                        "safety",
-                        "education",
-                        "unclassified",
+                        'medical',
+                        'food',
+                        'water',
+                        'shelter',
+                        'animal',
+                        'safety',
+                        'education',
+                        'unclassified',
                       ].map((cat) => {
                         const count = categoriesCount[cat] || 0;
                         const percent =
-                          totalIncidents > 0
-                            ? ((count / totalIncidents) * 100).toFixed(0)
-                            : "0";
-                        if (
-                          count === 0 &&
-                          cat !== "medical" &&
-                          cat !== "food" &&
-                          cat !== "animal"
-                        )
+                          totalIncidents > 0 ? ((count / totalIncidents) * 100).toFixed(0) : '0';
+                        if (count === 0 && cat !== 'medical' && cat !== 'food' && cat !== 'animal')
                           return null;
                         return (
                           <div key={cat} className="space-y-2">
@@ -1872,7 +1812,8 @@ export default function Home() {
                             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-yellow transition-all duration-500"
-                                style={{ width: `${percent}%` }}></div>
+                                style={{ width: `${percent}%` }}
+                              ></div>
                             </div>
                           </div>
                         );
@@ -1887,32 +1828,25 @@ export default function Home() {
                         Intake Channels Distribution
                       </h3>
                       <div className="grid grid-cols-2 gap-6">
-                        {["web", "voice_agent", "telegram", "whatsapp"].map(
-                          (src) => {
-                            const count = sourcesCount[src] || 0;
-                            const percent =
-                              totalIncidents > 0
-                                ? ((count / totalIncidents) * 100).toFixed(0)
-                                : "0";
-                            return (
-                              <div
-                                key={src}
-                                className="bg-black/30 border border-white/5 rounded-2xl p-5 flex flex-col justify-between">
-                                <span className="text-sage text-[10px] font-black uppercase tracking-wider">
-                                  {src.replace("_", " ")}
-                                </span>
-                                <div className="flex justify-between items-end mt-4">
-                                  <span className="text-2xl font-anton text-white">
-                                    {count}
-                                  </span>
-                                  <span className="text-[10px] text-sage font-black">
-                                    {percent}%
-                                  </span>
-                                </div>
+                        {['web', 'voice_agent', 'telegram', 'whatsapp'].map((src) => {
+                          const count = sourcesCount[src] || 0;
+                          const percent =
+                            totalIncidents > 0 ? ((count / totalIncidents) * 100).toFixed(0) : '0';
+                          return (
+                            <div
+                              key={src}
+                              className="bg-black/30 border border-white/5 rounded-2xl p-5 flex flex-col justify-between"
+                            >
+                              <span className="text-sage text-[10px] font-black uppercase tracking-wider">
+                                {src.replace('_', ' ')}
+                              </span>
+                              <div className="flex justify-between items-end mt-4">
+                                <span className="text-2xl font-anton text-white">{count}</span>
+                                <span className="text-[10px] text-sage font-black">{percent}%</span>
                               </div>
-                            );
-                          },
-                        )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -1961,13 +1895,14 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -16, scale: 0.98 }}
                 className={cn(
-                  "absolute top-6 right-6 z-60 rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-xl",
-                  actionToast.type === "success"
-                    ? "bg-emerald-500/12 border-emerald-400/30 text-emerald-300"
-                    : "bg-emergency/12 border-emergency/30 text-emergency",
-                )}>
+                  'absolute top-6 right-6 z-60 rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-xl',
+                  actionToast.type === 'success'
+                    ? 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300'
+                    : 'bg-emergency/12 border-emergency/30 text-emergency',
+                )}
+              >
                 <div className="flex items-center gap-3">
-                  {actionToast.type === "success" ? (
+                  {actionToast.type === 'success' ? (
                     <CheckCircle2 size={18} />
                   ) : (
                     <ShieldAlert size={18} />
@@ -1985,20 +1920,22 @@ export default function Home() {
       <AnimatePresence>
         {selectedNeed && (
           <motion.aside
-            initial={{ y: "100%" }}
+            initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 250 }}
-            className="fixed bottom-0 left-24 right-0 z-50 flex flex-col">
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 250 }}
+            className="fixed bottom-0 left-24 right-0 z-50 flex flex-col"
+          >
             <div className="w-full bg-(--background) rounded-t-5xl overflow-hidden border-t border-(--border-color) shadow-[0_-30px_80px_rgba(0,0,0,0.4)] relative no-scrollbar">
               {/* Header Accents */}
               <div
                 className={cn(
-                  "h-1.5 w-full",
+                  'h-1.5 w-full',
                   selectedNeed.urgency_score >= 8
-                    ? "bg-emergency shadow-[0_0_15px_var(--color-emergency-glow)]"
-                    : "bg-primary",
-                )}></div>
+                    ? 'bg-emergency shadow-[0_0_15px_var(--color-emergency-glow)]'
+                    : 'bg-primary',
+                )}
+              ></div>
 
               <div className="p-8 lg:p-12 max-h-[85vh] overflow-y-auto no-scrollbar">
                 <div className="flex justify-between items-start mb-10">
@@ -2006,9 +1943,7 @@ export default function Home() {
                     <div className="p-4 bg-(--foreground)/5 rounded-3xl border border-(--border-color)">
                       <MapPin
                         className={cn(
-                          selectedNeed.urgency_score >= 8
-                            ? "text-emergency"
-                            : "text-yellow",
+                          selectedNeed.urgency_score >= 8 ? 'text-emergency' : 'text-yellow',
                         )}
                         size={32}
                       />
@@ -2027,38 +1962,32 @@ export default function Home() {
                         {selectedNeed.child_reports_count !== undefined &&
                           selectedNeed.child_reports_count > 0 && (
                             <span className="px-3 py-1 bg-amber-500/20 border border-amber-500 text-amber-400 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5">
-                              <Signal size={12} /> CLUSTERED (
-                              {1 + selectedNeed.child_reports_count} REPORTS)
+                              <Signal size={12} /> CLUSTERED ({1 + selectedNeed.child_reports_count}{' '}
+                              REPORTS)
                             </span>
                           )}
                         {selectedNeed.parent_incident_id && (
                           <span className="px-3 py-1 bg-gray-500/20 border border-gray-500 text-gray-400 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5 font-mono">
-                            PARENT ID:{" "}
-                            {selectedNeed.parent_incident_id.slice(0, 8)}
+                            PARENT ID: {selectedNeed.parent_incident_id.slice(0, 8)}
                           </span>
                         )}
                         {selectedNeed.sla_escalated && (
                           <span className="px-3 py-1 bg-indigo-500/20 border border-indigo-500 text-indigo-400 text-xs font-black uppercase tracking-wider rounded-lg animate-bounce flex items-center gap-1.5">
-                            <ShieldAlert size={12} /> SLA AUTO-ESCALATED (+5KM
-                            RANGE)
+                            <ShieldAlert size={12} /> SLA AUTO-ESCALATED (+5KM RANGE)
                           </span>
                         )}
                       </h2>
                       <p className="text-sage font-black uppercase text-[10px] tracking-[0.3em] mt-1">
-                        Tactical Intelligence Dossier • Sector:{" "}
-                        {selectedNeed.ai_heading ||
-                          selectedNeed.location_name ||
-                          "Field Report"}
+                        Tactical Intelligence Dossier • Sector:{' '}
+                        {selectedNeed.ai_heading || selectedNeed.location_name || 'Field Report'}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={closeNeedPanel}
-                    className="p-4 bg-(--foreground)/5 hover:bg-emergency hover:text-white rounded-2xl transition-all border border-(--border-color) group">
-                    <X
-                      size={24}
-                      className="group-hover:scale-110 transition-transform"
-                    />
+                    className="p-4 bg-(--foreground)/5 hover:bg-emergency hover:text-white rounded-2xl transition-all border border-(--border-color) group"
+                  >
+                    <X size={24} className="group-hover:scale-110 transition-transform" />
                   </button>
                 </div>
 
@@ -2069,11 +1998,8 @@ export default function Home() {
                     <div className="p-10 bg-(--card-bg) rounded-4xl border border-(--border-color) relative overflow-hidden group">
                       <div className="absolute top-0 left-0 w-2 h-full bg-linear-to-b from-emergency to-orange-500"></div>
                       <h3 className="text-xs font-black text-sage uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                        <Activity
-                          size={16}
-                          className="text-emergency animate-pulse"
-                        />{" "}
-                        Raw Transmission Feed
+                        <Activity size={16} className="text-emergency animate-pulse" /> Raw
+                        Transmission Feed
                       </h3>
                       <p className="text-(--foreground) text-3xl font-medium italic leading-relaxed font-outfit">
                         &ldquo;{selectedNeed.raw_text}&rdquo;
@@ -2081,15 +2007,12 @@ export default function Home() {
                     </div>
 
                     {/* Voice Recording & Call Log */}
-                    {selectedNeed.source === "voice_agent" && (
+                    {selectedNeed.source === 'voice_agent' && (
                       <div className="p-8 bg-emerald-500/5 rounded-4xl border border-emerald-500/10 space-y-6">
                         <div className="flex justify-between items-center border-b border-emerald-500/10 pb-4">
                           <h3 className="text-xs font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Mic
-                              size={16}
-                              className="text-emerald-400 animate-pulse"
-                            />{" "}
-                            WebRTC Audio Recording
+                            <Mic size={16} className="text-emerald-400 animate-pulse" /> WebRTC
+                            Audio Recording
                           </h3>
                           {selectedNeed.caller_phone && (
                             <span className="text-[10px] font-mono text-emerald-400/70">
@@ -2122,13 +2045,7 @@ export default function Home() {
                               </span>
                             </summary>
                             <div className="p-5 border-t border-(--border-color) bg-black/40 overflow-x-auto font-mono text-[10px] leading-relaxed text-emerald-300 max-h-60 no-scrollbar">
-                              <pre>
-                                {JSON.stringify(
-                                  selectedNeed.webrtc_json,
-                                  null,
-                                  2,
-                                )}
-                              </pre>
+                              <pre>{JSON.stringify(selectedNeed.webrtc_json, null, 2)}</pre>
                             </div>
                           </details>
                         )}
@@ -2142,55 +2059,55 @@ export default function Home() {
                                 {selectedNeed.webrtc_conversation.length})
                               </p>
                               <div className="flex flex-col gap-4 max-h-[350px] overflow-y-auto p-4 rounded-3xl bg-(--background)/50 border border-emerald-500/10 no-scrollbar">
-                                {selectedNeed.webrtc_conversation.map(
-                                  (entry, index) => (
+                                {selectedNeed.webrtc_conversation.map((entry, index) => (
+                                  <div
+                                    key={index}
+                                    className={cn(
+                                      'flex gap-3 items-start',
+                                      entry.role === 'assistant' ? 'flex-row' : 'flex-row-reverse',
+                                    )}
+                                  >
+                                    {/* Avatar */}
                                     <div
-                                      key={index}
                                       className={cn(
-                                        "flex gap-3 items-start",
-                                        entry.role === "assistant"
-                                          ? "flex-row"
-                                          : "flex-row-reverse",
-                                      )}>
-                                      {/* Avatar */}
-                                      <div
-                                        className={cn(
-                                          "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-md",
-                                          entry.role === "assistant"
-                                            ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
-                                            : "bg-white/10 border border-white/10 text-white/70",
-                                        )}>
-                                        {entry.role === "assistant" ? (
-                                          <Bot size={13} />
-                                        ) : (
-                                          <User size={13} />
-                                        )}
-                                      </div>
-
-                                      {/* Message Bubble */}
-                                      <div
-                                        className={cn(
-                                          "px-4 py-3 rounded-2xl text-xs font-medium leading-relaxed max-w-[80%] shadow-md",
-                                          entry.role === "assistant"
-                                            ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 rounded-tl-none"
-                                            : "bg-white/5 border border-white/10 text-white/90 rounded-tr-none",
-                                        )}>
-                                        <span
-                                          className={cn(
-                                            "block text-[8px] font-black uppercase tracking-widest mb-1",
-                                            entry.role === "assistant"
-                                              ? "text-emerald-400"
-                                              : "text-white/40",
-                                          )}>
-                                          {entry.role === "assistant"
-                                            ? "AI Voice Agent"
-                                            : "Reporter (User)"}
-                                        </span>
-                                        {entry.text}
-                                      </div>
+                                        'w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-md',
+                                        entry.role === 'assistant'
+                                          ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
+                                          : 'bg-white/10 border border-white/10 text-white/70',
+                                      )}
+                                    >
+                                      {entry.role === 'assistant' ? (
+                                        <Bot size={13} />
+                                      ) : (
+                                        <User size={13} />
+                                      )}
                                     </div>
-                                  ),
-                                )}
+
+                                    {/* Message Bubble */}
+                                    <div
+                                      className={cn(
+                                        'px-4 py-3 rounded-2xl text-xs font-medium leading-relaxed max-w-[80%] shadow-md',
+                                        entry.role === 'assistant'
+                                          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 rounded-tl-none'
+                                          : 'bg-white/5 border border-white/10 text-white/90 rounded-tr-none',
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          'block text-[8px] font-black uppercase tracking-widest mb-1',
+                                          entry.role === 'assistant'
+                                            ? 'text-emerald-400'
+                                            : 'text-white/40',
+                                        )}
+                                      >
+                                        {entry.role === 'assistant'
+                                          ? 'AI Voice Agent'
+                                          : 'Reporter (User)'}
+                                      </span>
+                                      {entry.text}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}
@@ -2210,14 +2127,12 @@ export default function Home() {
                           <span className="text-6xl font-black text-(--foreground) italic leading-none">
                             {selectedNeed.urgency_score}
                           </span>
-                          <span className="text-xl font-bold text-emergency/40 pb-1">
-                            /10
-                          </span>
+                          <span className="text-xl font-bold text-emergency/40 pb-1">/10</span>
                         </div>
                         <div className="pl-3 border-l-2 border-emergency/30">
                           <p className="text-[9px] font-bold text-emergency uppercase leading-tight tracking-tighter opacity-80">
-                            What this means: AI-calculated priority. Scores 8+
-                            indicate active life-threat keywords detected.
+                            What this means: AI-calculated priority. Scores 8+ indicate active
+                            life-threat keywords detected.
                           </p>
                         </div>
                       </div>
@@ -2232,14 +2147,13 @@ export default function Home() {
                         </span>
                         <div className="flex items-end gap-2 mb-4">
                           <span className="text-5xl font-black text-(--foreground) italic leading-none">
-                            {selectedNeed.people_affected || "N/A"}
+                            {selectedNeed.people_affected || 'N/A'}
                           </span>
                         </div>
                         <div className="pl-3 border-l-2 border-success/30">
                           <p className="text-[9px] font-bold text-success uppercase leading-tight tracking-tighter opacity-80">
-                            What this means: Estimated population (human or
-                            animal) requiring immediate extraction or medical
-                            aid.
+                            What this means: Estimated population (human or animal) requiring
+                            immediate extraction or medical aid.
                           </p>
                         </div>
                       </div>
@@ -2249,11 +2163,8 @@ export default function Home() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between px-4">
                         <h3 className="text-xs font-black text-sage uppercase tracking-[0.3em] flex items-center gap-2">
-                          <Signal
-                            size={16}
-                            className="text-yellow animate-pulse"
-                          />{" "}
-                          Live Comms Channel
+                          <Signal size={16} className="text-yellow animate-pulse" /> Live Comms
+                          Channel
                         </h3>
                         <span className="text-[8px] font-mono text-sage">
                           SECURE END-TO-END LINK
@@ -2263,8 +2174,8 @@ export default function Home() {
                         <ChatPanel needId={selectedNeed.id} role="volunteer" />
                       </div>
                       <p className="text-[9px] font-black text-(--foreground) uppercase tracking-widest px-6 italic">
-                        Instruction: Use this channel to verify GPS precision
-                        and status updates with the reporter.
+                        Instruction: Use this channel to verify GPS precision and status updates
+                        with the reporter.
                       </p>
                     </div>
                   </div>
@@ -2284,9 +2195,9 @@ export default function Home() {
                         </p>
                         <div className="flex gap-3">
                           <div className="px-4 py-2 bg-(--foreground)/5 rounded-full text-[10px] font-black uppercase text-sage border border-(--border-color) tracking-widest">
-                            Sentiment:{" "}
+                            Sentiment:{' '}
                             <span className="text-yellow">
-                              {selectedNeed.sentiment || "NEUTRAL"}
+                              {selectedNeed.sentiment || 'NEUTRAL'}
                             </span>
                           </div>
                         </div>
@@ -2296,10 +2207,16 @@ export default function Home() {
                     {/* Emergency YouTube First Aid Video Guidance */}
                     {selectedNeed.video_recommendations && activeVideoId && (
                       <div className="p-10 bg-linear-to-br from-red-500/10 to-transparent rounded-4xl border border-red-500/20 relative overflow-hidden group shadow-xl space-y-6">
+<<<<<<< HEAD
                         <h3 className="text-xs font-black text-red-500 uppercase tracking-[0.3em] flex items-center gap-2">
                           <Activity size={16} className="text-red-500 animate-pulse" /> Emergency First Aid Guidance Videos
+=======
+                        <h3 className="text-xs font-black text-red-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                          <Activity size={16} className="text-red-500 animate-pulse" /> Emergency
+                          First Aid Guidance Videos
+>>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
                         </h3>
-                        
+
                         <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-inner">
                           <iframe
                             src={`https://www.youtube.com/embed/${activeVideoId}?autoplay=0&rel=0`}
@@ -2312,9 +2229,11 @@ export default function Home() {
 
                         {(() => {
                           const recs = selectedNeed.video_recommendations;
-                          const activeVid = recs.primary.youtube_id === activeVideoId 
-                            ? recs.primary 
-                            : recs.alternatives.find(v => v.youtube_id === activeVideoId) || recs.primary;
+                          const activeVid =
+                            recs.primary.youtube_id === activeVideoId
+                              ? recs.primary
+                              : recs.alternatives.find((v) => v.youtube_id === activeVideoId) ||
+                                recs.primary;
                           return (
                             <div className="space-y-2">
                               <h4 className="text-lg font-black text-(--foreground) uppercase tracking-tight">
@@ -2334,25 +2253,40 @@ export default function Home() {
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {[
                               selectedNeed.video_recommendations.primary,
-                              ...selectedNeed.video_recommendations.alternatives
+                              ...selectedNeed.video_recommendations.alternatives,
                             ].map((video, idx) => {
                               const isActive = video.youtube_id === activeVideoId;
                               return (
                                 <button
                                   key={video.youtube_id}
                                   onClick={() => setActiveVideoId(video.youtube_id)}
-                                  aria-label={idx === 0 ? `Select Best Video: ${video.title}` : `Select Alternative Video ${idx}: ${video.title}`}
+                                  aria-label={
+                                    idx === 0
+                                      ? `Select Best Video: ${video.title}`
+                                      : `Select Alternative Video ${idx}: ${video.title}`
+                                  }
                                   className={cn(
-                                    "p-4 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer",
+                                    'p-4 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer',
                                     isActive
+<<<<<<< HEAD
                                       ? "bg-red-500/25 border-red-500/50 text-red-500 dark:text-red-400 font-bold"
                                       : "bg-(--card-bg) border-(--border-color) text-(--foreground)/75 hover:bg-(--foreground)/10 hover:border-(--foreground)/20"
                                   )}
                                 >
                                   <span className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-1 block">
                                     {idx === 0 ? "Best Video" : `Alternative ${idx}`}
+=======
+                                      ? 'bg-red-500/20 border-red-500/40 text-white'
+                                      : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:border-white/10',
+                                  )}
+                                >
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400 mb-1 block">
+                                    {idx === 0 ? 'Best Video' : `Alternative ${idx}`}
                                   </span>
-                                  <span className="text-xs font-bold line-clamp-2">{video.title}</span>
+                                  <span className="text-xs font-bold line-clamp-2">
+                                    {video.title}
+>>>>>>> 7b9f193 (feat: enhance UI/UX, robust offline sync, and expanded test coverage)
+                                  </span>
                                 </button>
                               );
                             })}
@@ -2370,7 +2304,7 @@ export default function Home() {
                         <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/40">
                           <Image
                             src={
-                              selectedNeed.image_url.startsWith("http")
+                              selectedNeed.image_url.startsWith('http')
                                 ? selectedNeed.image_url
                                 : `${apiBaseUrl}${selectedNeed.image_url}`
                             }
@@ -2388,40 +2322,38 @@ export default function Home() {
                             </span>
                             <span
                               className={cn(
-                                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
-                                selectedNeed.visual_severity ===
-                                  "catastrophic" &&
-                                  "bg-red-500/25 border-red-500/50 text-red-400",
-                                selectedNeed.visual_severity === "high" &&
-                                  "bg-orange-500/25 border-orange-500/50 text-orange-400",
-                                selectedNeed.visual_severity === "medium" &&
-                                  "bg-yellow/25 border-yellow/50 text-yellow",
-                                selectedNeed.visual_severity === "low" &&
-                                  "bg-green-500/25 border-green-500/50 text-green-400",
-                              )}>
+                                'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border',
+                                selectedNeed.visual_severity === 'catastrophic' &&
+                                  'bg-red-500/25 border-red-500/50 text-red-400',
+                                selectedNeed.visual_severity === 'high' &&
+                                  'bg-orange-500/25 border-orange-500/50 text-orange-400',
+                                selectedNeed.visual_severity === 'medium' &&
+                                  'bg-yellow/25 border-yellow/50 text-yellow',
+                                selectedNeed.visual_severity === 'low' &&
+                                  'bg-green-500/25 border-green-500/50 text-green-400',
+                              )}
+                            >
                               {selectedNeed.visual_severity}
                             </span>
                           </div>
                         )}
-                        {selectedNeed.visual_hazards &&
-                          selectedNeed.visual_hazards.length > 0 && (
-                            <div className="space-y-2">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
-                                Spotted Hazards:
-                              </span>
-                              <div className="flex flex-wrap gap-2">
-                                {selectedNeed.visual_hazards.map(
-                                  (hazard: string, idx: number) => (
-                                    <span
-                                      key={idx}
-                                      className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-[10px] font-mono text-red-400 flex items-center gap-1.5">
-                                      <ShieldAlert size={12} /> {hazard}
-                                    </span>
-                                  ),
-                                )}
-                              </div>
+                        {selectedNeed.visual_hazards && selectedNeed.visual_hazards.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
+                              Spotted Hazards:
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedNeed.visual_hazards.map((hazard: string, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className="px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-lg text-[10px] font-mono text-red-400 flex items-center gap-1.5"
+                                >
+                                  <ShieldAlert size={12} /> {hazard}
+                                </span>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -2429,18 +2361,15 @@ export default function Home() {
                     {selectedNeed.lat != null && selectedNeed.lng != null && (
                       <div className="p-10 bg-black/40 rounded-4xl border border-white/5 relative overflow-hidden group shadow-xl">
                         <h3 className="text-xs font-black text-emerald-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                          <Bot size={16} /> Intelligent AI Dispatch Engine
-                          (Routes API)
+                          <Bot size={16} /> Intelligent AI Dispatch Engine (Routes API)
                         </h3>
 
                         {!recommendationData && !recommendationLoading && (
                           <button
-                            onClick={() =>
-                              fetchVolunteerRecommendation(selectedNeed.id)
-                            }
-                            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-2xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest cursor-pointer">
-                            <Navigation2 size={14} /> Calculate Best Dispatch
-                            Route
+                            onClick={() => fetchVolunteerRecommendation(selectedNeed.id)}
+                            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-2xl transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest cursor-pointer"
+                          >
+                            <Navigation2 size={14} /> Calculate Best Dispatch Route
                           </button>
                         )}
 
@@ -2467,13 +2396,11 @@ export default function Home() {
                                   Recommended Responder
                                 </span>
                                 <span className="text-[8px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-black font-mono">
-                                  {recommendationData.route_source ||
-                                    "Routes API"}
+                                  {recommendationData.route_source || 'Routes API'}
                                 </span>
                               </div>
                               <div className="text-lg font-black text-white uppercase tracking-tight">
-                                {recommendationData.volunteer_name ||
-                                  "Volunteer Responder"}
+                                {recommendationData.volunteer_name || 'Volunteer Responder'}
                               </div>
                               {recommendationData.distance_km != null && (
                                 <div className="grid grid-cols-2 gap-4 mt-1 border-t border-white/5 pt-2">
@@ -2505,7 +2432,8 @@ export default function Home() {
                               onClick={() => {
                                 setRecommendationData(null);
                               }}
-                              className="w-full py-2 bg-white/5 hover:bg-white/10 text-sage hover:text-white font-black rounded-xl text-[9px] uppercase tracking-widest transition-all cursor-pointer">
+                              className="w-full py-2 bg-white/5 hover:bg-white/10 text-sage hover:text-white font-black rounded-xl text-[9px] uppercase tracking-widest transition-all cursor-pointer"
+                            >
                               Reset Recommendation
                             </button>
                           </div>
@@ -2533,17 +2461,14 @@ export default function Home() {
                               Source Logic
                             </span>
                             <div className="flex items-center gap-2 text-xs font-black text-(--foreground)">
-                              {selectedNeed.source === "telegram" ? (
+                              {selectedNeed.source === 'telegram' ? (
                                 <>
                                   <Bot size={14} className="text-blue-400" />
                                   <span>Telegram Bot</span>
                                 </>
-                              ) : selectedNeed.source === "voice_agent" ? (
+                              ) : selectedNeed.source === 'voice_agent' ? (
                                 <>
-                                  <Mic
-                                    size={14}
-                                    className="text-emerald-400 animate-pulse"
-                                  />
+                                  <Mic size={14} className="text-emerald-400 animate-pulse" />
                                   <span>WebRTC Voice</span>
                                 </>
                               ) : (
@@ -2561,10 +2486,9 @@ export default function Home() {
                             <div className="flex items-center gap-2 text-xs font-mono font-bold text-(--foreground)">
                               <MapPin size={14} className="text-yellow" />
                               <span>
-                                {selectedNeed.lat != null &&
-                                selectedNeed.lng != null
+                                {selectedNeed.lat != null && selectedNeed.lng != null
                                   ? `${selectedNeed.lat.toFixed(4)}, ${selectedNeed.lng.toFixed(4)}`
-                                  : "GPS unavailable"}
+                                  : 'GPS unavailable'}
                               </span>
                             </div>
                           </div>
@@ -2573,7 +2497,7 @@ export default function Home() {
                     </div>
 
                     {/* Action Buttons with Definitions */}
-                    {selectedNeed.status !== "resolved" && (
+                    {selectedNeed.status !== 'resolved' && (
                       <div className="flex flex-col gap-4 mt-auto">
                         <div className="flex items-center justify-between px-4">
                           <h4 className="text-[11px] text-(--foreground) font-black uppercase tracking-[0.3em]">
@@ -2585,19 +2509,18 @@ export default function Home() {
                         </div>
 
                         <div className="space-y-4">
-                          {selectedNeed.status !== "in-progress" && (
+                          {selectedNeed.status !== 'in-progress' && (
                             <div className="group relative">
                               <button
-                                onClick={() =>
-                                  handleDeploy(selectedNeed.id, "in-progress")
-                                }
-                                className="w-full py-6 bg-orange-500 hover:bg-orange-400 text-black font-black rounded-3xl hover:scale-[0.99] active:scale-95 transition-all shadow-[0_15px_40px_rgba(249,115,22,0.3)] flex items-center justify-center gap-3 text-sm uppercase tracking-[0.2em]">
+                                onClick={() => handleDeploy(selectedNeed.id, 'in-progress')}
+                                className="w-full py-6 bg-orange-500 hover:bg-orange-400 text-black font-black rounded-3xl hover:scale-[0.99] active:scale-95 transition-all shadow-[0_15px_40px_rgba(249,115,22,0.3)] flex items-center justify-center gap-3 text-sm uppercase tracking-[0.2em]"
+                              >
                                 <Truck size={20} /> INITIATE DISPATCH
                               </button>
                               <div className="mt-2 px-6 border-l-2 border-orange-500/40">
                                 <p className="text-[9px] font-black text-orange-500/80 uppercase tracking-widest leading-tight">
-                                  Definition: En-route status. Locks your live
-                                  GPS for the reporter to see your ETA.
+                                  Definition: En-route status. Locks your live GPS for the reporter
+                                  to see your ETA.
                                 </p>
                               </div>
                             </div>
@@ -2605,16 +2528,15 @@ export default function Home() {
 
                           <div className="group relative">
                             <button
-                              onClick={() =>
-                                handleDeploy(selectedNeed.id, "resolved")
-                              }
-                              className="w-full py-6 bg-success hover:bg-green-400 text-black font-black rounded-3xl hover:scale-[0.99] active:scale-95 transition-all shadow-[0_15px_40px_rgba(0,230,118,0.3)] flex items-center justify-center gap-3 text-sm uppercase tracking-[0.2em]">
+                              onClick={() => handleDeploy(selectedNeed.id, 'resolved')}
+                              className="w-full py-6 bg-success hover:bg-green-400 text-black font-black rounded-3xl hover:scale-[0.99] active:scale-95 transition-all shadow-[0_15px_40px_rgba(0,230,118,0.3)] flex items-center justify-center gap-3 text-sm uppercase tracking-[0.2em]"
+                            >
                               <CheckCircle2 size={20} /> MARK AS RESOLVED
                             </button>
                             <div className="mt-2 px-6 border-l-2 border-success/40">
                               <p className="text-[9px] font-black text-success/80 uppercase tracking-widest leading-tight">
-                                Definition: Mission complete. Finalizes report
-                                and archives data to history.
+                                Definition: Mission complete. Finalizes report and archives data to
+                                history.
                               </p>
                             </div>
                           </div>
@@ -2623,22 +2545,21 @@ export default function Home() {
                     )}
 
                     {/* Audio recording if exists */}
-                    {selectedNeed.source === "voice_agent" &&
-                      selectedNeed.recording_url && (
-                        <div className="bg-(--foreground)/5 p-6 rounded-4xl border border-(--border-color) space-y-4">
-                          <div className="flex items-center gap-3">
-                            <Activity size={16} className="text-emerald-400" />
-                            <h4 className="text-[10px] font-black text-sage uppercase tracking-widest">
-                              Tactical Audio
-                            </h4>
-                          </div>
-                          <audio
-                            controls
-                            src={selectedNeed.recording_url}
-                            className="w-full h-10 filter invert opacity-80"
-                          />
+                    {selectedNeed.source === 'voice_agent' && selectedNeed.recording_url && (
+                      <div className="bg-(--foreground)/5 p-6 rounded-4xl border border-(--border-color) space-y-4">
+                        <div className="flex items-center gap-3">
+                          <Activity size={16} className="text-emerald-400" />
+                          <h4 className="text-[10px] font-black text-sage uppercase tracking-widest">
+                            Tactical Audio
+                          </h4>
                         </div>
-                      )}
+                        <audio
+                          controls
+                          src={selectedNeed.recording_url}
+                          className="w-full h-10 filter invert opacity-80"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2654,8 +2575,9 @@ export default function Home() {
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            onClick={() => openNeed(collapsedNeed, "map")}
-            className="fixed bottom-5 right-6 left-30 z-50 rounded-3xl border border-(--border-color) bg-(--background)/95 px-6 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl text-left">
+            onClick={() => openNeed(collapsedNeed, 'map')}
+            className="fixed bottom-5 right-6 left-30 z-50 rounded-3xl border border-(--border-color) bg-(--background)/95 px-6 py-4 shadow-[0_-10px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl text-left"
+          >
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[9px] font-black uppercase tracking-[0.3em] text-sage">
@@ -2673,14 +2595,15 @@ export default function Home() {
               <div className="flex items-center gap-3 shrink-0">
                 <span
                   className={cn(
-                    "rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest",
-                    collapsedNeed.status === "resolved"
-                      ? "bg-success/15 text-success"
-                      : collapsedNeed.status === "in-progress"
-                        ? "bg-orange-500/15 text-orange-400"
-                        : "bg-emergency/15 text-emergency",
-                  )}>
-                  {collapsedNeed.status || "open"}
+                    'rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest',
+                    collapsedNeed.status === 'resolved'
+                      ? 'bg-success/15 text-success'
+                      : collapsedNeed.status === 'in-progress'
+                        ? 'bg-orange-500/15 text-orange-400'
+                        : 'bg-emergency/15 text-emergency',
+                  )}
+                >
+                  {collapsedNeed.status || 'open'}
                 </span>
                 <div className="rounded-2xl bg-yellow p-3 text-black shadow-lg">
                   <ChevronUp size={18} />
@@ -2697,7 +2620,8 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-200 bg-(--background) brutalist-grid flex flex-col items-center justify-center gap-10">
+            className="fixed inset-0 z-200 bg-(--background) brutalist-grid flex flex-col items-center justify-center gap-10"
+          >
             <div className="relative group">
               <div className="absolute inset-x-[-10px] inset-y-[10px] bg-yellow -rotate-3 scale-105 z-[-1] animate-pulse"></div>
               <div className="p-8 bg-(--background) border border-(--border-color) shadow-2xl relative z-10 glass">
@@ -2716,12 +2640,13 @@ export default function Home() {
                   <motion.div
                     className="h-full bg-yellow"
                     initial={{ width: 0 }}
-                    animate={{ width: "100%" }}
+                    animate={{ width: '100%' }}
                     transition={{
                       duration: 1.5,
                       repeat: Infinity,
-                      ease: "easeInOut",
-                    }}></motion.div>
+                      ease: 'easeInOut',
+                    }}
+                  ></motion.div>
                 </div>
               </div>
             </div>

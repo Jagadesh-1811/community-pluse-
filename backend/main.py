@@ -379,6 +379,31 @@ class VerifyCodeRequest(BaseModel):
     code: str
     role: str
 
+class IntakeResponse(BaseModel):
+    status: str
+    id: str
+    data: Dict[str, Any]
+
+class HeadingResponse(BaseModel):
+    heading: str
+
+class CreateVolunteerResponse(BaseModel):
+    status: str
+    uid: str
+    generated_password: str
+
+class VerifyCodeResponse(BaseModel):
+    status: str
+    valid: bool
+
+class RecommendVolunteerResponse(BaseModel):
+    status: str
+    recommendation: Dict[str, Any]
+
+class AcceptMissionResponse(BaseModel):
+    status: str
+    message: str
+
 async def verify_volunteer_auth(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
     """
     Verify the Firebase ID token in the Authorization header.
@@ -705,7 +730,7 @@ async def process_and_save_need_record(
     return need_id, urgency_score
 
 
-@app.post("/intake", tags=["Intake"], summary="Ingest and triage field report")
+@app.post("/intake", response_model=IntakeResponse, tags=["Intake"], summary="Ingest and triage field report")
 async def process_intake(request: IntakeRequest, background_tasks: BackgroundTasks):
     """
     Primary intake for Web and WhatsApp reports.
@@ -738,7 +763,7 @@ async def process_intake(request: IntakeRequest, background_tasks: BackgroundTas
         logger.error(f"Error in process_intake: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.post("/intake/image", tags=["Intake"], summary="Ingest and triage field report with image analysis")
+@app.post("/intake/image", response_model=IntakeResponse, tags=["Intake"], summary="Ingest and triage field report with image analysis")
 async def process_intake_image(
     background_tasks: BackgroundTasks,
     text: str = Form(...),
@@ -818,6 +843,13 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
         if msg_type != "end-of-call-report":
             logger.debug(f"Ignoring webhook of type: {msg_type}")
             return {"status": "ignored"}
+
+        # Ignore webCall calls to prevent duplicate writes since the frontend handles them via /intake
+        call = msg.get("call") or {}
+        if call.get("type") == "webCall":
+            logger.info("Ignoring webCall end-of-call report in webhook to prevent duplicate write")
+            return {"status": "ignored", "message": "Ignored webCall to prevent duplication"}
+
 
         transcript = msg.get("transcript") or ""
         recording_url = msg.get("recordingUrl")
@@ -969,7 +1001,7 @@ class HeadingRequest(BaseModel):
     text: str
     sender: str = "reporter"  # "reporter" | "volunteer"
 
-@app.post("/ai/heading", tags=["Triage"], summary="Generate AI heading for messages")
+@app.post("/ai/heading", response_model=HeadingResponse, tags=["Triage"], summary="Generate AI heading for messages")
 async def get_message_heading(request: HeadingRequest):
     """
     Generate a short, context-aware AI heading for a chat message.
@@ -997,7 +1029,7 @@ async def gemini_status(decoded_token: dict = Depends(verify_admin_auth)):
     status = await loop.run_in_executor(None, check_gemini_status)
     return status
 
-@app.post("/admin/create-volunteer", tags=["Admin"], summary="Onboard a new volunteer")
+@app.post("/admin/create-volunteer", response_model=CreateVolunteerResponse, tags=["Admin"], summary="Onboard a new volunteer")
 async def create_volunteer(
     request: CreateVolunteerRequest, 
     background_tasks: BackgroundTasks,
@@ -1066,7 +1098,7 @@ async def create_volunteer(
         logger.error(f"Unexpected error in create_volunteer: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/auth/verify-code", tags=["Authentication"], summary="Verify volunteer/admin entry credentials code")
+@app.post("/auth/verify-code", response_model=VerifyCodeResponse, tags=["Authentication"], summary="Verify volunteer/admin entry credentials code")
 async def verify_code(request_body: VerifyCodeRequest, request: Request):
     """
     Verify the volunteer/admin access code securely on the backend.
@@ -1141,7 +1173,7 @@ async def handle_post_acceptance_dispatch(incident_id: str, volunteer_id: str, a
         logger.error(f"Error in post acceptance dispatch: {e}")
 
 
-@app.post("/incidents/{incident_id}/recommend-volunteer", tags=["Missions"], summary="Recommend best volunteer for incident")
+@app.post("/incidents/{incident_id}/recommend-volunteer", response_model=RecommendVolunteerResponse, tags=["Missions"], summary="Recommend best volunteer for incident")
 async def recommend_volunteer_for_incident(
     incident_id: str,
     decoded_token: dict = Depends(verify_volunteer_auth)
@@ -1197,7 +1229,7 @@ async def recommend_volunteer_for_incident(
         raise HTTPException(status_code=500, detail=f"Recommendation engine failed: {str(e)}")
 
 
-@app.post("/incidents/{incident_id}/accept", tags=["Missions"], summary="Accept incident dispatch mission")
+@app.post("/incidents/{incident_id}/accept", response_model=AcceptMissionResponse, tags=["Missions"], summary="Accept incident dispatch mission")
 async def accept_incident_mission(
     incident_id: str,
     payload: AcceptMissionRequest,

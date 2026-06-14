@@ -9,7 +9,7 @@ import { app } from './firebase';
  */
 export const initializeOfflineDatabase = () => {
   if (!app) return null;
-  
+
   const rtdb = getDatabase(app);
 
   // Fallback for compatible web platforms requesting legacy schema persistence
@@ -20,7 +20,10 @@ export const initializeOfflineDatabase = () => {
       console.log(' Firebase RTDB disk persistence enabled successfully.');
     }
   } catch (err) {
-    console.warn('Firebase disk persistence skipped (not supported on this browser context). Fallback to active in-memory sync caching.', err);
+    console.warn(
+      'Firebase disk persistence skipped (not supported on this browser context). Fallback to active in-memory sync caching.',
+      err,
+    );
   }
 
   return rtdb;

@@ -30,9 +30,25 @@ jobs:
         cd backend
         pytest tests/ --cov=services --cov-report=xml
 
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm install
+
+    - name: Run Frontend Tests
+      run: |
+        cd frontend
+        npx vitest run
+
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./backend/coverage.xml
         fail_ci_if_error: false
+

@@ -5,7 +5,16 @@ import { useEffect, useState, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { Need } from '@/hooks/useRealtimeNeeds';
 import { cn } from '../../lib/utils';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline, useMap, Circle } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+  Polyline,
+  useMap,
+  Circle,
+} from 'react-leaflet';
 
 // Types for props
 interface LiveMapProps {
@@ -26,7 +35,20 @@ interface LiveMapProps {
 // 1. Create a "Map Inner" component that handles the actual hooks
 // This needs to be a separate component so useMapEvents can access MapContainer context
 const MapInner = (props: LiveMapProps & { L: any }) => {
-  const { needs, onMarkerClick, isPickingLocation, onLocationPick, pickedLocation, volunteerLocation, focusNeed, recenterTrigger, isManualMode, onManualLocationSet, recommendedRoute, L } = props;
+  const {
+    needs,
+    onMarkerClick,
+    isPickingLocation,
+    onLocationPick,
+    pickedLocation,
+    volunteerLocation,
+    focusNeed,
+    recenterTrigger,
+    isManualMode,
+    onManualLocationSet,
+    recommendedRoute,
+    L,
+  } = props;
 
   const map = useMap();
   const hasFlownToVolunteer = useRef(false);
@@ -57,21 +79,27 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
           map.flyTo([volunteerLocation.lat, volunteerLocation.lng], 14, { duration: 2.5 });
           hasFlownToVolunteer.current = true;
         }
-      } catch { /* ignore sizing */ }
+      } catch {
+        /* ignore sizing */
+      }
     }
     return () => {
       if (map) {
         try {
           map.stop();
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     };
   }, [volunteerLocation, map]);
 
   const createCustomIcon = (need: Need) => {
     if (!L) return null;
-    const color = need.urgency_score >= 8 ? '#FF4D00' : need.urgency_score >= 5 ? '#f97316' : '#00E676';
-    const label = need.urgency_score >= 8 ? 'CRITICAL' : need.urgency_score >= 5 ? 'URGENT' : 'STABLE';
+    const color =
+      need.urgency_score >= 8 ? '#FF4D00' : need.urgency_score >= 5 ? '#f97316' : '#00E676';
+    const label =
+      need.urgency_score >= 8 ? 'CRITICAL' : need.urgency_score >= 5 ? 'URGENT' : 'STABLE';
     return L.divIcon({
       className: 'custom-marker-wrapper',
       html: `
@@ -91,42 +119,65 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
   useEffect(() => {
     if (focusNeed?.lat && !isNaN(focusNeed.lat) && focusNeed?.lng && !isNaN(focusNeed.lng) && map) {
       try {
-        if (volunteerLocation?.lat && !isNaN(volunteerLocation.lat) && volunteerLocation?.lng && !isNaN(volunteerLocation.lng)) {
+        if (
+          volunteerLocation?.lat &&
+          !isNaN(volunteerLocation.lat) &&
+          volunteerLocation?.lng &&
+          !isNaN(volunteerLocation.lng)
+        ) {
           // Fit bounds to show both volunteer and target
-          map.fitBounds([
-            [volunteerLocation.lat, volunteerLocation.lng],
-            [focusNeed.lat, focusNeed.lng]
-          ], { padding: [100, 100], duration: 1.5 });
+          map.fitBounds(
+            [
+              [volunteerLocation.lat, volunteerLocation.lng],
+              [focusNeed.lat, focusNeed.lng],
+            ],
+            { padding: [100, 100], duration: 1.5 },
+          );
         } else {
           // Fallback to just fly to target if volunteer position not known
           map.flyTo([focusNeed.lat, focusNeed.lng], 15, { duration: 1.5 });
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     return () => {
       if (map) {
         try {
           map.stop();
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     };
   }, [focusNeed, volunteerLocation, map]);
 
   // Handle manual re-center when trigger changes
   useEffect(() => {
-    if (recenterTrigger && recenterTrigger > 0 && volunteerLocation && !isNaN(volunteerLocation.lat) && !isNaN(volunteerLocation.lng) && map) {
+    if (
+      recenterTrigger &&
+      recenterTrigger > 0 &&
+      volunteerLocation &&
+      !isNaN(volunteerLocation.lat) &&
+      !isNaN(volunteerLocation.lng) &&
+      map
+    ) {
       try {
         map.flyTo([volunteerLocation.lat, volunteerLocation.lng], 16, { duration: 1.5 });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     return () => {
       if (map) {
         try {
           map.stop();
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterTrigger]);
 
   return (
@@ -135,28 +186,30 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
-      
+
       {/* Only show needs that are focused or if we decide to show all (currently hiding all until click) */}
-      {needs.filter(n => n.lat && n.lng && (focusNeed ? n.id === focusNeed.id : false)).map((need) => (
-        <Marker
-          key={need.id}
-          position={[need.lat!, need.lng!] as [number, number]}
-          icon={createCustomIcon(need)}
-          eventHandlers={{
-            click: () => onMarkerClick(need),
-          }}
-        >
-          <Popup className="custom-popup">
-            <div className="p-2">
-              <h4 className="font-bold text-slate-900">{need.location_name}</h4>
-              <p className="text-xs text-slate-500 font-bold uppercase">{need.need_type}</p>
-              <div className="mt-2 text-[10px] font-black uppercase text-emergency">
-                Urgency: {need.urgency_score}/10
+      {needs
+        .filter((n) => n.lat && n.lng && (focusNeed ? n.id === focusNeed.id : false))
+        .map((need) => (
+          <Marker
+            key={need.id}
+            position={[need.lat!, need.lng!] as [number, number]}
+            icon={createCustomIcon(need)}
+            eventHandlers={{
+              click: () => onMarkerClick(need),
+            }}
+          >
+            <Popup className="custom-popup">
+              <div className="p-2">
+                <h4 className="font-bold text-slate-900">{need.location_name}</h4>
+                <p className="text-xs text-slate-500 font-bold uppercase">{need.need_type}</p>
+                <div className="mt-2 text-[10px] font-black uppercase text-emergency">
+                  Urgency: {need.urgency_score}/10
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            </Popup>
+          </Marker>
+        ))}
 
       {/* Volunteer Location Marker - ALWAYS visible */}
       {volunteerLocation && !isNaN(volunteerLocation.lat) && !isNaN(volunteerLocation.lng) && (
@@ -202,7 +255,9 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
                   {volunteerLocation.lat.toFixed(5)}, {volunteerLocation.lng.toFixed(5)}
                 </p>
                 {volunteerLocation.accuracy && (
-                  <p className="text-[9px] text-slate-400 mt-0.5">±{Math.round(volunteerLocation.accuracy)}m accuracy</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">
+                    ±{Math.round(volunteerLocation.accuracy)}m accuracy
+                  </p>
                 )}
               </div>
             </Popup>
@@ -211,56 +266,63 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
       )}
 
       {/* Active Focus Route: bright orange line from Volunteer → Selected Need (or Google Routes path) */}
-      {((recommendedRoute && recommendedRoute.length > 0) || (volunteerLocation && focusNeed?.lat && focusNeed?.lng)) && (
-          <Polyline 
-              key={`focus-route-${focusNeed?.id || 'rec'}`}
-              positions={
-                  recommendedRoute && recommendedRoute.length > 0
-                      ? recommendedRoute
-                      : [[volunteerLocation!.lat, volunteerLocation!.lng], [focusNeed!.lat!, focusNeed!.lng!]]
-              }
-              pathOptions={{ 
-                  color: '#FF4D00', 
-                  weight: 4, 
-                  dashArray: '12, 8', 
-                  opacity: 0.9 
-              }}
-          />
+      {((recommendedRoute && recommendedRoute.length > 0) ||
+        (volunteerLocation && focusNeed?.lat && focusNeed?.lng)) && (
+        <Polyline
+          key={`focus-route-${focusNeed?.id || 'rec'}`}
+          positions={
+            recommendedRoute && recommendedRoute.length > 0
+              ? recommendedRoute
+              : [
+                  [volunteerLocation!.lat, volunteerLocation!.lng],
+                  [focusNeed!.lat!, focusNeed!.lng!],
+                ]
+          }
+          pathOptions={{
+            color: '#FF4D00',
+            weight: 4,
+            dashArray: '12, 8',
+            opacity: 0.9,
+          }}
+        />
       )}
 
       {/* Polyline Routing Connector for all Dispatched / In-Progress tasks */}
-      {volunteerLocation && needs.filter(n => n.lat && n.lng && n.status === 'in-progress' && n.id !== focusNeed?.id).map(need => (
-          <Polyline 
+      {volunteerLocation &&
+        needs
+          .filter((n) => n.lat && n.lng && n.status === 'in-progress' && n.id !== focusNeed?.id)
+          .map((need) => (
+            <Polyline
               key={`route-${need.id}`}
               positions={[
-                  [volunteerLocation.lat, volunteerLocation.lng], 
-                  [need.lat!, need.lng!]
+                [volunteerLocation.lat, volunteerLocation.lng],
+                [need.lat!, need.lng!],
               ]}
-              pathOptions={{ 
-                  color: '#3b82f6', 
-                  weight: 2, 
-                  dashArray: '5, 10', 
-                  opacity: 0.5 
+              pathOptions={{
+                color: '#3b82f6',
+                weight: 2,
+                dashArray: '5, 10',
+                opacity: 0.5,
               }}
-          />
-      ))}
+            />
+          ))}
 
       {/* Temporary visual pin for the currently picked location during intake */}
       {pickedLocation && (
-          <Marker
-              position={[pickedLocation.lat, pickedLocation.lng] as [number, number]}
-              icon={L.divIcon({
-                  className: 'custom-picked-marker',
-                  html: `
+        <Marker
+          position={[pickedLocation.lat, pickedLocation.lng] as [number, number]}
+          icon={L.divIcon({
+            className: 'custom-picked-marker',
+            html: `
                     <div class="relative w-10 h-10 flex items-center justify-center">
                         <div class="absolute inset-0 bg-primary/30 rounded-full animate-ping"></div>
                         <div class="w-5 h-5 rounded-full border-[3px] border-white shadow-2xl" style="background-color: #3b82f6; box-shadow: 0 0 15px #3b82f6"></div>
                     </div>
                   `,
-                  iconSize: [40, 40],
-                  iconAnchor: [20, 20],
-              })}
-          />
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+          })}
+        />
       )}
     </>
   );
@@ -279,27 +341,33 @@ export default function LiveMap(props: LiveMapProps) {
     import('leaflet').then((leaflet) => {
       if (mounted) setL(leaflet);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Re-center to volunteer location when "Locate Me" is clicked
   const handleRecenter = () => {
-    setRecenterTrigger(t => t + 1);
+    setRecenterTrigger((t) => t + 1);
     if (props.onRecenter) props.onRecenter();
   };
 
-
-  if (!isClient || !L) return (
-    <div className="w-full h-full bg-(--background) flex items-center justify-center rounded-3xl animate-pulse">
-        <div className="text-(--foreground) font-anton uppercase tracking-widest text-xl">Waking Up Intelligence...</div>
-    </div>
-  );
+  if (!isClient || !L)
+    return (
+      <div className="w-full h-full bg-(--background) flex items-center justify-center rounded-3xl animate-pulse">
+        <div className="text-(--foreground) font-anton uppercase tracking-widest text-xl">
+          Waking Up Intelligence...
+        </div>
+      </div>
+    );
 
   return (
-    <div className={cn(
-      "w-full h-full relative overflow-hidden rounded-3xl border border-white/5 transition-all duration-700",
-      props.isPickingLocation ? "cursor-crosshair ring-4 ring-emergency/30 ring-inset" : ""
-    )}>
+    <div
+      className={cn(
+        'w-full h-full relative overflow-hidden rounded-3xl border border-white/5 transition-all duration-700',
+        props.isPickingLocation ? 'cursor-crosshair ring-4 ring-emergency/30 ring-inset' : '',
+      )}
+    >
       <MapContainer
         center={[20.5937, 78.9629] as [number, number]}
         zoom={5}
@@ -312,48 +380,60 @@ export default function LiveMap(props: LiveMapProps) {
       {/* Crosshair Overlay in Picking Mode */}
       {props.isPickingLocation && (
         <div className="absolute inset-0 z-40 pointer-events-none flex items-center justify-center">
-            <div className="w-10 h-10 border-2 border-emergency rounded-full animate-ping opacity-50"></div>
-            <div className="absolute inset-x-0 h-px bg-emergency/20 top-1/2"></div>
-            <div className="absolute inset-y-0 w-px bg-emergency/20 left-1/2"></div>
+          <div className="w-10 h-10 border-2 border-emergency rounded-full animate-ping opacity-50"></div>
+          <div className="absolute inset-x-0 h-px bg-emergency/20 top-1/2"></div>
+          <div className="absolute inset-y-0 w-px bg-emergency/20 left-1/2"></div>
         </div>
       )}
 
       {/* MAP CONTROLS — bottom right */}
       <div className="absolute bottom-6 right-6 z-1000 flex flex-col gap-3 pointer-events-none">
         <div className="pointer-events-auto flex flex-col gap-3">
-        {/* Locate Me Button */}
-        {props.volunteerLocation && (
-          <button
-            onClick={handleRecenter}
-            title="Center on my location"
-            className="group w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-[0_4px_20px_rgba(59,130,246,0.4)] hover:shadow-[0_4px_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-110 border border-blue-400/30"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-              <circle cx="12" cy="12" r="8" opacity="0.3"/>
-            </svg>
-          </button>
-        )}
+          {/* Locate Me Button */}
+          {props.volunteerLocation && (
+            <button
+              onClick={handleRecenter}
+              title="Center on my location"
+              className="group w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-[0_4px_20px_rgba(59,130,246,0.4)] hover:shadow-[0_4px_30px_rgba(59,130,246,0.6)] transition-all duration-300 hover:scale-110 border border-blue-400/30"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                <circle cx="12" cy="12" r="8" opacity="0.3" />
+              </svg>
+            </button>
+          )}
 
-        {/* Volunteer Status Badge */}
-        {props.volunteerLocation ? (
-          <div className="bg-(--background)/90 backdrop-blur-md text-(--foreground) text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-(--border-color) shadow-lg flex items-center gap-2 whitespace-nowrap">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-            GPS Active
-          </div>
-        ) : (
-          <div className="bg-(--background)/90 backdrop-blur-md text-(--foreground)/50 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-(--border-color) shadow-lg flex items-center gap-2 whitespace-nowrap">
-            <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></div>
-            Locating...
-          </div>
-        )}
+          {/* Volunteer Status Badge */}
+          {props.volunteerLocation ? (
+            <div className="bg-(--background)/90 backdrop-blur-md text-(--foreground) text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-(--border-color) shadow-lg flex items-center gap-2 whitespace-nowrap">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              GPS Active
+            </div>
+          ) : (
+            <div className="bg-(--background)/90 backdrop-blur-md text-(--foreground)/50 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-(--border-color) shadow-lg flex items-center gap-2 whitespace-nowrap">
+              <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></div>
+              Locating...
+            </div>
+          )}
         </div>
       </div>
 
       {/* Map Legend — bottom left */}
       <div className="absolute bottom-6 left-6 z-1000 bg-(--background)/80 backdrop-blur-md border border-(--border-color) rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 pointer-events-auto">
-        <p className="text-[10px] font-black text-(--foreground)/50 uppercase tracking-widest mb-0.5">Map Legend</p>
+        <p className="text-[10px] font-black text-(--foreground)/50 uppercase tracking-widest mb-0.5">
+          Map Legend
+        </p>
         <div className="flex items-center gap-2.5">
           <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] shrink-0"></div>
           <span className="text-[10px] text-(--foreground) font-bold">Your Location</span>

@@ -21,8 +21,10 @@ let rtdb: Database;
 let storage: FirebaseStorage;
 
 try {
-  const hasConfig = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'your_api_key';
-  
+  const hasConfig =
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'your_api_key';
+
   if (hasConfig) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
@@ -30,14 +32,14 @@ try {
     rtdb = getDatabase(app);
     storage = getStorage(app);
   } else {
-    console.warn("Firebase config missing or placeholder. Running in demo mode.");
+    console.warn('Firebase config missing or placeholder. Running in demo mode.');
     auth = {} as Auth;
     db = {} as Firestore;
     rtdb = {} as Database;
     storage = {} as FirebaseStorage;
   }
 } catch (error) {
-  console.error("Firebase initialization failed:", error);
+  console.error('Firebase initialization failed:', error);
   auth = {} as Auth;
   db = {} as Firestore;
   rtdb = {} as Database;

@@ -118,3 +118,33 @@ def test_create_volunteer_volunteer_unauthorized():
     }
     response = client.post("/admin/create-volunteer", json=payload, headers=headers)
     assert response.status_code == 403
+
+def test_vapi_webhook_webcall_ignored():
+    payload = {
+        "message": {
+            "type": "end-of-call-report",
+            "transcript": "Someone hit a kid.",
+            "recordingUrl": "http://example.com/recording.mp3",
+            "customer": {"number": "+1234567890"},
+            "call": {"id": "call-id", "type": "webCall"}
+        }
+    }
+    response = client.post("/notify/vapi", json=payload)
+    assert response.status_code == 200
+    assert response.json().get("status") == "ignored"
+    assert "prevent duplication" in response.json().get("message", "").lower()
+
+def test_vapi_webhook_phonecall_success():
+    payload = {
+        "message": {
+            "type": "end-of-call-report",
+            "transcript": "Someone hit a kid.",
+            "recordingUrl": "http://example.com/recording.mp3",
+            "customer": {"number": "+1234567890"},
+            "call": {"id": "call-id", "type": "phoneCall"}
+        }
+    }
+    response = client.post("/notify/vapi", json=payload)
+    assert response.status_code == 200
+    assert response.json().get("status") == "success"
+

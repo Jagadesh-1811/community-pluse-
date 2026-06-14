@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ['leaflet.offline', '@turf/turf'],
+  compress: true,
+  poweredByHeader: false,
   
   async redirects() {
     return [

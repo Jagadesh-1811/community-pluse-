@@ -1,42 +1,35 @@
-"use client";
-import Link from "next/link";
+'use client';
+import Link from 'next/link';
 
-import { useState } from "react";
-import { auth, rtdb } from "@/lib/firebase";
+import { useState } from 'react';
+import { auth, rtdb } from '@/lib/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   sendEmailVerification,
-} from "firebase/auth";
-import { ref, set, get } from "firebase/database";
-import {
-  Shield,
-  ArrowRight,
-  Loader2,
-  FingerprintIcon,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+} from 'firebase/auth';
+import { ref, set, get } from 'firebase/database';
+import { Shield, ArrowRight, Loader2, FingerprintIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
-export type AuthMode = "signin" | "signup";
+export type AuthMode = 'signin' | 'signup';
 
 interface AuthFormProps {
   initialMode?: AuthMode;
 }
 
-export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
+export default function AuthForm({ initialMode = 'signin' }: AuthFormProps) {
   const router = useRouter();
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:8000";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const role: string = "REPORTER";
-  const [domain, setDomain] = useState<"human" | "animal">("human");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [volunteerCode, setVolunteerCode] = useState("");
+  const role: string = 'REPORTER';
+  const [domain, setDomain] = useState<'human' | 'animal'>('human');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [volunteerCode, setVolunteerCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -56,32 +49,34 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
 
       if (!userRole) {
         // New user via Google
-        if (role === "VOLUNTEER") {
+        if (role === 'VOLUNTEER') {
           const res = await fetch(`${apiBaseUrl}/auth/verify-code`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: volunteerCode, role }),
           });
           if (!res.ok) {
             throw new Error(
-              "INVALID ACCESS CODE: You do not have volunteer clearance. Please log in as a Reporter.",
+              'INVALID ACCESS CODE: You do not have volunteer clearance. Please log in as a Reporter.',
             );
           }
         }
 
         userRole = role;
-        if (role === "VOLUNTEER" && volunteerCode === "PULSE_ADMIN_1") {
-          userRole = "ADMIN";
+        if (role === 'VOLUNTEER' && volunteerCode === 'PULSE_ADMIN_1') {
+          userRole = 'ADMIN';
         }
         await set(ref(rtdb, `users/${user.uid}`), {
           email: user.email,
           role: userRole,
-          domain: userRole === "VOLUNTEER" ? domain : null,
+          domain: userRole === 'VOLUNTEER' ? domain : null,
           created_at: new Date().toISOString(),
         });
       }
 
-      router.push(userRole === "ADMIN" ? "/admin" : userRole === "VOLUNTEER" ? "/volunteer" : "/field");
+      router.push(
+        userRole === 'ADMIN' ? '/admin' : userRole === 'VOLUNTEER' ? '/volunteer' : '/field',
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -97,65 +92,53 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
     setSuccess(null);
 
     try {
-      if (mode === "signup") {
-        if (role === "VOLUNTEER") {
+      if (mode === 'signup') {
+        if (role === 'VOLUNTEER') {
           const res = await fetch(`${apiBaseUrl}/auth/verify-code`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: volunteerCode, role }),
           });
           if (!res.ok) {
             throw new Error(
-              "INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.",
+              'INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.',
             );
           }
         }
 
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
         // Send verification email with redirect back to the app
         const actionCodeSettings = {
-          url: window.location.origin + "/login",
+          url: window.location.origin + '/login',
           handleCodeInApp: true,
         };
         await sendEmailVerification(user, actionCodeSettings);
 
         let userRole = role;
-        if (role === "VOLUNTEER" && volunteerCode === "PULSE_ADMIN_1") {
-          userRole = "ADMIN";
+        if (role === 'VOLUNTEER' && volunteerCode === 'PULSE_ADMIN_1') {
+          userRole = 'ADMIN';
         }
 
         await set(ref(rtdb, `users/${user.uid}`), {
           email,
           role: userRole,
-          domain: userRole === "VOLUNTEER" ? domain : null,
+          domain: userRole === 'VOLUNTEER' ? domain : null,
           created_at: new Date().toISOString(),
         });
 
-        setSuccess(
-          "TACTICAL LINK DISPATCHED: Please verify your email before logging in.",
-        );
-        setMode("signin");
+        setSuccess('TACTICAL LINK DISPATCHED: Please verify your email before logging in.');
+        setMode('signin');
       } else {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
         if (!user.emailVerified) {
-          setError(
-            "ACCESS DENIED: Please verify your email first. Check your inbox.",
-          );
+          setError('ACCESS DENIED: Please verify your email first. Check your inbox.');
           // Resend verification with redirect
           const actionCodeSettings = {
-            url: window.location.origin + "/login",
+            url: window.location.origin + '/login',
             handleCodeInApp: true,
           };
           await sendEmailVerification(user, actionCodeSettings);
@@ -164,9 +147,11 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
 
         const snapshot = await get(ref(rtdb, `users/${user.uid}`));
         const userData = snapshot.val();
-        const userRole = userData?.role || "REPORTER";
+        const userRole = userData?.role || 'REPORTER';
 
-        router.push(userRole === "ADMIN" ? "/admin" : userRole === "VOLUNTEER" ? "/volunteer" : "/field");
+        router.push(
+          userRole === 'ADMIN' ? '/admin' : userRole === 'VOLUNTEER' ? '/volunteer' : '/field',
+        );
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -199,13 +184,13 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
       <div className="lg:w-1/2 w-full bg-(--background) border border-(--border-color) rounded-2xl p-8 lg:p-12 shadow-2xl brutalist-border">
         {/* Mode Heading */}
         <h2 className="text-4xl font-anton uppercase text-(--foreground) mb-8 tracking-wide">
-          {mode === "signin" ? "Log In" : "Create Account"}
+          {mode === 'signin' ? 'Log In' : 'Create Account'}
         </h2>
 
         {/* Volunteer Redirection Info */}
         <div className="mb-8 p-4 bg-yellow/5 border border-yellow/15 rounded-xl text-center">
           <p className="text-xs text-sage uppercase font-bold tracking-wider">
-            Are you a volunteer? Use the{" "}
+            Are you a volunteer? Use the{' '}
             <Link href="/volunteer" className="text-yellow hover:underline font-black">
               Volunteer Gateway
             </Link>
@@ -213,7 +198,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         </div>
 
         {/* Domain Selection for Volunteers during Signup */}
-        {mode === "signup" && role === "VOLUNTEER" && (
+        {mode === 'signup' && role === 'VOLUNTEER' && (
           <div className="mb-8 space-y-4 p-5 bg-yellow/5 border border-yellow/20 rounded-2xl">
             <label className="block text-[10px] text-yellow font-black uppercase tracking-[0.3em] pl-1">
               Assign Operational Domain
@@ -221,24 +206,26 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
             <div className="flex gap-4 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
               <button
                 type="button"
-                onClick={() => setDomain("human")}
+                onClick={() => setDomain('human')}
                 className={cn(
-                  "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
-                  domain === "human"
-                    ? "bg-yellow text-charcoal shadow-md"
-                    : "text-(--foreground) opacity-40 hover:opacity-100",
-                )}>
+                  'flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all',
+                  domain === 'human'
+                    ? 'bg-yellow text-charcoal shadow-md'
+                    : 'text-(--foreground) opacity-40 hover:opacity-100',
+                )}
+              >
                 Human Health
               </button>
               <button
                 type="button"
-                onClick={() => setDomain("animal")}
+                onClick={() => setDomain('animal')}
                 className={cn(
-                  "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
-                  domain === "animal"
-                    ? "bg-blue-500 text-white shadow-md"
-                    : "text-(--foreground) opacity-40 hover:opacity-100",
-                )}>
+                  'flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all',
+                  domain === 'animal'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-(--foreground) opacity-40 hover:opacity-100',
+                )}
+              >
                 Animal Health
               </button>
             </div>
@@ -274,7 +261,7 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
             />
           </div>
 
-          {role === "VOLUNTEER" && (
+          {role === 'VOLUNTEER' && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
               <label className="block text-xs text-yellow font-black uppercase tracking-widest mb-2.5 font-outfit">
                 Volunteer Authorization Code
@@ -308,18 +295,19 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-1 active:translate-y-1 transition-all flex items-center justify-center gap-3 mt-4">
+            className="w-full bg-yellow text-charcoal font-anton uppercase tracking-widest text-2xl py-6 rounded-xl shadow-lg hover:-translate-y-1 active:translate-y-1 transition-all flex items-center justify-center gap-3 mt-4"
+          >
             {loading ? (
               <Loader2 className="animate-spin" size={24} />
             ) : (
               <>
-                {mode === "signin" ? "Verify Identity" : "Commission Account"}
+                {mode === 'signin' ? 'Verify Identity' : 'Commission Account'}
                 <ArrowRight size={24} strokeWidth={3} />
               </>
             )}
           </button>
 
-          {!(mode === "signup" && role === "VOLUNTEER") && (
+          {!(mode === 'signup' && role === 'VOLUNTEER') && (
             <>
               <div className="flex items-center gap-4 my-6">
                 <div className="h-px flex-1 bg-(--foreground)/10"></div>
@@ -333,7 +321,8 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
                 onClick={handleGoogleAuth}
                 type="button"
                 disabled={loading}
-                className="w-full bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 text-(--foreground) py-4 rounded-xl font-roboto font-bold text-sm uppercase tracking-widest hover:bg-black/5 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                className="w-full bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 text-(--foreground) py-4 rounded-xl font-roboto font-bold text-sm uppercase tracking-widest hover:bg-black/5 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
@@ -361,11 +350,12 @@ export default function AuthForm({ initialMode = "signin" }: AuthFormProps) {
         <div className="mt-8 text-center border-t border-(--border-color) pt-8">
           <button
             type="button"
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="text-sm text-(--foreground) opacity-50 font-bold uppercase tracking-wider hover:opacity-100 transition-opacity font-outfit">
-            {mode === "signin"
-              ? "No clearance? Request Access →"
-              : "Already commissioned? Log In →"}
+            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            className="text-sm text-(--foreground) opacity-50 font-bold uppercase tracking-wider hover:opacity-100 transition-opacity font-outfit"
+          >
+            {mode === 'signin'
+              ? 'No clearance? Request Access →'
+              : 'Already commissioned? Log In →'}
           </button>
         </div>
 

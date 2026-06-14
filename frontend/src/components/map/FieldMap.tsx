@@ -32,18 +32,21 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
     if (!map) return;
     const timer = setTimeout(() => {
       try {
-          map.invalidateSize();
-          if (hasValidLocation && hasValidVolunteerLocation) {
-              // Fit bounds to show both
-              map.fitBounds([
-                  [location.lat, location.lng],
-                  [volunteerLocation.lat, volunteerLocation.lng]
-              ], { padding: [50, 50], duration: 1 });
-          } else if (hasValidLocation) {
-              map.flyTo([location.lat, location.lng], 16, { duration: 1 });
-          }
+        map.invalidateSize();
+        if (hasValidLocation && hasValidVolunteerLocation) {
+          // Fit bounds to show both
+          map.fitBounds(
+            [
+              [location.lat, location.lng],
+              [volunteerLocation.lat, volunteerLocation.lng],
+            ],
+            { padding: [50, 50], duration: 1 },
+          );
+        } else if (hasValidLocation) {
+          map.flyTo([location.lat, location.lng], 16, { duration: 1 });
+        }
       } catch {
-          // Ignore sizing issues
+        // Ignore sizing issues
       }
     }, 300);
 
@@ -51,7 +54,9 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
       clearTimeout(timer);
       try {
         map.stop();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
   }, [location, volunteerLocation, map, hasValidLocation, hasValidVolunteerLocation]);
 
@@ -59,7 +64,7 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
     <>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
+        attribution="&copy; OpenStreetMap contributors"
       />
       {hasValidLocation && location && (
         <Marker
@@ -81,11 +86,11 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
 
       {hasValidLocation && location && hasValidVolunteerLocation && volunteerLocation && (
         <>
-            <Marker
-                position={[volunteerLocation.lat, volunteerLocation.lng]}
-                icon={L.divIcon({
-                    className: 'volunteer-live-marker',
-                    html: `
+          <Marker
+            position={[volunteerLocation.lat, volunteerLocation.lng]}
+            icon={L.divIcon({
+              className: 'volunteer-live-marker',
+              html: `
                         <div class="relative w-16 h-16 flex items-center justify-center">
                             <div class="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
                             <div class="w-8 h-8 rounded-2xl bg-slate-950 border-2 border-primary flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.5)]">
@@ -94,22 +99,22 @@ const FieldMapInner = ({ location, volunteerLocation, L }: FieldMapProps & { L: 
                             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Volunteer</div>
                         </div>
                     `,
-                    iconSize: [64, 64],
-                    iconAnchor: [32, 32],
-                })}
-            />
-            <Polyline 
-                positions={[
-                    [location.lat, location.lng],
-                    [volunteerLocation.lat, volunteerLocation.lng]
-                ]}
-                pathOptions={{ 
-                    color: '#3b82f6', 
-                    weight: 3, 
-                    dashArray: '10, 10', 
-                    opacity: 0.6 
-                }}
-            />
+              iconSize: [64, 64],
+              iconAnchor: [32, 32],
+            })}
+          />
+          <Polyline
+            positions={[
+              [location.lat, location.lng],
+              [volunteerLocation.lat, volunteerLocation.lng],
+            ]}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 3,
+              dashArray: '10, 10',
+              opacity: 0.6,
+            }}
+          />
         </>
       )}
     </>
@@ -128,25 +133,32 @@ export default function FieldMap(props: FieldMapProps) {
     setIsClient(true);
     let mounted = true;
     import('leaflet').then((leaflet) => {
-        if (mounted) setL(leaflet);
+      if (mounted) setL(leaflet);
     });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  if (!isClient || !L) return (
-    <div className="w-full h-full glass flex flex-col items-center justify-center animate-pulse rounded-4xl">
+  if (!isClient || !L)
+    return (
+      <div className="w-full h-full glass flex flex-col items-center justify-center animate-pulse rounded-4xl">
         <div className="w-8 h-8 rounded-full border-t-2 border-r-2 border-yellow animate-spin mb-4"></div>
-        <div className="text-[10px] text-(--foreground) font-anton uppercase tracking-widest">Acquiring Satellites...</div>
-    </div>
-  );
+        <div className="text-[10px] text-(--foreground) font-anton uppercase tracking-widest">
+          Acquiring Satellites...
+        </div>
+      </div>
+    );
 
   return (
     <div className="w-full h-full relative overflow-hidden rounded-4xl border border-white/10 shadow-2xl">
-      <ErrorBoundary fallback={
-        <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-xs font-black uppercase tracking-widest text-emergency bg-emergency/10 backdrop-blur-md border border-emergency/25 rounded-4xl">
-          Map unavailable — field reports still active via WhatsApp
-        </div>
-      }>
+      <ErrorBoundary
+        fallback={
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-xs font-black uppercase tracking-widest text-emergency bg-emergency/10 backdrop-blur-md border border-emergency/25 rounded-4xl">
+            Map unavailable — field reports still active via WhatsApp
+          </div>
+        }
+      >
         <MapContainer
           key={`${mapCenter[0]}-${mapCenter[1]}`}
           center={mapCenter}
@@ -161,4 +173,3 @@ export default function FieldMap(props: FieldMapProps) {
     </div>
   );
 }
-

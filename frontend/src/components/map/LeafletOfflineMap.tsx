@@ -59,12 +59,13 @@ const MapLayersAndControllers = ({
     const osmUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     // 1. Initializing L.tileLayer.offline
-    // This custom layer intercepts tile loading requests and routes them through 
+    // This custom layer intercepts tile loading requests and routes them through
     // IndexedDB storage. If a tile is cached locally, it serves it as an object URL blob.
     // Otherwise, it falls back to the network.
     // @ts-ignore
     const baseLayer = L.tileLayer.offline(osmUrl, {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       minZoom: 10,
       maxZoom: 16,
     });
@@ -73,17 +74,17 @@ const MapLayersAndControllers = ({
     baseLayerRef.current = baseLayer;
 
     // 2. Setup the savetiles controller instance
-    // Holds the operational logic to query coordinate bounding boxes, calculate 
+    // Holds the operational logic to query coordinate bounding boxes, calculate
     // expected tiles to download, and execute IndexedDB inserts.
     // @ts-ignore
     const control = L.control.savetiles(baseLayer, {
       zoomlevels: [10, 11, 12, 13, 14, 15, 16], // Zoom levels to save
-      saveWhatYouSee: true,                      // Bounds restricted to current viewport
-      confirm: null,                             // Abort default browser popups
+      saveWhatYouSee: true, // Bounds restricted to current viewport
+      confirm: null, // Abort default browser popups
       confirmRemoval: null,
-      parallel: 5,                               // Fetch 5 concurrent tile requests
+      parallel: 5, // Fetch 5 concurrent tile requests
     });
-    
+
     controlRef.current = control;
 
     // 3. Register Event Listeners for tile saving progress
@@ -130,7 +131,7 @@ export default function LeafletOfflineMap({
   onIncidentClick,
 }: LeafletOfflineMapProps) {
   const { user, role } = useAuth();
-  
+
   // State variables
   const [isClient, setIsClient] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
@@ -205,7 +206,8 @@ export default function LeafletOfflineMap({
 
   // Custom DivIcon styling matching the Absolute Black Protocol
   const createIncidentIcon = (incident: Need) => {
-    const color = incident.urgency_score >= 8 ? '#FF4D00' : incident.urgency_score >= 5 ? '#f59e0b' : '#10b981';
+    const color =
+      incident.urgency_score >= 8 ? '#FF4D00' : incident.urgency_score >= 5 ? '#f59e0b' : '#10b981';
     return L.divIcon({
       className: 'custom-leaflet-marker',
       html: `
@@ -240,10 +242,10 @@ export default function LeafletOfflineMap({
   let filteredVolunteers: Volunteer[] = [];
 
   if (selectedIncident && selectedIncident.lat && selectedIncident.lng) {
-    // Note: Turf.js coordinates are represented in [longitude, latitude] sequence, 
+    // Note: Turf.js coordinates are represented in [longitude, latitude] sequence,
     // contrary to Leaflet's [latitude, longitude] array representation.
     const centerPoint = [selectedIncident.lng, selectedIncident.lat];
-    
+
     // Turf creates a standard polygon representing the exact physical circle
     circleGeoJSON = turfCircle(centerPoint, radiusKm, {
       steps: 64,
@@ -264,20 +266,20 @@ export default function LeafletOfflineMap({
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-black text-white rounded-3xl border border-neutral-900">
-      
       {/* 1. Offline Banners & Indicators */}
       <div className="absolute top-6 left-6 z-1000 flex flex-col gap-3 pointer-events-none">
-        
         {/* Status Badge */}
         <div className="bg-black/90 backdrop-blur-md border border-neutral-900 px-4 py-2.5 rounded-xl flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest pointer-events-auto">
-          <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]'}`}></span>
+          <span
+            className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]'}`}
+          ></span>
           {isOnline ? 'Online — Live Tiles' : 'Offline — Cached Tiles'}
         </div>
 
         {/* Empty Cache Warn Banner */}
         {!isOnline && cacheCount === 0 && (
           <div className="bg-amber-950/25 border border-amber-500/25 text-amber-400 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl flex items-center gap-2 pointer-events-auto max-w-sm">
-             Map cache empty — download tiles while online
+            Map cache empty — download tiles while online
           </div>
         )}
       </div>
@@ -289,10 +291,10 @@ export default function LeafletOfflineMap({
             onClick={triggerMapDownload}
             disabled={isDownloading}
             className={cn(
-              "px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest font-mono border transition-all duration-300",
-              isDownloading 
-                ? "bg-neutral-950 border-neutral-900 text-white/30 cursor-not-allowed" 
-                : "bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800"
+              'px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest font-mono border transition-all duration-300',
+              isDownloading
+                ? 'bg-neutral-950 border-neutral-900 text-white/30 cursor-not-allowed'
+                : 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800',
             )}
           >
             {isDownloading ? `Downloading: ${downloadProgress}%` : `Download Map Tiles`}
@@ -309,7 +311,9 @@ export default function LeafletOfflineMap({
       {selectedIncident && (
         <div className="absolute bottom-6 left-6 right-6 md:right-auto md:w-80 z-1000 bg-black/95 backdrop-blur-md border border-neutral-900 rounded-2xl p-4 pointer-events-auto shadow-2xl">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Dispatch Radius</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
+              Dispatch Radius
+            </span>
             <span className="text-xs font-mono font-black text-amber-400">{radiusKm} KM</span>
           </div>
           <input
@@ -322,7 +326,7 @@ export default function LeafletOfflineMap({
           />
           <div className="mt-3 flex justify-between text-[9px] font-mono text-white/40">
             <span>VOLUNTEERS DETECTED: {filteredVolunteers.length}</span>
-            <button 
+            <button
               onClick={() => setSelectedIncident(null)}
               className="hover:text-white uppercase font-bold"
             >
@@ -350,29 +354,35 @@ export default function LeafletOfflineMap({
         />
 
         {/* 4. Render Incident Markers */}
-        {incidents.filter(inc => inc.lat && inc.lng).map((incident) => (
-          <Marker
-            key={incident.id}
-            position={[incident.lat!, incident.lng!] as [number, number]}
-            icon={createIncidentIcon(incident)}
-            eventHandlers={{
-              click: () => {
-                setSelectedIncident(incident);
-                onIncidentClick(incident);
-              }
-            }}
-          >
-            <Popup className="custom-popup">
-              <div className="p-1 text-neutral-900">
-                <h4 className="font-bold text-xs">{incident.location_name || 'Emergency Ticket'}</h4>
-                <p className="text-[10px] text-neutral-500 font-bold uppercase mt-0.5">{incident.category}</p>
-                <div className="mt-1.5 text-[9px] font-black uppercase text-red-600">
-                  Priority: {incident.urgency_score}/10
+        {incidents
+          .filter((inc) => inc.lat && inc.lng)
+          .map((incident) => (
+            <Marker
+              key={incident.id}
+              position={[incident.lat!, incident.lng!] as [number, number]}
+              icon={createIncidentIcon(incident)}
+              eventHandlers={{
+                click: () => {
+                  setSelectedIncident(incident);
+                  onIncidentClick(incident);
+                },
+              }}
+            >
+              <Popup className="custom-popup">
+                <div className="p-1 text-neutral-900">
+                  <h4 className="font-bold text-xs">
+                    {incident.location_name || 'Emergency Ticket'}
+                  </h4>
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase mt-0.5">
+                    {incident.category}
+                  </p>
+                  <div className="mt-1.5 text-[9px] font-black uppercase text-red-600">
+                    Priority: {incident.urgency_score}/10
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          ))}
 
         {/* 5. Render Turf GeoJSON Circle Layer Overlay */}
         {selectedIncident && circleGeoJSON && (
@@ -380,7 +390,7 @@ export default function LeafletOfflineMap({
             key={`${selectedIncident.id}-${radiusKm}`}
             data={circleGeoJSON}
             style={{
-              color: '#f59e0b',    // Amber border stroke
+              color: '#f59e0b', // Amber border stroke
               weight: 1.5,
               dashArray: '5, 5',
               fillColor: '#000000',
@@ -390,24 +400,29 @@ export default function LeafletOfflineMap({
         )}
 
         {/* 6. Render Filtered Volunteers inside the circle */}
-        {selectedIncident && filteredVolunteers.map((vol) => (
-          <Marker
-            key={vol.id}
-            position={[vol.lat, vol.lng]}
-            icon={createVolunteerIcon(vol.status)}
-          >
-            <Popup className="custom-popup">
-              <div className="p-1.5 text-neutral-900">
-                <h4 className="font-bold text-xs">{vol.name}</h4>
-                <p className="text-[10px] text-amber-600 font-mono mt-0.5">{vol.distance} KM away</p>
-                <div className="mt-2 flex items-center gap-1.5 text-[9px] font-black uppercase">
-                  <span className={`w-1.5 h-1.5 rounded-full ${vol.status === 'available' ? 'bg-emerald-500' : 'bg-neutral-400'}`}></span>
-                  {vol.status}
+        {selectedIncident &&
+          filteredVolunteers.map((vol) => (
+            <Marker
+              key={vol.id}
+              position={[vol.lat, vol.lng]}
+              icon={createVolunteerIcon(vol.status)}
+            >
+              <Popup className="custom-popup">
+                <div className="p-1.5 text-neutral-900">
+                  <h4 className="font-bold text-xs">{vol.name}</h4>
+                  <p className="text-[10px] text-amber-600 font-mono mt-0.5">
+                    {vol.distance} KM away
+                  </p>
+                  <div className="mt-2 flex items-center gap-1.5 text-[9px] font-black uppercase">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${vol.status === 'available' ? 'bg-emerald-500' : 'bg-neutral-400'}`}
+                    ></span>
+                    {vol.status}
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          ))}
       </MapContainer>
     </div>
   );

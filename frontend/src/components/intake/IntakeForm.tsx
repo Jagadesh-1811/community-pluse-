@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { push, ref, serverTimestamp, set } from "firebase/database";
-import { X, Send, Heart, Phone, MapPin, Target, Camera } from "lucide-react";
-import { rtdb } from "@/lib/firebase";
-import { cn } from "@/lib/utils";
-import { VoiceAgentButton } from "@/components/voice/VoiceAgentButton";
-import { useAuth } from "@/lib/auth-context";
+import { useState, useEffect } from 'react';
+import { push, ref, serverTimestamp, set } from 'firebase/database';
+import { X, Send, Heart, Phone, MapPin, Target, Camera } from 'lucide-react';
+import { rtdb } from '@/lib/firebase';
+import { cn } from '@/lib/utils';
+import { VoiceAgentButton } from '@/components/voice/VoiceAgentButton';
+import { useAuth } from '@/lib/auth-context';
 
-import Image from "next/image";
-import { useCallback } from "react";
-import { ConversationEntry } from "@/hooks/useRealtimeNeeds";
+import Image from 'next/image';
+import { useCallback } from 'react';
+import { ConversationEntry } from '@/hooks/useRealtimeNeeds';
 
 interface IntakeFormProps {
   pickedLocation?: { lat: number; lng: number } | null;
@@ -45,24 +45,18 @@ export default function IntakeForm({
   setLocalCoords,
 }: IntakeFormProps) {
   const { user } = useAuth();
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:8000";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [report, setReport] = useState("");
-  const [phone, setPhone] = useState("");
-  const [domain, setDomain] = useState<"human" | "animal">("human");
-  const [glitchingDomain, setGlitchingDomain] = useState<
-    "human" | "animal" | null
-  >(null);
-  const [webrtcConversation, setWebrtcConversation] = useState<
-    ConversationEntry[]
-  >([]);
+  const [report, setReport] = useState('');
+  const [phone, setPhone] = useState('');
+  const [domain, setDomain] = useState<'human' | 'animal'>('human');
+  const [glitchingDomain, setGlitchingDomain] = useState<'human' | 'animal' | null>(null);
+  const [webrtcConversation, setWebrtcConversation] = useState<ConversationEntry[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const flushOfflineQueue = useCallback(async () => {
-    const queueStr = localStorage.getItem("communitypulse_offline_queue");
+    const queueStr = localStorage.getItem('communitypulse_offline_queue');
     if (!queueStr) return;
     try {
       const queue = JSON.parse(queueStr) as OfflineReport[];
@@ -75,29 +69,27 @@ export default function IntakeForm({
           let response;
           if (item.image_base64) {
             const blob = await fetch(item.image_base64).then((r) => r.blob());
-            const file = new File(
-              [blob],
-              item.image_name || "offline_upload.jpg",
-              { type: blob.type },
-            );
+            const file = new File([blob], item.image_name || 'offline_upload.jpg', {
+              type: blob.type,
+            });
             const formData = new FormData();
-            formData.append("text", item.text);
-            formData.append("source", item.source);
-            formData.append("phone", item.phone || "");
-            formData.append("lat", String(item.lat));
-            formData.append("lng", String(item.lng));
-            formData.append("domain", item.domain);
-            formData.append("reporter_email", item.reporter_email || "");
-            formData.append("image", file);
+            formData.append('text', item.text);
+            formData.append('source', item.source);
+            formData.append('phone', item.phone || '');
+            formData.append('lat', String(item.lat));
+            formData.append('lng', String(item.lng));
+            formData.append('domain', item.domain);
+            formData.append('reporter_email', item.reporter_email || '');
+            formData.append('image', file);
 
             response = await fetch(`${apiBaseUrl}/intake/image`, {
-              method: "POST",
+              method: 'POST',
               body: formData,
             });
           } else {
             response = await fetch(`${apiBaseUrl}/intake`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 text: item.text,
                 source: item.source,
@@ -113,35 +105,30 @@ export default function IntakeForm({
             remaining.push(item);
           }
         } catch (err) {
-          console.error("Failed to sync offline item:", err);
+          console.error('Failed to sync offline item:', err);
           remaining.push(item);
         }
       }
       if (remaining.length > 0) {
-        localStorage.setItem(
-          "communitypulse_offline_queue",
-          JSON.stringify(remaining),
-        );
+        localStorage.setItem('communitypulse_offline_queue', JSON.stringify(remaining));
       } else {
-        localStorage.removeItem("communitypulse_offline_queue");
-        alert(
-          " All offline reports have been synchronized with the command center!",
-        );
+        localStorage.removeItem('communitypulse_offline_queue');
+        alert(' All offline reports have been synchronized with the command center!');
       }
     } catch (e) {
-      console.error("Error flushing queue", e);
+      console.error('Error flushing queue', e);
     }
   }, [apiBaseUrl]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       const handleOnline = () => {
         flushOfflineQueue();
       };
 
-      window.addEventListener("online", handleOnline);
+      window.addEventListener('online', handleOnline);
       return () => {
-        window.removeEventListener("online", handleOnline);
+        window.removeEventListener('online', handleOnline);
       };
     }
   }, [flushOfflineQueue]);
@@ -151,8 +138,7 @@ export default function IntakeForm({
     lng: number;
   } | null>(null);
 
-  const activeLocalCoords =
-    localCoords !== undefined ? localCoords : internalLocalCoords;
+  const activeLocalCoords = localCoords !== undefined ? localCoords : internalLocalCoords;
   const updateLocalCoords = setLocalCoords || setInternalLocalCoords;
 
   const activeCoords = pickedLocation || activeLocalCoords;
@@ -164,7 +150,7 @@ export default function IntakeForm({
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      alert('Geolocation is not supported by your browser');
       return;
     }
 
@@ -174,7 +160,7 @@ export default function IntakeForm({
 
         // Validate coordinates
         if (!isFinite(latitude) || !isFinite(longitude)) {
-          alert("Invalid location data received. Please try again.");
+          alert('Invalid location data received. Please try again.');
           return;
         }
 
@@ -189,15 +175,12 @@ export default function IntakeForm({
         });
       },
       (error) => {
-        let errorMsg = "Unable to retrieve your exact location. ";
+        let errorMsg = 'Unable to retrieve your exact location. ';
         if (error.code === 1)
-          errorMsg +=
-            "Permission denied. Please allow location access in your browser settings.";
-        if (error.code === 2)
-          errorMsg += "Position unavailable. Enable GPS on your device.";
+          errorMsg += 'Permission denied. Please allow location access in your browser settings.';
+        if (error.code === 2) errorMsg += 'Position unavailable. Enable GPS on your device.';
         if (error.code === 3)
-          errorMsg +=
-            "Location request timed out. GPS disabled or weak signal. Try again.";
+          errorMsg += 'Location request timed out. GPS disabled or weak signal. Try again.';
         alert(errorMsg);
       },
       {
@@ -213,9 +196,9 @@ export default function IntakeForm({
 
     // Filter to retrieve user's dialogue and construct full report text
     const userMessages = conversation
-      .filter((entry) => entry.role === "user")
+      .filter((entry) => entry.role === 'user')
       .map((entry) => entry.text)
-      .join(" ");
+      .join(' ');
 
     if (!userMessages.trim()) return;
 
@@ -227,13 +210,11 @@ export default function IntakeForm({
     // Fetch coords or fall back to standard coordinates (New Delhi) to prevent validation error
     if (!finalLat || !finalLng) {
       try {
-        const position = await new Promise<GeolocationPosition>(
-          (resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 3000,
-            });
-          },
-        );
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 3000,
+          });
+        });
         finalLat = position.coords.latitude;
         finalLng = position.coords.longitude;
       } catch {
@@ -245,11 +226,11 @@ export default function IntakeForm({
     setIsSubmitting(true);
     try {
       const response = await fetch(`${apiBaseUrl}/intake`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: userMessages,
-          source: "voice_agent",
+          source: 'voice_agent',
           phone: phone || null,
           lat: finalLat,
           lng: finalLng,
@@ -267,11 +248,11 @@ export default function IntakeForm({
           let aiHeading: string | undefined;
           try {
             const headingRes = await fetch(`${apiBaseUrl}/ai/heading`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 text: userMessages.trim(),
-                sender: "reporter",
+                sender: 'reporter',
               }),
             });
             if (headingRes.ok) {
@@ -282,8 +263,8 @@ export default function IntakeForm({
             // ignore fallback
           }
 
-          setReport("");
-          setPhone("");
+          setReport('');
+          setPhone('');
           setWebrtcConversation([]);
           updateLocalCoords(null);
           if (onPickModeToggle) onPickModeToggle(false);
@@ -292,7 +273,7 @@ export default function IntakeForm({
         }
       }
     } catch (err) {
-      console.error("Failed to auto-submit WebRTC need:", err);
+      console.error('Failed to auto-submit WebRTC need:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -317,12 +298,12 @@ export default function IntakeForm({
 
       // Validate report text is not empty
       if (!report.trim()) {
-        alert("Please describe the situation.");
+        alert('Please describe the situation.');
         setIsSubmitting(false);
         return;
       }
 
-      if (typeof window !== "undefined" && !navigator.onLine) {
+      if (typeof window !== 'undefined' && !navigator.onLine) {
         let imageBase64: string | null = null;
         if (selectedImage && imagePreview) {
           imageBase64 = imagePreview;
@@ -331,7 +312,7 @@ export default function IntakeForm({
         const offlineReport = {
           id: `offline-${Date.now()}`,
           text: report,
-          source: webrtcConversation.length > 0 ? "voice_agent" : "web",
+          source: webrtcConversation.length > 0 ? 'voice_agent' : 'web',
           phone: phone || null,
           lat: lat,
           lng: lng,
@@ -342,20 +323,17 @@ export default function IntakeForm({
           created_at: Date.now(),
         };
 
-        const queueStr = localStorage.getItem("communitypulse_offline_queue");
+        const queueStr = localStorage.getItem('communitypulse_offline_queue');
         const queue = queueStr ? JSON.parse(queueStr) : [];
         queue.push(offlineReport);
-        localStorage.setItem(
-          "communitypulse_offline_queue",
-          JSON.stringify(queue),
-        );
+        localStorage.setItem('communitypulse_offline_queue', JSON.stringify(queue));
 
         alert(
-          " OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.",
+          ' OFFLINE DETECTED: Incident saved locally. It will auto-synchronize with the Command Center once network connectivity is restored.',
         );
 
-        setReport("");
-        setPhone("");
+        setReport('');
+        setPhone('');
         setSelectedImage(null);
         setImagePreview(null);
         setWebrtcConversation([]);
@@ -372,84 +350,74 @@ export default function IntakeForm({
         let response;
         if (selectedImage) {
           const formData = new FormData();
-          formData.append("text", report);
-          formData.append(
-            "source",
-            webrtcConversation.length > 0 ? "voice_agent" : "web",
-          );
-          formData.append("phone", phone || "");
-          formData.append("lat", String(lat));
-          formData.append("lng", String(lng));
-          formData.append("domain", domain);
-          formData.append("reporter_email", user?.email || "");
-          formData.append("image", selectedImage);
+          formData.append('text', report);
+          formData.append('source', webrtcConversation.length > 0 ? 'voice_agent' : 'web');
+          formData.append('phone', phone || '');
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
+          formData.append('domain', domain);
+          formData.append('reporter_email', user?.email || '');
+          formData.append('image', selectedImage);
 
           response = await fetch(`${apiBaseUrl}/intake/image`, {
-            method: "POST",
+            method: 'POST',
             body: formData,
           });
         } else {
           response = await fetch(`${apiBaseUrl}/intake`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               text: report,
-              source: webrtcConversation.length > 0 ? "voice_agent" : "web",
+              source: webrtcConversation.length > 0 ? 'voice_agent' : 'web',
               phone: phone || null,
               lat: lat,
               lng: lng,
               domain: domain,
               reporter_email: user?.email || null,
-              webrtc_conversation:
-                webrtcConversation.length > 0 ? webrtcConversation : null,
+              webrtc_conversation: webrtcConversation.length > 0 ? webrtcConversation : null,
             }),
           });
         }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.detail || `Server error: ${response.status}`,
-          );
+          throw new Error(errorData.detail || `Server error: ${response.status}`);
         }
 
         const result = await response.json();
         needId = result?.data?.id ?? result?.id ?? null;
       } catch (apiError) {
-        console.warn(
-          "Backend intake failed. Falling back to direct Firebase submit.",
-          apiError,
-        );
+        console.warn('Backend intake failed. Falling back to direct Firebase submit.', apiError);
 
-        const needsRef = ref(rtdb, "needs");
+        const needsRef = ref(rtdb, 'needs');
         const newNeedRef = push(needsRef);
 
         if (!newNeedRef.key) {
-          throw new Error("Failed to create a report ID");
+          throw new Error('Failed to create a report ID');
         }
 
         // Ensure only valid finite coordinates are saved
         const safeCoordinates: { lat: number | null; lng: number | null } = {
-          lat: typeof lat === "number" && Number.isFinite(lat) ? lat : null,
-          lng: typeof lng === "number" && Number.isFinite(lng) ? lng : null,
+          lat: typeof lat === 'number' && Number.isFinite(lat) ? lat : null,
+          lng: typeof lng === 'number' && Number.isFinite(lng) ? lng : null,
         };
 
         await set(newNeedRef, {
           id: newNeedRef.key,
           raw_text: report.trim(),
-          need_type: domain === "animal" ? "animal" : "safety",
+          need_type: domain === 'animal' ? 'animal' : 'safety',
           domain,
-          location_name: "Reporter GPS location",
+          location_name: 'Reporter GPS location',
           lat: safeCoordinates.lat,
           lng: safeCoordinates.lng,
           urgency_score: 5,
-          emotional_signal: "concerned",
-          status: "open",
-          source: webrtcConversation.length > 0 ? "voice_agent" : "web",
+          emotional_signal: 'concerned',
+          status: 'open',
+          source: webrtcConversation.length > 0 ? 'voice_agent' : 'web',
           phone: phone || null,
           reporter_email: user?.email || null,
-          webrtc_conversation:
-            webrtcConversation.length > 0 ? webrtcConversation : null,
+          webrtc_conversation: webrtcConversation.length > 0 ? webrtcConversation : null,
           created_at: serverTimestamp(),
         });
 
@@ -461,9 +429,9 @@ export default function IntakeForm({
         let aiHeading: string | undefined;
         try {
           const headingRes = await fetch(`${apiBaseUrl}/ai/heading`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: report.trim(), sender: "reporter" }),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: report.trim(), sender: 'reporter' }),
           });
           if (headingRes.ok) {
             const headingData = await headingRes.json();
@@ -473,8 +441,8 @@ export default function IntakeForm({
           // Non-critical — heading will fall back to default in parent
         }
 
-        setReport("");
-        setPhone("");
+        setReport('');
+        setPhone('');
         setSelectedImage(null);
         setImagePreview(null);
         setWebrtcConversation([]);
@@ -483,12 +451,11 @@ export default function IntakeForm({
         if (onRefresh) onRefresh(needId, aiHeading);
         if (onClose) onClose();
       } else {
-        throw new Error("No need ID returned from server");
+        throw new Error('No need ID returned from server');
       }
     } catch (error: unknown) {
-      console.error("Failed to submit report:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to submit report";
+      console.error('Failed to submit report:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit report';
       alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
@@ -503,9 +470,7 @@ export default function IntakeForm({
             <Heart className="text-white fill-current" size={24} />
           </div>
           <div>
-            <h3 className="text-2xl font-anton text-(--foreground) tracking-widest">
-              Transmit
-            </h3>
+            <h3 className="text-2xl font-anton text-(--foreground) tracking-widest">Transmit</h3>
             <p className="text-(--foreground) font-medium uppercase text-[10px] tracking-[0.3em] mb-4">
               Signal Intelligence
             </p>
@@ -514,14 +479,16 @@ export default function IntakeForm({
         <button
           onClick={onClose}
           aria-label="Close Intake Form"
-          className="p-3 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-2xl transition-all text-(--foreground)/50 hover:text-(--foreground)">
+          className="p-3 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-2xl transition-all text-(--foreground)/50 hover:text-(--foreground)"
+        >
           <X size={20} />
         </button>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="flex-1 space-y-8 overflow-y-auto pr-2 custom-scrollbar font-roboto">
+        className="flex-1 space-y-8 overflow-y-auto pr-2 custom-scrollbar font-roboto"
+      >
         <div className="space-y-3">
           <label className="text-[10px] font-black text-(--foreground) uppercase tracking-widest pl-1">
             Describe the Situation
@@ -546,7 +513,8 @@ export default function IntakeForm({
                   setSelectedImage(null);
                   setImagePreview(null);
                 }}
-                className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest cursor-pointer">
+                className="text-[9px] text-red-500 font-black hover:underline uppercase tracking-widest cursor-pointer"
+              >
                 Clear
               </button>
             )}
@@ -625,37 +593,39 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={() => {
-                setDomain("human");
-                setGlitchingDomain("human");
+                setDomain('human');
+                setGlitchingDomain('human');
                 setTimeout(() => setGlitchingDomain(null), 450);
               }}
               aria-label="Set operational domain to Human Health"
               className={cn(
-                "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                glitchingDomain === "human"
-                  ? "animate-glitch-bw"
-                  : domain === "human"
-                    ? "bg-(--foreground) text-(--background) shadow-lg"
-                    : "text-(--foreground) hover:text-(--foreground)",
-              )}>
+                'flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
+                glitchingDomain === 'human'
+                  ? 'animate-glitch-bw'
+                  : domain === 'human'
+                    ? 'bg-(--foreground) text-(--background) shadow-lg'
+                    : 'text-(--foreground) hover:text-(--foreground)',
+              )}
+            >
               Human Health
             </button>
             <button
               type="button"
               onClick={() => {
-                setDomain("animal");
-                setGlitchingDomain("animal");
+                setDomain('animal');
+                setGlitchingDomain('animal');
                 setTimeout(() => setGlitchingDomain(null), 450);
               }}
               aria-label="Set operational domain to Animal Health"
               className={cn(
-                "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                glitchingDomain === "animal"
-                  ? "animate-glitch-bw"
-                  : domain === "animal"
-                    ? "bg-blue-500 text-white shadow-lg"
-                    : "text-(--foreground) hover:text-blue-400",
-              )}>
+                'flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
+                glitchingDomain === 'animal'
+                  ? 'animate-glitch-bw'
+                  : domain === 'animal'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'text-(--foreground) hover:text-blue-400',
+              )}
+            >
               Animal Health
             </button>
           </div>
@@ -671,21 +641,22 @@ export default function IntakeForm({
               onClick={handleDetectLocation}
               aria-label="Detect GPS coordinates"
               className={cn(
-                "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
+                'flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm',
                 activeLocalCoords
-                  ? "bg-(--foreground) border-(--border-color) text-(--background) shadow-inner"
-                  : "bg-(--background) border-(--border-color) text-(--foreground) hover:bg-(--foreground)/5",
-              )}>
+                  ? 'bg-(--foreground) border-(--border-color) text-(--background) shadow-inner'
+                  : 'bg-(--background) border-(--border-color) text-(--foreground) hover:bg-(--foreground)/5',
+              )}
+            >
               <MapPin
                 size={24}
                 className={cn(
                   activeLocalCoords
-                    ? "text-(--background)"
-                    : "group-hover:scale-110 transition-transform",
+                    ? 'text-(--background)'
+                    : 'group-hover:scale-110 transition-transform',
                 )}
               />
               <span className="text-[10px] font-bold uppercase tracking-widest">
-                {activeLocalCoords ? "GPS Active" : "Detect GPS"}
+                {activeLocalCoords ? 'GPS Active' : 'Detect GPS'}
               </span>
             </button>
             <button
@@ -693,21 +664,20 @@ export default function IntakeForm({
               onClick={() => onPickModeToggle?.(true)}
               aria-label="Pick location on map"
               className={cn(
-                "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
+                'flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm',
                 pickedLocation
-                  ? "bg-emergency/20 border-emergency/50 text-(--foreground)"
-                  : "bg-(--background) border-(--border-color) text-(--foreground) hover:bg-(--foreground)/5",
-              )}>
+                  ? 'bg-emergency/20 border-emergency/50 text-(--foreground)'
+                  : 'bg-(--background) border-(--border-color) text-(--foreground) hover:bg-(--foreground)/5',
+              )}
+            >
               <Target
                 size={24}
                 className={cn(
-                  pickedLocation
-                    ? "text-emergency"
-                    : "group-hover:scale-110 transition-transform",
+                  pickedLocation ? 'text-emergency' : 'group-hover:scale-110 transition-transform',
                 )}
               />
               <span className="text-[10px] font-bold uppercase tracking-widest">
-                {pickedLocation ? "Point Saved" : "Pick on Map"}
+                {pickedLocation ? 'Point Saved' : 'Pick on Map'}
               </span>
             </button>
           </div>
@@ -716,8 +686,7 @@ export default function IntakeForm({
               <p className="text-(--foreground) font-medium uppercase text-[10px] tracking-[0.3em] mb-4">
                 Tactical Coordinates
               </p>
-              Lat: {activeCoords.lat.toFixed(6)} | Lng:{" "}
-              {activeCoords.lng.toFixed(6)}
+              Lat: {activeCoords.lat.toFixed(6)} | Lng: {activeCoords.lng.toFixed(6)}
             </div>
           )}
         </div>
@@ -761,7 +730,8 @@ export default function IntakeForm({
               href="https://t.me/CPFieldBot"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer">
+              className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-xl bg-(--background) border border-(--border-color) flex items-center justify-center text-blue-500">
                 <Send size={18} />
               </div>
@@ -769,14 +739,13 @@ export default function IntakeForm({
                 <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">
                   Telegram Intelligence
                 </p>
-                <p className="text-sm font-black text-(--foreground)">
-                  @Community_Pulse_Bot
-                </p>
+                <p className="text-sm font-black text-(--foreground)">@Community_Pulse_Bot</p>
               </div>
             </a>
             <a
               href="tel:+19482229326"
-              className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer">
+              className="flex items-center gap-4 p-4 bg-(--foreground)/5 rounded-2xl border border-(--border-color) hover:bg-(--foreground)/10 transition-all group cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-xl bg-(--background) border border-(--border-color) flex items-center justify-center text-emerald-400">
                 <Phone size={18} />
               </div>
@@ -784,9 +753,7 @@ export default function IntakeForm({
                 <p className="text-[8px] font-black text-(--foreground) uppercase tracking-[0.2em]">
                   Vapi Telephony Hotline
                 </p>
-                <p className="text-sm font-black text-(--foreground)">
-                  +1 (948) 222-9326
-                </p>
+                <p className="text-sm font-black text-(--foreground)">+1 (948) 222-9326</p>
               </div>
             </a>
           </div>
@@ -796,11 +763,12 @@ export default function IntakeForm({
           disabled={isSubmitting}
           aria-label="Broadcast Incident Intelligence"
           className={cn(
-            "w-full py-6 bg-linear-to-r from-emergency to-orange-600 text-white font-black rounded-3xl uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all mt-6 shadow-2xl shadow-emergency/20",
+            'w-full py-6 bg-linear-to-r from-emergency to-orange-600 text-white font-black rounded-3xl uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all mt-6 shadow-2xl shadow-emergency/20',
             isSubmitting
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:brightness-110 active:scale-[0.98]",
-          )}>
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:brightness-110 active:scale-[0.98]',
+          )}
+        >
           {isSubmitting ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
           ) : (
