@@ -13,7 +13,7 @@ sentry_sdk.init(
     environment="prod" if "production" in os.getenv("ENVIRONMENT", "development") else "dev"
 )
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, File, UploadFile, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, File, UploadFile, Request, Depends, Header
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -277,6 +277,10 @@ async def add_security_headers_and_rate_limiting_middleware(request: Request, ca
     client_ip = request.client.host if request.client else "unknown"
     path = request.url.path
 
+    if path in ("/docs", "/redoc", "/openapi.json") or path.startswith("/openapi.json"):
+        response = await call_next(request)
+        return response
+
     if path == "/auth/verify-code":
         blocked, remaining = brute_force_protector.is_blocked(client_ip)
         if blocked:
@@ -376,6 +380,52 @@ class CreateVolunteerRequest(BaseModel):
 class VerifyCodeRequest(BaseModel):
     code: str
     role: str
+
+async def verify_volunteer_auth(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    """
+    Verify the Firebase ID token in the Authorization header.
+    Asserts that the user role is VOLUNTEER or ADMIN.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid Authorization header. Bearer token required."
+        )
+    token = authorization.split("Bearer ")[1].strip()
+    try:
+        decoded_token = admin_auth.verify_id_token(token)
+        uid = decoded_token.get("uid")
+        user_ref = admin_db.reference(f"users/{uid}")
+        user_data = user_ref.get()
+        if not user_data or user_data.get("role") not in ("VOLUNTEER", "ADMIN"):
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: Volunteer or Admin credentials required."
+            )
+        return decoded_token
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Unauthorized: Invalid token or session expired. {e}"
+        )
+
+async def verify_admin_auth(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+    """
+    Verify the Firebase ID token in the Authorization header.
+    Asserts that the user role is strictly ADMIN.
+    """
+    decoded_token = await verify_volunteer_auth(authorization)
+    uid = decoded_token.get("uid")
+    user_ref = admin_db.reference(f"users/{uid}")
+    user_data = user_ref.get()
+    if not user_data or user_data.get("role") != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Administrative clearance required."
+        )
+    return decoded_token
 
 @app.get("/")
 async def root():
@@ -631,7 +681,7 @@ async def process_and_save_need_record(
     return need_id, urgency_score
 
 
-@app.post("/intake")
+@app.post("/intake", tags=["Intake"], summary="Ingest and triage field report")
 async def process_intake(request: IntakeRequest, background_tasks: BackgroundTasks):
     """
     Primary intake for Web and WhatsApp reports.
@@ -664,7 +714,7 @@ async def process_intake(request: IntakeRequest, background_tasks: BackgroundTas
         logger.error(f"Error in process_intake: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.post("/intake/image")
+@app.post("/intake/image", tags=["Intake"], summary="Ingest and triage field report with image analysis")
 async def process_intake_image(
     background_tasks: BackgroundTasks,
     text: str = Form(...),
@@ -830,8 +880,12 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
         logger.error(f"Error handling voice webhook: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.post("/status/update")
-async def update_status(request: StatusUpdateRequest, background_tasks: BackgroundTasks):
+@app.post("/status/update", tags=["Missions"], summary="Update incident status")
+async def update_status(
+    request: StatusUpdateRequest, 
+    background_tasks: BackgroundTasks,
+    decoded_token: dict = Depends(verify_volunteer_auth)
+):
     """
     Update mission status and notify reporter.
     
@@ -891,7 +945,7 @@ class HeadingRequest(BaseModel):
     text: str
     sender: str = "reporter"  # "reporter" | "volunteer"
 
-@app.post("/ai/heading")
+@app.post("/ai/heading", tags=["Triage"], summary="Generate AI heading for messages")
 async def get_message_heading(request: HeadingRequest):
     """
     Generate a short, context-aware AI heading for a chat message.
@@ -908,8 +962,8 @@ async def get_message_heading(request: HeadingRequest):
 
 
 # ── Gemini Status / Credit Check Endpoint ───────────────────────────────────
-@app.get("/gemini/status")
-async def gemini_status():
+@app.get("/gemini/status", tags=["Admin"], summary="Retrieve AI engine status")
+async def gemini_status(decoded_token: dict = Depends(verify_admin_auth)):
     """
     Check Gemini API connectivity and quota availability.
     Useful for debugging 429 quota errors or 404 model-not-found errors.
@@ -919,8 +973,12 @@ async def gemini_status():
     status = await loop.run_in_executor(None, check_gemini_status)
     return status
 
-@app.post("/admin/create-volunteer")
-async def create_volunteer(request: CreateVolunteerRequest, background_tasks: BackgroundTasks):
+@app.post("/admin/create-volunteer", tags=["Admin"], summary="Onboard a new volunteer")
+async def create_volunteer(
+    request: CreateVolunteerRequest, 
+    background_tasks: BackgroundTasks,
+    decoded_token: dict = Depends(verify_admin_auth)
+):
     """
     Create a volunteer account programmatically and email credentials.
     """
@@ -984,7 +1042,7 @@ async def create_volunteer(request: CreateVolunteerRequest, background_tasks: Ba
         logger.error(f"Unexpected error in create_volunteer: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/auth/verify-code")
+@app.post("/auth/verify-code", tags=["Authentication"], summary="Verify volunteer/admin entry credentials code")
 async def verify_code(request_body: VerifyCodeRequest, request: Request):
     """
     Verify the volunteer/admin access code securely on the backend.
@@ -1059,8 +1117,11 @@ async def handle_post_acceptance_dispatch(incident_id: str, volunteer_id: str, a
         logger.error(f"Error in post acceptance dispatch: {e}")
 
 
-@app.post("/incidents/{incident_id}/recommend-volunteer")
-async def recommend_volunteer_for_incident(incident_id: str):
+@app.post("/incidents/{incident_id}/recommend-volunteer", tags=["Missions"], summary="Recommend best volunteer for incident")
+async def recommend_volunteer_for_incident(
+    incident_id: str,
+    decoded_token: dict = Depends(verify_volunteer_auth)
+):
     """
     Geospatial routing + Gemini intelligence: recommendation of best volunteer.
     """
@@ -1112,11 +1173,12 @@ async def recommend_volunteer_for_incident(incident_id: str):
         raise HTTPException(status_code=500, detail=f"Recommendation engine failed: {str(e)}")
 
 
-@app.post("/incidents/{incident_id}/accept")
+@app.post("/incidents/{incident_id}/accept", tags=["Missions"], summary="Accept incident dispatch mission")
 async def accept_incident_mission(
     incident_id: str,
     payload: AcceptMissionRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    decoded_token: dict = Depends(verify_volunteer_auth)
 ):
     import time
     volunteer_id = payload.volunteer_id

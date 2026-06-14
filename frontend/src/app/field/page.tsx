@@ -124,6 +124,7 @@ export default function FieldIntakePage() {
       <div className="fixed bottom-6 right-6 z-40 md:hidden flex flex-col gap-2">
         <button
           onClick={() => setShowDashboard(true)}
+          aria-label="Open Reports Log"
           className="p-4 bg-yellow text-charcoal rounded-full shadow-2xl border border-black/10 flex items-center justify-center cursor-pointer"
         >
           <LayoutDashboard size={20} />
@@ -154,6 +155,7 @@ export default function FieldIntakePage() {
               <div className="flex items-center gap-4 mb-8 border-b border-(--border-color) pb-6">
                 <button 
                   onClick={() => setShowDashboard(false)}
+                  aria-label="Close Reports Log"
                   className="p-3 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-2xl transition-all text-(--foreground) cursor-pointer"
                 >
                   <ArrowLeft size={20} />
@@ -184,6 +186,7 @@ export default function FieldIntakePage() {
                         setLocalCoords({ lat: need.lat || 0, lng: need.lng || 0 });
                         setShowDashboard(false);
                       }}
+                      aria-label={`Select report: ${getDisplayHeading(need)}`}
                       className={cn(
                         "w-full p-5 rounded-3xl border transition-all cursor-pointer hover:bg-(--foreground)/5 flex flex-col gap-3 text-left",
                         submittedNeedId === need.id
@@ -252,6 +255,7 @@ export default function FieldIntakePage() {
             <div className="flex items-center gap-4 mb-2">
                 <button 
                     onClick={() => { setSubmittedNeedId(null); setLocalCoords(null); setAiReportHeading(null); }}
+                    aria-label="Back to Intake Form"
                     className="p-3 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-2xl transition-all text-(--foreground) cursor-pointer"
                 >
                     <ArrowLeft size={20} />
@@ -284,6 +288,7 @@ export default function FieldIntakePage() {
 
                 <button 
                     onClick={() => signOut()}
+                    aria-label="Terminate Session / Sign Out"
                     className="p-3 bg-white/5 hover:bg-emergency/10 rounded-2xl transition-all text-sage hover:text-emergency cursor-pointer md:hidden"
                     title="Terminate Session"
                 >

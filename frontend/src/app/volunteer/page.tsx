@@ -390,11 +390,15 @@ export default function Home() {
     setRecommendationError(null);
     setRecommendationData(null);
     try {
+      const token = user ? await user.getIdToken() : "";
       const res = await fetch(
         `${apiBaseUrl}/incidents/${incidentId}/recommend-volunteer`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
         },
       );
       if (!res.ok) {
@@ -428,11 +432,14 @@ export default function Home() {
       if (status === "in-progress" || status === "resolved") {
         if (status === "in-progress") setTrackingNeedId(needId);
         else setTrackingNeedId(null);
-        // Trigger automated dispatch notification
         try {
+          const token = user ? await user.getIdToken() : "";
           await fetch(`${apiBaseUrl}/status/update`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
             body: JSON.stringify({ need_id: needId, status }),
           });
         } catch (err) {
@@ -900,6 +907,7 @@ export default function Home() {
           <div className="relative group">
             <button
               onClick={() => setActiveTab("map")}
+              aria-label="Operation Map"
               className={cn(
                 "p-4 rounded-2xl transition-all border border-transparent hover:scale-105 active:scale-95",
                 activeTab === "map"
@@ -919,6 +927,7 @@ export default function Home() {
           <div className="relative group">
             <button
               onClick={() => setActiveTab("alerts")}
+              aria-label="Priority Queue"
               className={cn(
                 "p-4 rounded-2xl transition-all relative hover:scale-105 active:scale-95",
                 activeTab === "alerts"
@@ -939,6 +948,7 @@ export default function Home() {
           <div className="relative group">
             <button
               onClick={() => setActiveTab("dispatched")}
+              aria-label="Active Dispatch"
               className={cn(
                 "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
                 activeTab === "dispatched"
@@ -956,6 +966,7 @@ export default function Home() {
           <div className="relative group">
             <button
               onClick={() => setActiveTab("resolved")}
+              aria-label="Resolved Missions"
               className={cn(
                 "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
                 activeTab === "resolved"
@@ -973,6 +984,7 @@ export default function Home() {
           <div className="relative group">
             <button
               onClick={() => setActiveTab("analytics")}
+              aria-label="Command Analytics"
               className={cn(
                 "p-4 rounded-2xl transition-all hover:scale-105 active:scale-95",
                 activeTab === "analytics"
@@ -990,6 +1002,7 @@ export default function Home() {
             <div className="relative group">
               <button
                 onClick={() => setActiveTab("comms")}
+                aria-label="Comms Center"
                 className={cn(
                   "p-4 transition-all rounded-2xl hover:scale-105 active:scale-95",
                   activeTab === "comms"
@@ -1006,6 +1019,7 @@ export default function Home() {
             <div className="relative group">
               <button
                 onClick={() => setActiveTab("intel")}
+                aria-label="Telegram Intel"
                 className={cn(
                   "p-4 transition-all rounded-2xl hover:scale-105 active:scale-95",
                   activeTab === "intel"
@@ -1024,6 +1038,7 @@ export default function Home() {
             <div className="relative group">
               <button
                 onClick={() => signOut()}
+                aria-label="Sign Out"
                 className="p-4 rounded-2xl text-(--foreground)/50 hover:text-(--background) hover:bg-emergency transition-all hover:scale-105 active:scale-95">
                 <LogOut size={20} />
               </button>
@@ -1082,6 +1097,7 @@ export default function Home() {
                     <>
                       <button
                         onClick={() => setManualSector("human")}
+                        aria-label="Filter by Human Health Sector"
                         className={cn(
                           "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
                           activeSector === "human"
@@ -1092,6 +1108,7 @@ export default function Home() {
                       </button>
                       <button
                         onClick={() => setManualSector("animal")}
+                        aria-label="Filter by Animal Health Sector"
                         className={cn(
                           "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
                           activeSector === "animal"
@@ -1102,6 +1119,7 @@ export default function Home() {
                       </button>
                       <button
                         onClick={() => setManualSector("all")}
+                        aria-label="Show All Sectors"
                         className={cn(
                           "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
                           activeSector === "all"
@@ -1191,6 +1209,7 @@ export default function Home() {
                   {!isManualMode ? (
                     <button
                       onClick={() => setIsManualMode(true)}
+                      aria-label="Manually Correct Location on Map"
                       className="px-4 py-2 bg-dark-gray/80 backdrop-blur-md border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-sage/80 hover:text-(--foreground) hover:border-yellow/50 transition-all flex items-center gap-2 shadow-xl">
                       <MapPin size={12} className="text-yellow" />
                       Correct Location
@@ -1203,6 +1222,7 @@ export default function Home() {
                       </div>
                       <button
                         onClick={clearManualOverride}
+                        aria-label="Use Automatic GPS Location"
                         className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-sage hover:text-(--foreground) transition-all">
                         Use GPS Logic
                       </button>
@@ -2322,6 +2342,7 @@ export default function Home() {
                                 <button
                                   key={video.youtube_id}
                                   onClick={() => setActiveVideoId(video.youtube_id)}
+                                  aria-label={idx === 0 ? `Select Best Video: ${video.title}` : `Select Alternative Video ${idx}: ${video.title}`}
                                   className={cn(
                                     "p-4 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer",
                                     isActive

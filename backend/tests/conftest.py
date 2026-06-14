@@ -23,13 +23,46 @@ from firebase_admin import db, auth
 firebase_admin.initialize_app = MagicMock()
 firebase_admin._apps = {"[default]": MagicMock()}
 
-# Mock DB references
-mock_db_ref = MagicMock()
-db.reference = MagicMock(return_value=mock_db_ref)
+# Create dynamic path references to mock roles and data
+mock_refs = {}
+
+def get_mock_reference(path="/"):
+    if path not in mock_refs:
+        m_ref = MagicMock()
+        if "users/mock_vol_uid" in path:
+            m_ref.get = MagicMock(return_value={"role": "VOLUNTEER"})
+        elif "users/mock_admin_uid" in path:
+            m_ref.get = MagicMock(return_value={"role": "ADMIN"})
+        elif "needs/" in path:
+            m_ref.get = MagicMock(return_value={
+                "id": "mock_need_id",
+                "raw_text": "Heart Attack emergency",
+                "status": "open",
+                "urgency_score": 10
+            })
+        else:
+            m_ref.get = MagicMock(return_value={})
+        
+        m_ref.child = MagicMock(side_effect=lambda child_path: get_mock_reference(f"{path}/{child_path}"))
+        mock_refs[path] = m_ref
+    return mock_refs[path]
+
+db.reference = MagicMock(side_effect=get_mock_reference)
+
+# Mock verify_id_token
+def mock_verify_id_token(token):
+    if token == "valid_volunteer_token":
+        return {"uid": "mock_vol_uid", "email": "volunteer@example.com"}
+    elif token == "valid_admin_token":
+        return {"uid": "mock_admin_uid", "email": "admin@example.com"}
+    raise ValueError("Invalid mock token")
+
+auth.verify_id_token = MagicMock(side_effect=mock_verify_id_token)
+auth.create_user = MagicMock(return_value=MagicMock(uid="mock_created_uid"))
 
 # Mock get_db
 import database
-database.get_db = MagicMock(return_value=mock_db_ref)
+database.get_db = MagicMock(side_effect=get_mock_reference)
 
 # Mock services
 import services.ai_service
@@ -56,7 +89,5 @@ _pool.call = MagicMock(side_effect=mock_call)
 
 @pytest.fixture(autouse=True)
 def cleanup_mock_db():
-    mock_db_ref.reset_mock()
-    mock_db_ref.get.return_value = {}
-    mock_db_ref.child.return_value = mock_db_ref
+    mock_refs.clear()
     yield

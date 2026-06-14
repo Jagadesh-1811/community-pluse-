@@ -23,6 +23,12 @@ def test_security_headers_present():
     assert headers.get("X-XSS-Protection") == "1; mode=block"
     assert headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
 
+def test_swagger_csp_bypass():
+    response = client.get("/docs")
+    assert response.status_code == 200
+    # CSP should not block docs styles/scripts
+    assert "Content-Security-Policy" not in response.headers
+
 def test_verify_code_success():
     response = client.post("/auth/verify-code", json={"code": "TEST_CODE_1", "role": "VOLUNTEER"})
     assert response.status_code == 200
@@ -73,3 +79,42 @@ def test_intake_rate_limiting():
     response = client.post("/intake", json=payload)
     assert response.status_code == 429
     assert "Too many reports" in response.json().get("detail")
+
+# JWT Endpoint Protection Tests
+def test_status_update_authorized():
+    headers = {"Authorization": "Bearer valid_volunteer_token"}
+    payload = {"need_id": "mock_need_id", "status": "in_progress", "notes": "On the way"}
+    response = client.post("/status/update", json=payload, headers=headers)
+    assert response.status_code == 200
+
+def test_status_update_unauthorized():
+    # Missing token
+    payload = {"need_id": "mock_need_id", "status": "in_progress"}
+    response = client.post("/status/update", json=payload)
+    assert response.status_code == 401
+
+    # Invalid token
+    headers = {"Authorization": "Bearer invalid_token"}
+    response = client.post("/status/update", json=payload, headers=headers)
+    assert response.status_code == 401
+
+def test_create_volunteer_admin_authorized():
+    headers = {"Authorization": "Bearer valid_admin_token"}
+    payload = {
+        "email": "new_vol@example.com",
+        "domain": "human",
+        "categories": ["cardiac_cpr"]
+    }
+    response = client.post("/admin/create-volunteer", json=payload, headers=headers)
+    assert response.status_code == 200
+
+def test_create_volunteer_volunteer_unauthorized():
+    # Volunteers cannot access admin onboarding endpoints
+    headers = {"Authorization": "Bearer valid_volunteer_token"}
+    payload = {
+        "email": "new_vol@example.com",
+        "domain": "human",
+        "categories": ["cardiac_cpr"]
+    }
+    response = client.post("/admin/create-volunteer", json=payload, headers=headers)
+    assert response.status_code == 403

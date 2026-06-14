@@ -125,7 +125,7 @@ graph TD
     K -->|Append Incident| R
 
     %% Integrations & Dispatch
-    F -->|Trigger Outbound Call (Urgency 10)| I
+    F -->|Trigger Outbound Call - Urgency 10| I
     I -->|Outbound Webhook| O
     F -->|Traffic-Aware Selector Routing| Q
     F -->|SMTP Email Commissioning| J

@@ -513,6 +513,7 @@ export default function IntakeForm({
         </div>
         <button
           onClick={onClose}
+          aria-label="Close Intake Form"
           className="p-3 bg-(--foreground)/5 hover:bg-(--foreground)/10 rounded-2xl transition-all text-(--foreground)/50 hover:text-(--foreground)">
           <X size={20} />
         </button>
@@ -531,6 +532,7 @@ export default function IntakeForm({
             onChange={(e) => setReport(e.target.value)}
             placeholder="e.g. 50 people need water in Sector 7..."
             className="w-full bg-(--background) border border-(--border-color) rounded-3xl p-6 text-(--foreground) font-medium placeholder:text-(--foreground)/40 focus:outline-none focus:border-yellow focus:ring-4 focus:ring-yellow/10 min-h-[160px] transition-all resize-none leading-relaxed shadow-inner"
+            aria-label="Incident Description"
           />
         </div>
 
@@ -567,6 +569,7 @@ export default function IntakeForm({
                 type="file"
                 accept="image/*"
                 className="hidden"
+                aria-label="Upload field photo"
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
                     const file = e.target.files[0];
@@ -609,6 +612,7 @@ export default function IntakeForm({
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+91..."
               className="w-full bg-(--background) border border-(--border-color) rounded-2xl py-5 pl-14 pr-6 text-(--foreground) font-medium focus:outline-none focus:border-yellow focus:ring-4 focus:ring-yellow/10 transition-all shadow-inner"
+              aria-label="Emergency Contact Phone Number"
             />
           </div>
         </div>
@@ -625,6 +629,7 @@ export default function IntakeForm({
                 setGlitchingDomain("human");
                 setTimeout(() => setGlitchingDomain(null), 450);
               }}
+              aria-label="Set operational domain to Human Health"
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 glitchingDomain === "human"
@@ -642,6 +647,7 @@ export default function IntakeForm({
                 setGlitchingDomain("animal");
                 setTimeout(() => setGlitchingDomain(null), 450);
               }}
+              aria-label="Set operational domain to Animal Health"
               className={cn(
                 "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                 glitchingDomain === "animal"
@@ -663,6 +669,7 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={handleDetectLocation}
+              aria-label="Detect GPS coordinates"
               className={cn(
                 "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
                 activeLocalCoords
@@ -684,6 +691,7 @@ export default function IntakeForm({
             <button
               type="button"
               onClick={() => onPickModeToggle?.(true)}
+              aria-label="Pick location on map"
               className={cn(
                 "flex flex-col items-center justify-center gap-3 py-6 rounded-2xl border transition-all group shadow-sm",
                 pickedLocation
@@ -767,6 +775,7 @@ export default function IntakeForm({
 
         <button
           disabled={isSubmitting}
+          aria-label="Broadcast Incident Intelligence"
           className={cn(
             "w-full py-6 bg-linear-to-r from-emergency to-orange-600 text-white font-black rounded-3xl uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all mt-6 shadow-2xl shadow-emergency/20",
             isSubmitting
