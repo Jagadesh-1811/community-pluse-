@@ -19,6 +19,18 @@ import { cn } from '@/lib/utils';
 
 const FieldMap = dynamic(() => import('@/components/map/FieldMap'), { ssr: false });
 
+const getDisplayHeading = (need?: any) => {
+  if (!need) return "Field Incident Report";
+  if (need.ai_heading && need.ai_heading.trim()) {
+    return need.ai_heading;
+  }
+  if (need.raw_text && need.raw_text.trim()) {
+    const words = need.raw_text.trim().split(/\s+/).slice(0, 5).join(" ");
+    return words.length < need.raw_text.trim().length ? words + "..." : words;
+  }
+  return need.location_name || "Field Incident Report";
+};
+
 export default function FieldIntakePage() {
   const { user, role, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
@@ -48,6 +60,13 @@ export default function FieldIntakePage() {
   // Filter needs submitted by the current reporter
   const userNeeds = needs.filter(need => need.reporter_email === user?.email);
   const selectedNeed = needs.find(need => need.id === submittedNeedId);
+
+  // Synchronize aiReportHeading with selectedNeed.ai_heading if available
+  useEffect(() => {
+    if (selectedNeed && selectedNeed.ai_heading) {
+      setAiReportHeading(selectedNeed.ai_heading);
+    }
+  }, [selectedNeed]);
 
   // Listen for hash changes to trigger opening the My Reports dashboard drawer
   useEffect(() => {
@@ -189,7 +208,7 @@ export default function FieldIntakePage() {
                       </div>
 
                       <h4 className="text-sm font-black text-(--foreground) leading-tight uppercase">
-                        {need.ai_heading || "Field Incident Report"}
+                        {getDisplayHeading(need)}
                       </h4>
                       
                       <p className="text-xs text-sage italic line-clamp-2">
@@ -243,11 +262,11 @@ export default function FieldIntakePage() {
                     </div>
                     <div>
                         {/* AI-generated heading — shimmers while loading */}
-                        {aiReportHeading ? (
+                        {selectedNeed ? (
                           <div className="flex items-center gap-2">
-                            <Sparkles size={14} className="text-yellow shrink-0" />
+                            {selectedNeed.ai_heading && <Sparkles size={14} className="text-yellow shrink-0" />}
                             <h3 className="text-xl font-anton text-(--foreground) uppercase tracking-wide leading-tight">
-                              {aiReportHeading}
+                              {getDisplayHeading(selectedNeed)}
                             </h3>
                           </div>
                         ) : (

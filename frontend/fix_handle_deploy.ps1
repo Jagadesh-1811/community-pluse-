@@ -1,5 +1,5 @@
 
-$path = "d:\community-pluse--main\frontend\src\app\volunteer\page.tsx"
+$path = "$PSScriptRoot\src\app\volunteer\page.tsx"
 $content = Get-Content $path -Raw
 $content = $content -replace "if \(status === 'in-progress'\) \{", "if (status === 'in-progress' || status === 'resolved') {"
 $content = $content -replace "fetch\('http://localhost:8000/notify/dispatch', \{", "fetch('http://localhost:8000/notify/status', {"

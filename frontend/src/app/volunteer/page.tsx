@@ -49,6 +49,18 @@ import { Mail, Key, ArrowRight, Shield } from "lucide-react";
 import ChatPanel from "@/components/chat/ChatPanel";
 import { useAuth } from "@/lib/auth-context";
 
+const getDisplayHeading = (need?: any) => {
+  if (!need) return "Field Incident Report";
+  if (need.ai_heading && need.ai_heading.trim()) {
+    return need.ai_heading;
+  }
+  if (need.raw_text && need.raw_text.trim()) {
+    const words = need.raw_text.trim().split(/\s+/).slice(0, 5).join(" ");
+    return words.length < need.raw_text.trim().length ? words + "..." : words;
+  }
+  return need.location_name || "Field Incident Report";
+};
+
 export default function Home() {
   const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -113,6 +125,15 @@ export default function Home() {
 
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
   const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedNeed?.video_recommendations?.primary?.youtube_id) {
+      setActiveVideoId(selectedNeed.video_recommendations.primary.youtube_id);
+    } else {
+      setActiveVideoId(null);
+    }
+  }, [selectedNeed]);
   const [activeTab, setActiveTab] = useState<
     | "map"
     | "alerts"
@@ -1452,12 +1473,7 @@ export default function Home() {
                         </div>
                       </div>
                       <h4 className="text-lg font-black text-(--foreground) mb-1 group-hover:text-emergency transition-colors leading-tight">
-                        {need.ai_heading ||
-                          need.location_name ||
-                          (need.raw_text
-                            ? need.raw_text.split(" ").slice(0, 5).join(" ") +
-                              "..."
-                            : "Field Report")}
+                        {getDisplayHeading(need)}
                       </h4>
                       {need.lat && need.lng && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -1980,10 +1996,7 @@ export default function Home() {
                     </div>
                     <div>
                       <h2 className="text-4xl font-black text-(--foreground) font-anton uppercase tracking-tight flex flex-wrap items-center gap-3">
-                        {selectedNeed.ai_heading ||
-                          (selectedNeed.source === "telegram"
-                            ? "Signal Extraction"
-                            : "Intake Incident")}
+                        {getDisplayHeading(selectedNeed)}
                         <span className="text-sage text-xl font-mono">
                           #{selectedNeed.id.slice(0, 8)}
                         </span>
@@ -2256,6 +2269,73 @@ export default function Home() {
                             <span className="text-yellow">
                               {selectedNeed.sentiment || "NEUTRAL"}
                             </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Emergency YouTube First Aid Video Guidance */}
+                    {selectedNeed.video_recommendations && activeVideoId && (
+                      <div className="p-10 bg-linear-to-br from-red-500/10 to-transparent rounded-4xl border border-red-500/20 relative overflow-hidden group shadow-xl space-y-6">
+                        <h3 className="text-xs font-black text-red-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                          <Activity size={16} className="text-red-500 animate-pulse" /> Emergency First Aid Guidance Videos
+                        </h3>
+                        
+                        <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/60 shadow-inner">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${activeVideoId}?autoplay=0&rel=0`}
+                            title="First Aid Instruction Video"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute top-0 left-0 w-full h-full border-0"
+                          ></iframe>
+                        </div>
+
+                        {(() => {
+                          const recs = selectedNeed.video_recommendations;
+                          const activeVid = recs.primary.youtube_id === activeVideoId 
+                            ? recs.primary 
+                            : recs.alternatives.find(v => v.youtube_id === activeVideoId) || recs.primary;
+                          return (
+                            <div className="space-y-2">
+                              <h4 className="text-lg font-black text-white uppercase tracking-tight">
+                                {activeVid.title}
+                              </h4>
+                              <p className="text-white/70 text-sm leading-relaxed font-outfit">
+                                {activeVid.description}
+                              </p>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="space-y-3 pt-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/50 block">
+                            Available Guidance Tracks
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {[
+                              selectedNeed.video_recommendations.primary,
+                              ...selectedNeed.video_recommendations.alternatives
+                            ].map((video, idx) => {
+                              const isActive = video.youtube_id === activeVideoId;
+                              return (
+                                <button
+                                  key={video.youtube_id}
+                                  onClick={() => setActiveVideoId(video.youtube_id)}
+                                  className={cn(
+                                    "p-4 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer",
+                                    isActive
+                                      ? "bg-red-500/20 border-red-500/40 text-white"
+                                      : "bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:border-white/10"
+                                  )}
+                                >
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400 mb-1 block">
+                                    {idx === 0 ? "Best Video" : `Alternative ${idx}`}
+                                  </span>
+                                  <span className="text-xs font-bold line-clamp-2">{video.title}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -2563,14 +2643,7 @@ export default function Home() {
                 </p>
                 <div className="mt-1 flex items-center gap-3 min-w-0">
                   <span className="truncate text-sm font-black uppercase text-(--foreground)">
-                    {collapsedNeed.ai_heading ||
-                      collapsedNeed.location_name ||
-                      (collapsedNeed.raw_text
-                        ? collapsedNeed.raw_text
-                            .split(" ")
-                            .slice(0, 4)
-                            .join(" ") + "..."
-                        : "Active Mission")}
+                    {getDisplayHeading(collapsedNeed)}
                   </span>
                   <span className="shrink-0 text-[10px] font-mono text-sage">
                     #{collapsedNeed.id.slice(0, 8)}

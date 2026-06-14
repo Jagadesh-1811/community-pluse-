@@ -1,5 +1,5 @@
 
-$files = Get-ChildItem -Path "d:\community-pluse--main\frontend\src" -Include *.tsx,*.ts,*.css -Recurse
+$files = Get-ChildItem -Path "$PSScriptRoot\src" -Include *.tsx,*.ts,*.css -Recurse
 foreach ($file in $files) {
     $content = Get-Content $file.FullName -Raw
     $newContent = $content -replace '\[var\((--[^)]+)\)\]', '($1)'

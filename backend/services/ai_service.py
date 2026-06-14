@@ -259,12 +259,50 @@ def heuristic_need_structure(text: str) -> Dict[str, Any]:
     elif any(kw in text_lower for kw in ["shelter", "home", "house", "building"]):
         need_type = "shelter"
         
+    emergency_category = "reassurance_transport"
+    
+    # 1. Check for medical sub-categories first
+    if any(kw in text_lower for kw in ["cpr", "cardiac", "heart stop", "collapse"]):
+        emergency_category = "cardiac_cpr"
+    elif "chok" in text_lower:
+        emergency_category = "choking"
+    elif any(kw in text_lower for kw in ["bleed", "wound", "cut", "blood"]):
+        emergency_category = "bleeding"
+    elif any(kw in text_lower for kw in ["stroke", "heart attack", "chest pain"]):
+        emergency_category = "heart_stroke"
+    elif any(kw in text_lower for kw in ["seizure", "convul", "fit", "unconscious"]):
+        emergency_category = "seizure_unconscious"
+    elif any(kw in text_lower for kw in ["fracture", "broken bone", "sprain", "strain", "sling"]):
+        emergency_category = "fracture_sprain"
+    elif any(kw in text_lower for kw in ["burn", "scald"]):
+        emergency_category = "burns"
+    elif any(kw in text_lower for kw in ["heat", "sun", "hyperthermia"]):
+        emergency_category = "heat_stroke"
+    elif any(kw in text_lower for kw in ["bite", "sting", "snake", "insect"]):
+        emergency_category = "animal_bite"
+    
+    # 2. Check for rescue and safety categories
+    else:
+        if any(kw in text_lower for kw in ["lift", "elevator", "stuck", "trap", "rescue", "debris", "collapse", "confined"]):
+            emergency_category = "entrapment_rescue"
+        elif any(kw in text_lower for kw in ["fire", "smoke", "evacuate", "burn building", "extinguisher"]):
+            emergency_category = "fire_evacuation"
+        elif any(kw in text_lower for kw in ["flood", "flooded", "rising water", "heavy rain"]):
+            emergency_category = "flood_safety"
+        elif any(kw in text_lower for kw in ["earthquake", "quake", "cyclone", "tornado", "storm", "hurricane"]):
+            emergency_category = "extreme_weather"
+        elif need_type == "water" or need_type == "food" or any(kw in text_lower for kw in ["hungry", "starv", "purif", "hyg"]):
+            emergency_category = "food_water_hygiene"
+        elif need_type == "shelter" or any(kw in text_lower for kw in ["cold", "tent", "tarp", "homeless"]):
+            emergency_category = "shelter_safety"
+        
     return {
         "need_type": need_type,
         "location_name": "Unknown Location",
         "people_affected": None,
         "urgency_signal": "Heuristic fallback parsing active.",
-        "reported_by": None
+        "reported_by": None,
+        "emergency_category": emergency_category
     }
 
 def heuristic_urgency_score(text: str) -> Dict[str, Any]:
@@ -274,7 +312,7 @@ def heuristic_urgency_score(text: str) -> Dict[str, Any]:
     emotional_signal = "concerned"
     assessment = "AI engine fallback active. Score computed via local keywords heuristic."
     
-    catastrophic_keywords = ["fire", "flood", "collapse", "trap", "bleed", "stroke", "heart attack", "unconscious", "explosion", "drown", "dying", "danger", "smoke", "tsunami", "earthquake", "accident", "trapped"]
+    catastrophic_keywords = ["fire", "flood", "collapse", "trap", "bleed", "stroke", "heart attack", "unconscious", "explosion", "drown", "dying", "danger", "smoke", "tsunami", "earthquake", "accident", "trapped", "lift", "elevator", "stuck", "entrap", "entrapped"]
     serious_keywords = ["hurt", "pain", "injury", "broken", "block", "leak", "electric", "gas", "water", "ambulance", "doctor", "hospital", "cut", "wound"]
     medium_keywords = ["food", "shelter", "supplies", "missing", "animal", "dog", "cat", "lost", "stray", "hungry", "starving"]
     
@@ -317,8 +355,25 @@ async def extract_need_structure(text: str) -> Dict[str, Any]:
     "location_name": "string",
     "people_affected": number or null,
     "urgency_signal": "any emotional or time-sensitive language found",
-    "reported_by": "name if mentioned or null"
+    "reported_by": "name if mentioned or null",
+    "emergency_category": "cardiac_cpr"|"choking"|"bleeding"|"heart_stroke"|"seizure_unconscious"|"fracture_sprain"|"burns"|"heat_stroke"|"animal_bite"|"flood_safety"|"food_water_hygiene"|"shelter_safety"|"reassurance_transport"|null
 }}
+
+Guidelines for "emergency_category":
+- Use "cardiac_cpr" for cardiac arrest, CPR, heart stopping, collapse, unresponsive and not breathing.
+- Use "choking" for choking, blockage in throat, unable to breathe due to food/object.
+- Use "bleeding" for severe bleeding, wounds, cuts, hemorrhages.
+- Use "heart_stroke" for suspected heart attacks, chest pain, stroke, facial droop, slurred speech (FAST symptoms).
+- Use "seizure_unconscious" for seizures, fits, convulsions, or unconscious but breathing individuals.
+- Use "fracture_sprain" for broken bones, fractures, sprains, strains, arm/leg injuries.
+- Use "burns" for thermal, chemical, or electrical burns and scalds.
+- Use "heat_stroke" for heat exhaustion, heat stroke, high temperature due to sun/heat.
+- Use "animal_bite" for animal bites, snake bites, dog bites, insect stings.
+- Use "flood_safety" for flood, flooding, rising water, heavy rain water logging, water enters house.
+- Use "food_water_hygiene" for food requests, starvation, drinking water requests, water purification, sanitation.
+- Use "shelter_safety" for housing damage, cold, tent/tarp requests, homeless rescue, structural safety.
+- Use "reassurance_transport" for other emergencies, general safety monitoring, or reassurance while waiting for help.
+
 Field report: {text}"""
 
     try:
@@ -444,14 +499,27 @@ No punctuation at the end. No quotes. No explanation. Just the heading."""
     try:
         content = await _pool.call(LIGHT_MODEL, prompt)
         heading = content.strip().strip('"').strip("'")
-        return heading[:60] if heading else _fallback_heading(sender)
+        return heading[:60] if heading else _fallback_heading_text(text, sender)
     except Exception as e:
         print(f"[AI] generate_message_heading error: {e}")
-        return _fallback_heading(sender)
+        return _fallback_heading_text(text, sender)
 
 
 def _fallback_heading(sender: str) -> str:
     return "Field Report" if sender == "reporter" else "Volunteer Update"
+
+
+def _fallback_heading_text(text: str, sender: str) -> str:
+    if not text or not text.strip():
+        return _fallback_heading(sender)
+    
+    # Extract the first 5 words as a heading
+    words = text.strip().split()
+    short_text = " ".join(words[:5])
+    if len(words) > 5:
+        short_text += "..."
+    # Title Case
+    return short_text.title()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -837,3 +905,299 @@ Return ONLY valid JSON:
             "new_urgency_score": parent_incident.get("urgency_score", 5),
             "reasoning": "Escalation evaluation bypassed due to engine exception."
         }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Feature 9: Curated YouTube First Aid Video Catalog (Approach 1)
+# ─────────────────────────────────────────────────────────────────────────────
+EMERGENCY_VIDEO_CATALOG = {
+    "cardiac_cpr": {
+        "category": "cardiac_cpr",
+        "primary": {
+            "title": "How to Do CPR on an Adult – First Aid Training",
+            "youtube_id": "BQNNOh8c8ks",
+            "description": "St John Ambulance UK trainer demonstrates full adult CPR with rescue breaths, step-by-step. Includes pandemic-era compression-only adaptation note."
+        },
+        "alternatives": [
+            {
+                "title": "First Aid for Someone Who Is Unresponsive and Not Breathing",
+                "youtube_id": "gDmy0of0XAk",
+                "description": "British Red Cross (2024) — covers collapse response, calling 999, and initiating CPR. Narrative + step-by-step + key steps format."
+            },
+            {
+                "title": "CPR Training from the American Heart Association",
+                "youtube_id": "RNWi4tF9uOA",
+                "description": "American Heart Association (2023) — official CPR training video emphasising that immediate CPR can double or triple cardiac arrest survival odds."
+            }
+        ]
+    },
+    "choking": {
+        "category": "choking",
+        "primary": {
+            "title": "First Aid for Someone Who Is Choking",
+            "youtube_id": "WeY4KJUnfMc",
+            "description": "British Red Cross (June 2024) — adult choking response with back blows and abdominal thrusts, structured as story + step-by-step + key steps recap."
+        },
+        "alternatives": [
+            {
+                "title": "Baby First Aid: Choking",
+                "youtube_id": "z-3IAG_974o",
+                "description": "British Red Cross (July 2024) — infant-specific choking technique using back blows and chest thrusts, clearly differentiated from adult method."
+            },
+            {
+                "title": "Children First Aid: Choking Child",
+                "youtube_id": "GymXjJJ7Ugo",
+                "description": "British Red Cross — animated guide for choking in children, focusing on the back-blow technique appropriate for paediatric patients."
+            }
+        ]
+    },
+    "bleeding": {
+        "category": "bleeding",
+        "primary": {
+            "title": "First Aid Training: Life-Threatening Bleeding",
+            "youtube_id": "p9KHec6xfuw",
+            "description": "St John Ambulance UK — covers severe bleeding control and tourniquet application. Most current tourniquet-inclusive video from SJA."
+        },
+        "alternatives": [
+            {
+                "title": "How to Treat Severe Bleeding – First Aid Training",
+                "youtube_id": "NxO5LvgqZe0",
+                "description": "St John Ambulance UK — trainer explains direct pressure, elevation, and wound packing for dramatic severe bleeds before emergency services arrive."
+            },
+            {
+                "title": "First Aid for Someone Who Is Bleeding Heavily",
+                "youtube_id": "L6jjyikFwmA",
+                "description": "British Red Cross (June 2024) — step-by-step severe bleeding response with clear key-steps recap and guidance on when to call 999."
+            }
+        ]
+    },
+    "heart_stroke": {
+        "category": "heart_stroke",
+        "primary": {
+            "title": "First Aid for Someone Having a Heart Attack",
+            "youtube_id": "vYWFVebej5A",
+            "description": "British Red Cross (September 2024) — recognising heart attack symptoms, calling 999, aspirin guidance, and keeping the patient calm while waiting for help."
+        },
+        "alternatives": [
+            {
+                "title": "Stroke: First Aid Steps and Key Action",
+                "youtube_id": "yFFptA_IWS0",
+                "description": "British Red Cross (September 2024) — concise FAST-based stroke first aid with a step-by-step recap, optimised for bystander recognition and response."
+            },
+            {
+                "title": "What to Do If Someone Has a Stroke – Signs and Symptoms",
+                "youtube_id": "PhH9a0kIwmk",
+                "description": "St John Ambulance UK — trainer covers the FAST acronym, common stroke presentations, and immediate response steps."
+            }
+        ]
+    },
+    "seizure_unconscious": {
+        "category": "seizure_unconscious",
+        "primary": {
+            "title": "First Aid for Someone Having a Seizure",
+            "youtube_id": "1SMFUwyEafw",
+            "description": "British Red Cross (August 2024) — what to do during and after a seizure, when to call 999, and how to protect the patient from injury."
+        },
+        "alternatives": [
+            {
+                "title": "The Recovery Position – First Aid Training",
+                "youtube_id": "GmqXqwSV3bo",
+                "description": "St John Ambulance UK — trainer demonstrates placing an unresponsive breathing adult into the recovery position safely while waiting for help."
+            },
+            {
+                "title": "How to Do the Primary Survey – First Aid Training",
+                "youtube_id": "ea1RJUOiNfQ",
+                "description": "St John Ambulance UK — DRABC primary survey for assessing unresponsive casualties; essential precursor to seizure and unconsciousness response."
+            }
+        ]
+    },
+    "fracture_sprain": {
+        "category": "fracture_sprain",
+        "primary": {
+            "title": "How to Treat a Fracture and Fracture Types – First Aid Training",
+            "youtube_id": "2v8vlXgGXwE",
+            "description": "St John Ambulance UK — trainer covers open vs closed fractures, immobilisation principles, and when to call for emergency help."
+        },
+        "alternatives": [
+            {
+                "title": "How to Make a Sling – First Aid Training",
+                "youtube_id": "PwfBGkBXkFA",
+                "description": "St John Ambulance UK — demonstrates both arm sling and elevation sling, with guidance on which injury type each suits."
+            },
+            {
+                "title": "First Aid Manual: Treating Strains and Sprains",
+                "youtube_id": "YcK45_xgAks",
+                "description": "St John Ambulance-endorsed — RICE method for sprains and strains with clear demonstration of when imaging may be required."
+            }
+        ]
+    },
+    "burns": {
+        "category": "burns",
+        "primary": {
+            "title": "How to Treat Burns and Scalds – First Aid Training",
+            "youtube_id": "EaJmzB8YgS0",
+            "description": "St John Ambulance UK — identifies burn severity, demonstrates 10-minute cool-water treatment, and covers what not to do (no butter, no ice, no burst blisters)."
+        },
+        "alternatives": [
+            {
+                "title": "First Aid: Helping Someone Who Has a Burn",
+                "youtube_id": "IOtnGl_9-qw",
+                "description": "British Red Cross — short-form burn treatment guide, covering cooling, covering, and calling for help, with a focus on child scenarios."
+            },
+            {
+                "title": "First Aid for Severe Allergic Reactions",
+                "youtube_id": "8EyYTW-1EP0",
+                "description": "British Red Cross (July 2024) — chemical exposure and anaphylactic shock response, relevant to chemical burn and severe skin reaction scenarios."
+            }
+        ]
+    },
+    "heat_stroke": {
+        "category": "heat_stroke",
+        "primary": {
+            "title": "How to Treat Heat Stroke, Signs and Symptoms – First Aid Training",
+            "youtube_id": "jvGC_dQJUtE",
+            "description": "St John Ambulance UK — trainer explains how to distinguish heat stroke from heat exhaustion and the emergency cooling steps required for heat stroke."
+        },
+        "alternatives": [
+            {
+                "title": "How to Treat Heat Exhaustion, Signs and Symptoms – First Aid Training",
+                "youtube_id": "R6VdoV8dZRc",
+                "description": "St John Ambulance UK — covers the milder but dangerous precursor to heat stroke: recognition, hydration, rest, and when to escalate to emergency services."
+            },
+            {
+                "title": "First Aid for Someone with Hypothermia",
+                "youtube_id": "DewzkBh2onc",
+                "description": "British Red Cross (September 2024) — temperature-related emergency on the cold end; a useful pairing for comprehensive temperature-extremes first aid training."
+            }
+        ]
+    },
+    "animal_bite": {
+        "category": "animal_bite",
+        "primary": {
+            "title": "Bites and Stings – Animated",
+            "youtube_id": "7Fh3v5c6FY4",
+            "description": "St John Ambulance UK animated guide covering animal bites, insect stings, and initial wound care including when to seek medical attention."
+        },
+        "alternatives": [
+            {
+                "title": "First Aid for Severe Allergic Reactions (Anaphylaxis)",
+                "youtube_id": "8EyYTW-1EP0",
+                "description": "British Red Cross (July 2024) — critical companion for bite/sting videos; covers anaphylactic shock triggered by insect stings, including adrenaline auto-injector guidance."
+            },
+            {
+                "title": "How to Treat Shock – First Aid Training",
+                "youtube_id": "61urGQrmeNM",
+                "description": "St John Ambulance UK — covers circulatory shock, which can follow severe bites or anaphylaxis; signs, positioning, and monitoring while awaiting EMS."
+            }
+        ]
+    },
+    "flood_safety": {
+        "category": "flood_safety",
+        "primary": {
+            "title": "Flood Safety FEMA PSA",
+            "youtube_id": "5P5x-38wp-o",
+            "description": "FEMA official PSA (April 2025) — key flood safety actions after a storm: avoid floodwaters, don't drive into submerged roads, and wait for the all-clear."
+        },
+        "alternatives": [
+            {
+                "title": "Turn Around Don't Drown PSA",
+                "youtube_id": "eI6mIlHKrVY",
+                "description": "National Weather Service / NOAA — the flagship flood safety campaign explaining why even 6 inches of moving water can knock an adult off their feet and sweep a car away."
+            },
+            {
+                "title": "FEMA Accessible: Flood Safety and Warning Tips",
+                "youtube_id": "7-iYio9UqDQ",
+                "description": "FEMA official video (2017) on flood safety and warning vocabulary, with ASL interpretation and multilingual captions. Covers watch vs. warning distinctions."
+            }
+        ]
+    },
+    "entrapment_rescue": {
+        "category": "entrapment_rescue",
+        "primary": {
+            "title": "Guideline in Case of Lift Entrapment",
+            "youtube_id": "APGiJIm91rw",
+            "description": "Safety guidance video on elevator entrapment procedure: stay calm, press the emergency button, use the intercom, and wait for trained rescue personnel. Do not attempt to force doors or climb out."
+        },
+        "alternatives": [
+            {
+                "title": "What to Do If You Get Stuck in an Elevator",
+                "youtube_id": "oqVWwJd2Sh4",
+                "description": "Step-by-step instructional on safe behaviour during elevator entrapment: alert building management, conserve phone battery, avoid prying doors, and signal rescuers."
+            },
+            {
+                "title": "Drop, Cover, and Hold On – Protect Yourself During an Earthquake",
+                "youtube_id": "aV89_yUJunM",
+                "description": "FEMA / Earthquake Country Alliance (2021) — covers debris entrapment scenarios after structural collapse, including signalling for rescue, covering your mouth, and texting over calling."
+            }
+        ]
+    },
+    "fire_evacuation": {
+        "category": "fire_evacuation",
+        "primary": {
+            "title": "How to Make a Home Fire Escape Plan",
+            "youtube_id": "tNPb_lKXv6E",
+            "description": "NFPA official channel (October 2022, Fire Prevention Week) — explains the two-minute escape window in modern homes, two-exit-per-room planning, meeting points, and practising with family."
+        },
+        "alternatives": [
+            {
+                "title": "Every Second Counts in a Home Fire – Practice Your Escape Plan",
+                "youtube_id": "Vc-AkbpdSYk",
+                "description": "NFPA (2020) — demonstrates how to practice your escape plan, check doors for heat before opening, stay low under smoke, and never re-enter a burning building."
+            },
+            {
+                "title": "NFPA Public Service Announcement – Get Low and Go",
+                "youtube_id": "sGgNeYLRgtw",
+                "description": "NFPA / Sparky the Fire Dog PSA — concise fire escape rule: stay below smoke, crawl to safety, and get out fast. Suitable for all ages."
+            }
+        ]
+    },
+    "extreme_weather": {
+        "category": "extreme_weather",
+        "primary": {
+            "title": "Drop, Cover, and Hold On – Protect Yourself During an Earthquake",
+            "youtube_id": "aV89_yUJunM",
+            "description": "FEMA / Earthquake Country Alliance (October 2021) — official demonstration of Drop, Cover, and Hold On as the recommended safety action during earthquake shaking."
+        },
+        "alternatives": [
+            {
+                "title": "Preparedness: Tornado Safety",
+                "youtube_id": "lsOtr-cFdB0",
+                "description": "American Red Cross Scientific Advisory Council — Dr. Rick Bissell explains what to do if caught in a tornado: shelter in lowest floor interior room, protect head and neck, avoid windows."
+            },
+            {
+                "title": "ShakeOut Earthquake Drill – Drop Cover and Hold On",
+                "youtube_id": "B3mzFRNTZVc",
+                "description": "Great ShakeOut / FEMA-supported earthquake drill video (October 2023) — demonstrates Drop, Cover, and Hold On across multiple scenarios including with a service animal."
+            }
+        ]
+    },
+    "reassurance_transport": {
+        "category": "reassurance_transport",
+        "primary": {
+            "title": "How to Do the Primary Survey – First Aid Training",
+            "youtube_id": "ea1RJUOiNfQ",
+            "description": "St John Ambulance UK — the DRABC assessment framework underpins safe patient monitoring while awaiting EMS; includes keeping the patient calm and responsive."
+        },
+        "alternatives": [
+            {
+                "title": "How to Treat Shock – First Aid Training",
+                "youtube_id": "61urGQrmeNM",
+                "description": "St John Ambulance UK — shock management while awaiting ambulance: correct positioning, warmth, reassurance, and monitoring breathing and pulse rate."
+            },
+            {
+                "title": "The Recovery Position – First Aid Training",
+                "youtube_id": "GmqXqwSV3bo",
+                "description": "St John Ambulance UK — safe positioning for unresponsive breathing patients while awaiting emergency services; essential component of pre-transport patient care."
+            }
+        ]
+    }
+}
+
+
+def get_video_recommendations(category: Optional[str]) -> Dict[str, Any]:
+    """
+    Returns primary and alternative videos for a given category.
+    Defaults to 'reassurance_transport' if the category is invalid or missing.
+    """
+    cat = category if category in EMERGENCY_VIDEO_CATALOG else "reassurance_transport"
+    return EMERGENCY_VIDEO_CATALOG[cat]

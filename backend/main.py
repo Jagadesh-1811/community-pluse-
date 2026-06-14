@@ -13,7 +13,8 @@ sentry_sdk.init(
     environment="prod" if "production" in os.getenv("ENVIRONMENT", "development") else "dev"
 )
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, File, UploadFile
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, File, UploadFile, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, Literal, List
@@ -21,7 +22,7 @@ import uuid
 import datetime
 from database import get_db
 from firebase_admin import db as admin_db, auth as admin_auth
-from services.ai_service import extract_need_structure, score_urgency, generate_tactical_reply, generate_message_heading, check_gemini_status, check_for_incident_clustering, evaluate_escalation
+from services.ai_service import extract_need_structure, score_urgency, generate_tactical_reply, generate_message_heading, check_gemini_status, check_for_incident_clustering, evaluate_escalation, get_video_recommendations
 from services.telegram_service import run_bot, send_telegram_message
 from services.voice_service import trigger_emergency_call
 from services.whatsapp_service import router as whatsapp_router
@@ -56,6 +57,53 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f" Firebase verification failed: {e}")
     
+    def is_fallback_heading(heading: str | None) -> bool:
+        if not heading:
+            return True
+        h = heading.strip().lower()
+        return h in ("field report", "field incident report", "intake incident", "signal extraction")
+
+    # Run a background task to backfill missing AI headings or video recommendations for past reports
+    async def backfill_missing_headings():
+        try:
+            logger.info("[Backfill] Scanning database for reports missing AI headings or video recommendations...")
+            needs_ref = admin_db.reference("needs")
+            needs = needs_ref.get()
+            if not needs or not isinstance(needs, dict):
+                logger.info("[Backfill] No reports found to check.")
+                return
+            
+            backfilled_headings = 0
+            backfilled_videos = 0
+            for nid, ndata in needs.items():
+                raw_text = ndata.get("raw_text") or ndata.get("description") or ""
+                if not raw_text.strip():
+                    continue
+
+                # 1. Backfill Headings
+                if is_fallback_heading(ndata.get("ai_heading")):
+                    logger.info(f"[Backfill] Generating AI heading for need {nid} (current: {ndata.get('ai_heading')})...")
+                    ai_heading = await generate_message_heading(raw_text, "reporter")
+                    admin_db.reference(f"needs/{nid}/ai_heading").set(ai_heading)
+                    backfilled_headings += 1
+
+                # 2. Backfill Video Recommendations
+                if not ndata.get("video_recommendations"):
+                    logger.info(f"[Backfill] Generating video recommendations for need {nid}...")
+                    ai_data = await extract_need_structure(raw_text)
+                    video_recs = get_video_recommendations(ai_data.get("emergency_category"))
+                    admin_db.reference(f"needs/{nid}/video_recommendations").set(video_recs)
+                    backfilled_videos += 1
+
+            if backfilled_headings > 0 or backfilled_videos > 0:
+                logger.info(f"[Backfill] Complete. Headings backfilled: {backfilled_headings}, Videos backfilled: {backfilled_videos}")
+            else:
+                logger.info("[Backfill] All existing reports are fully up to date.")
+        except Exception as e:
+            logger.error(f"[Backfill] Error during database backfill: {e}")
+
+    asyncio.create_task(backfill_missing_headings())
+
     # Telegram bot enabled for production deployment
     try:
         asyncio.create_task(run_bot())
@@ -108,6 +156,15 @@ async def lifespan(app: FastAPI):
                 needs = needs_ref.get()
                 if not needs or not isinstance(needs, dict):
                     continue
+
+                # Periodically generate missing headings for any reports in the database
+                for nid, ndata in needs.items():
+                    if is_fallback_heading(ndata.get("ai_heading")):
+                        raw_text = ndata.get("raw_text") or ndata.get("description") or ""
+                        if raw_text.strip():
+                            logger.info(f"[SLA Checker] Need {nid} has missing or fallback heading. Generating...")
+                            ai_heading = await generate_message_heading(raw_text, "reporter")
+                            admin_db.reference(f"needs/{nid}/ai_heading").set(ai_heading)
                 
                 now_ts = datetime.datetime.utcnow().timestamp() * 1000
                 five_minutes_ms = 5 * 60 * 1000 # 5 minutes in milliseconds
@@ -159,12 +216,104 @@ async def lifespan(app: FastAPI):
 
     yield
 
+import time
+from collections import defaultdict
+import threading
+
+class InMemoryRateLimiter:
+    def __init__(self):
+        self.history = defaultdict(list)
+        self.lock = threading.Lock()
+
+    def is_allowed(self, ip: str, endpoint: str, limit: int, window: int) -> bool:
+        now = time.time()
+        key = f"{ip}:{endpoint}"
+        with self.lock:
+            self.history[key] = [t for t in self.history[key] if now - t < window]
+            if len(self.history[key]) < limit:
+                self.history[key].append(now)
+                return True
+            return False
+
+rate_limiter = InMemoryRateLimiter()
+
+class BruteForceProtector:
+    def __init__(self):
+        self.failed_attempts = defaultdict(int)
+        self.blocked_until = defaultdict(float)
+        self.lock = threading.Lock()
+
+    def is_blocked(self, ip: str) -> tuple[bool, float]:
+        now = time.time()
+        with self.lock:
+            until = self.blocked_until[ip]
+            if until > now:
+                return True, until - now
+            return False, 0.0
+
+    def record_failure(self, ip: str):
+        with self.lock:
+            self.failed_attempts[ip] += 1
+            if self.failed_attempts[ip] >= 5:
+                self.blocked_until[ip] = time.time() + 900  # 15 minutes block
+                self.failed_attempts[ip] = 0
+
+    def record_success(self, ip: str):
+        with self.lock:
+            self.failed_attempts[ip] = 0
+            self.blocked_until[ip] = 0.0
+
+brute_force_protector = BruteForceProtector()
+
 app = FastAPI(
     title="CommunityPulse API",
     description="Real-time crisis coordination and field reporting platform",
     version="1.0.0",
     lifespan=lifespan
 )
+
+@app.middleware("http")
+async def add_security_headers_and_rate_limiting_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    path = request.url.path
+
+    if path == "/auth/verify-code":
+        blocked, remaining = brute_force_protector.is_blocked(client_ip)
+        if blocked:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": f"Brute force protection active. IP is blocked. Try again in {int(remaining)} seconds."}
+            )
+        if not rate_limiter.is_allowed(client_ip, "/auth/verify-code", limit=10, window=60):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many code verification attempts. Please try again later."}
+            )
+    elif path == "/intake":
+        if not rate_limiter.is_allowed(client_ip, "/intake", limit=60, window=60):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many reports. Please try again later."}
+            )
+
+    response = await call_next(request)
+    
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com; "
+        "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self' https://*.googleapis.com wss://*.googleapis.com; "
+        "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com;"
+    )
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    return response
 
 
 # Configure CORS based on environment
@@ -464,7 +613,8 @@ async def process_and_save_need_record(
         "created_at": {".sv": "timestamp"},
         "visual_severity": visual_data.get("visual_severity"),
         "visual_hazards": visual_data.get("visual_hazards"),
-        "tactical_assessment": tactical_assessment
+        "tactical_assessment": tactical_assessment,
+        "video_recommendations": get_video_recommendations(ai_data.get("emergency_category"))
     }
 
     admin_db.reference(f"needs/{need_id}").set(need_record)
@@ -653,7 +803,8 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
             "life_threat": scoring_data.get("life_threat", False),
             "webrtc_json": payload,
             "webrtc_conversation": webrtc_conv if webrtc_conv else None,
-            "created_at": {".sv": "timestamp"}
+            "created_at": {".sv": "timestamp"},
+            "video_recommendations": get_video_recommendations(ai_data.get("emergency_category"))
         }
         
         try:
@@ -834,16 +985,19 @@ async def create_volunteer(request: CreateVolunteerRequest, background_tasks: Ba
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/auth/verify-code")
-async def verify_code(request: VerifyCodeRequest):
+async def verify_code(request_body: VerifyCodeRequest, request: Request):
     """
     Verify the volunteer/admin access code securely on the backend.
     """
+    client_ip = request.client.host if request.client else "unknown"
     valid_codes = os.getenv("VOLUNTEER_CODES", "PULSE_ADMIN_1,PULSE_VOLUNTEER_2,PULSE_RESCUE_3,PULSE_CORE_4").split(",")
     valid_codes = [c.strip() for c in valid_codes]
     
-    if request.code in valid_codes:
+    if request_body.code in valid_codes:
+        brute_force_protector.record_success(client_ip)
         return {"status": "success", "valid": True}
     else:
+        brute_force_protector.record_failure(client_ip)
         raise HTTPException(status_code=400, detail="INVALID ACCESS CODE: Volunteer commissioning requires a valid tactical code.")
 
 
