@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useRealtimeNeeds } from "@/hooks/useRealtimeNeeds";
 import { rtdb } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
 import {
@@ -57,6 +58,44 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
+
+  // REALTIME NEEDS LOGIC FOR ANALYTICS
+  const { needs } = useRealtimeNeeds();
+
+  // Dynamic Stats calculations for Analytics tab
+  const totalIncidents = needs.length;
+  const activeMissions = needs.filter(
+    (n) => n.status === "in-progress" || n.status === "in_progress",
+  ).length;
+  const resolvedMissions = needs.filter((n) => n.status === "resolved").length;
+  const pendingIncidents = needs.filter(
+    (n) => !n.status || n.status === "open",
+  ).length;
+
+  const categoriesCount = needs.reduce((acc: Record<string, number>, curr) => {
+    const type = curr.need_type || "unclassified";
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const sourcesCount = needs.reduce((acc: Record<string, number>, curr) => {
+    const src = curr.source || "web";
+    acc[src] = (acc[src] || 0) + 1;
+    return acc;
+  }, {});
+
+  const urgencyAvg =
+    totalIncidents > 0
+      ? (
+          needs.reduce((sum, n) => sum + (n.urgency_score || 0), 0) /
+          totalIncidents
+        ).toFixed(1)
+      : "0.0";
+
+  const escalatedCount = needs.filter((n) => n.sla_escalated).length;
+  const clusteredCount = needs.filter(
+    (n) => n.is_major_incident || n.parent_incident_id,
+  ).length;
 
   // LISTEN TO CATEGORIES
   useEffect(() => {
@@ -651,6 +690,187 @@ export default function AdminPage() {
             </form>
           </section>
         </div>
+
+        {/* Command Analytics Section */}
+        <section className="bg-(--card-bg) border border-(--border-color) rounded-4xl p-8 lg:p-10 shadow-xl space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-(--border-color) pb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-(--foreground)/5 rounded-xl border border-(--border-color)">
+                <Shield className="text-yellow" size={20} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-anton uppercase tracking-wide">
+                  Strategic Intelligence & Analytics
+                </h2>
+                <p className="text-[10px] text-sage font-black uppercase tracking-widest mt-1">
+                  Real-time Ground Operations & AI Audit Analytics
+                </p>
+              </div>
+            </div>
+            <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center gap-3">
+              <Loader2 className="animate-spin text-blue-400" size={16} />
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                Real-time Telemetry Sync
+              </span>
+            </div>
+          </div>
+
+          {/* KPI Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-linear-to-b from-(--foreground)/5 to-transparent border border-(--border-color) rounded-3xl p-6 flex flex-col justify-between">
+              <span className="text-sage text-[10px] font-black uppercase tracking-wider">
+                Total Reports Intake
+              </span>
+              <span className="text-5xl font-black mt-2 font-anton tracking-wide text-(--foreground)">
+                {totalIncidents}
+              </span>
+            </div>
+            <div className="bg-linear-to-b from-orange-500/10 to-transparent border border-orange-500/20 rounded-3xl p-6 flex flex-col justify-between">
+              <span className="text-orange-500 dark:text-orange-400 text-[10px] font-black uppercase tracking-wider">
+                Active Dispatched Missions
+              </span>
+              <span className="text-5xl font-black mt-2 font-anton tracking-wide text-orange-500 dark:text-orange-400">
+                {activeMissions}
+              </span>
+            </div>
+            <div className="bg-linear-to-b from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-3xl p-6 flex flex-col justify-between">
+              <span className="text-emerald-500 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider">
+                Resolved Disasters
+              </span>
+              <span className="text-5xl font-black mt-2 font-anton tracking-wide text-emerald-500 dark:text-emerald-400">
+                {resolvedMissions}
+              </span>
+            </div>
+            <div className="bg-linear-to-b from-red-500/10 to-transparent border border-red-500/20 rounded-3xl p-6 flex flex-col justify-between">
+              <span className="text-red-500 dark:text-red-400 text-[10px] font-black uppercase tracking-wider">
+                Unassigned Emergencies
+              </span>
+              <span className="text-5xl font-black mt-2 font-anton tracking-wide text-red-500 dark:text-red-400">
+                {pendingIncidents}
+              </span>
+            </div>
+          </div>
+
+          {/* Breakdown Metrics Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
+            {/* Needs Category breakdown */}
+            <div className="bg-(--background) border border-(--border-color) rounded-4xl p-8 shadow-inner">
+              <h3 className="text-sm font-black uppercase tracking-wider mb-6 text-yellow">
+                Incident Domain & Need Classification
+              </h3>
+              <div className="space-y-4">
+                {[
+                  "medical",
+                  "food",
+                  "water",
+                  "shelter",
+                  "animal",
+                  "safety",
+                  "education",
+                  "unclassified",
+                ].map((cat) => {
+                  const count = categoriesCount[cat] || 0;
+                  const percent =
+                    totalIncidents > 0
+                      ? ((count / totalIncidents) * 100).toFixed(0)
+                      : "0";
+                  if (
+                    count === 0 &&
+                    cat !== "medical" &&
+                    cat !== "food" &&
+                    cat !== "animal"
+                  )
+                    return null;
+                  return (
+                    <div key={cat} className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                        <span className="text-sage">{cat}</span>
+                        <span className="text-(--foreground)">
+                          {count} ({percent}%)
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-(--foreground)/5 rounded-full overflow-hidden border border-(--border-color)">
+                        <div
+                          className="h-full bg-yellow transition-all duration-500"
+                          style={{ width: `${percent}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Response Channels Breakdown */}
+            <div className="bg-(--background) border border-(--border-color) rounded-4xl p-8 flex flex-col justify-between gap-6 shadow-inner">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider mb-6 text-blue-500">
+                  Intake Channels Distribution
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                  {["web", "voice_agent", "telegram", "whatsapp"].map(
+                    (src) => {
+                      const count = sourcesCount[src] || 0;
+                      const percent =
+                        totalIncidents > 0
+                          ? ((count / totalIncidents) * 100).toFixed(0)
+                          : "0";
+                      return (
+                        <div
+                          key={src}
+                          className="bg-(--foreground)/5 border border-(--border-color) rounded-2xl p-5 flex flex-col justify-between">
+                          <span className="text-sage text-[10px] font-black uppercase tracking-wider">
+                            {src.replace("_", " ")}
+                          </span>
+                          <div className="flex justify-between items-end mt-4">
+                            <span className="text-2xl font-anton text-(--foreground)">
+                              {count}
+                            </span>
+                            <span className="text-[10px] text-sage font-black">
+                              {percent}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+
+              {/* AI Ops Telemetry */}
+              <div className="border-t border-(--border-color) pt-6">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-sage mb-4">
+                  Autonomous AI Operations Telemetry
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-(--foreground)/5 rounded-xl border border-(--border-color)">
+                    <span className="text-[8px] font-black uppercase tracking-wider text-sage">
+                      Avg Urgency Index
+                    </span>
+                    <div className="text-lg font-black mt-1 text-(--foreground) font-mono">
+                      {urgencyAvg}/10
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-(--foreground)/5 rounded-xl border border-(--border-color)">
+                    <span className="text-[8px] font-black uppercase tracking-wider text-sage">
+                      SLA Escalations
+                    </span>
+                    <div className="text-lg font-black mt-1 text-indigo-500 dark:text-indigo-400 font-mono">
+                      {escalatedCount}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-(--foreground)/5 rounded-xl border border-(--border-color)">
+                    <span className="text-[8px] font-black uppercase tracking-wider text-sage">
+                      Clustered Events
+                    </span>
+                    <div className="text-lg font-black mt-1 text-emerald-600 dark:text-emerald-400 font-mono">
+                      {clusteredCount}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );

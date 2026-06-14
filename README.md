@@ -130,6 +130,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### 4. Admin Portal
+- Access the Admin Portal locally by navigating to `http://localhost:3000/admin`.
+- Authenticate with administrator credentials (or register a new admin node using a valid security key).
+- Manage tactical incident classifications, configure custom categories/colors, onboard field volunteers, and view real-time Command Analytics telemetry directly on the dashboard.
+
 ---
 
 ## API Documentation & Health Checks

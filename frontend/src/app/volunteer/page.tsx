@@ -49,7 +49,7 @@ import { Mail, Key, ArrowRight, Shield } from "lucide-react";
 import ChatPanel from "@/components/chat/ChatPanel";
 import { useAuth } from "@/lib/auth-context";
 
-const getDisplayHeading = (need?: any) => {
+const getDisplayHeading = (need?: Need | null) => {
   if (!need) return "Field Incident Report";
   if (need.ai_heading && need.ai_heading.trim()) {
     return need.ai_heading;
@@ -125,15 +125,6 @@ export default function Home() {
 
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
   const [collapsedNeed, setCollapsedNeed] = useState<Need | null>(null);
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (selectedNeed?.video_recommendations?.primary?.youtube_id) {
-      setActiveVideoId(selectedNeed.video_recommendations.primary.youtube_id);
-    } else {
-      setActiveVideoId(null);
-    }
-  }, [selectedNeed]);
   const [activeTab, setActiveTab] = useState<
     | "map"
     | "alerts"
@@ -363,6 +354,8 @@ export default function Home() {
     }
   }, [trackingNeedId, volunteerLocation]);
 
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
   const openNeed = (
     need: Need,
     tab: "map" | "alerts" | "dispatched" | "resolved" = "map",
@@ -373,6 +366,11 @@ export default function Home() {
     setRecommendationData(null);
     setRecommendationLoading(false);
     setRecommendationError(null);
+    if (need.video_recommendations?.primary?.youtube_id) {
+      setActiveVideoId(need.video_recommendations.primary.youtube_id);
+    } else {
+      setActiveVideoId(null);
+    }
   };
 
   const closeNeedPanel = () => {
@@ -383,6 +381,7 @@ export default function Home() {
     setRecommendationData(null);
     setRecommendationLoading(false);
     setRecommendationError(null);
+    setActiveVideoId(null);
   };
 
   const fetchVolunteerRecommendation = async (incidentId: string) => {
@@ -1923,27 +1922,27 @@ export default function Home() {
                         Autonomous AI Operations Telemetry
                       </h4>
                       <div className="grid grid-cols-3 gap-4">
-                        <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                        <div className="text-center p-3 bg-white/5 rounded-xl border border-(--border-color)">
                           <span className="text-[8px] font-black uppercase tracking-wider text-sage">
                             Avg Urgency Index
                           </span>
-                          <div className="text-lg font-black mt-1 text-white font-mono">
+                          <div className="text-lg font-black mt-1 text-(--foreground) font-mono">
                             {urgencyAvg}/10
                           </div>
                         </div>
-                        <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                        <div className="text-center p-3 bg-white/5 rounded-xl border border-(--border-color)">
                           <span className="text-[8px] font-black uppercase tracking-wider text-sage">
                             SLA Escalations
                           </span>
-                          <div className="text-lg font-black mt-1 text-indigo-400 font-mono">
+                          <div className="text-lg font-black mt-1 text-indigo-500 dark:text-indigo-400 font-mono">
                             {escalatedCount}
                           </div>
                         </div>
-                        <div className="text-center p-3 bg-white/5 rounded-xl border border-white/10">
+                        <div className="text-center p-3 bg-white/5 rounded-xl border border-(--border-color)">
                           <span className="text-[8px] font-black uppercase tracking-wider text-sage">
                             Clustered Events
                           </span>
-                          <div className="text-lg font-black mt-1 text-emerald-400 font-mono">
+                          <div className="text-lg font-black mt-1 text-emerald-600 dark:text-emerald-400 font-mono">
                             {clusteredCount}
                           </div>
                         </div>
@@ -2297,7 +2296,7 @@ export default function Home() {
                     {/* Emergency YouTube First Aid Video Guidance */}
                     {selectedNeed.video_recommendations && activeVideoId && (
                       <div className="p-10 bg-linear-to-br from-red-500/10 to-transparent rounded-4xl border border-red-500/20 relative overflow-hidden group shadow-xl space-y-6">
-                        <h3 className="text-xs font-black text-red-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                        <h3 className="text-xs font-black text-red-500 uppercase tracking-[0.3em] flex items-center gap-2">
                           <Activity size={16} className="text-red-500 animate-pulse" /> Emergency First Aid Guidance Videos
                         </h3>
                         
@@ -2318,10 +2317,10 @@ export default function Home() {
                             : recs.alternatives.find(v => v.youtube_id === activeVideoId) || recs.primary;
                           return (
                             <div className="space-y-2">
-                              <h4 className="text-lg font-black text-white uppercase tracking-tight">
+                              <h4 className="text-lg font-black text-(--foreground) uppercase tracking-tight">
                                 {activeVid.title}
                               </h4>
-                              <p className="text-white/70 text-sm leading-relaxed font-outfit">
+                              <p className="text-(--foreground)/70 text-sm leading-relaxed font-outfit">
                                 {activeVid.description}
                               </p>
                             </div>
@@ -2329,7 +2328,7 @@ export default function Home() {
                         })()}
 
                         <div className="space-y-3 pt-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-white/50 block">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-(--foreground)/50 block">
                             Available Guidance Tracks
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -2346,11 +2345,11 @@ export default function Home() {
                                   className={cn(
                                     "p-4 rounded-xl border text-left transition-all duration-300 flex flex-col justify-between cursor-pointer",
                                     isActive
-                                      ? "bg-red-500/20 border-red-500/40 text-white"
-                                      : "bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:border-white/10"
+                                      ? "bg-red-500/25 border-red-500/50 text-red-500 dark:text-red-400 font-bold"
+                                      : "bg-(--card-bg) border-(--border-color) text-(--foreground)/75 hover:bg-(--foreground)/10 hover:border-(--foreground)/20"
                                   )}
                                 >
-                                  <span className="text-[8px] font-black uppercase tracking-widest text-red-400 mb-1 block">
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-1 block">
                                     {idx === 0 ? "Best Video" : `Alternative ${idx}`}
                                   </span>
                                   <span className="text-xs font-bold line-clamp-2">{video.title}</span>
