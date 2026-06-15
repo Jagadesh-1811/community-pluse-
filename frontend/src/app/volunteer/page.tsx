@@ -230,10 +230,15 @@ export default function Home() {
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
 
-          // Only accept high-accuracy locks (< 100m) for field coordination
-          if (accuracy > 100) {
-            console.warn(`Low accuracy GPS: ${accuracy}m. Waiting for better lock...`);
+          // Allow poor accuracy fallback up to 10000m (10km) for desktop/IP-based geolocation
+          if (accuracy > 10000) {
+            console.warn(`Extremely low accuracy GPS: ${accuracy}m. Waiting for better lock...`);
             return;
+          }
+          if (accuracy > 100) {
+            console.warn(
+              `Location accuracy is poor: ${Math.round(accuracy)}m. Continuing with fallback...`,
+            );
           }
 
           if (!isNaN(latitude) && !isNaN(longitude)) {
