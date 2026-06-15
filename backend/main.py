@@ -276,6 +276,7 @@ app = FastAPI(
 async def add_security_headers_and_rate_limiting_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
     path = request.url.path
+    start_time = time.time()
 
     if path in ("/docs", "/redoc", "/openapi.json") or path.startswith("/openapi.json"):
         response = await call_next(request)
@@ -301,6 +302,11 @@ async def add_security_headers_and_rate_limiting_middleware(request: Request, ca
             )
 
     response = await call_next(request)
+    process_time = time.time() - start_time
+    logger.info(
+        f"METRICS - Client IP: {client_ip} - Method: {request.method} - Path: {path} - "
+        f"Status: {response.status_code} - Latency: {process_time:.4f}s"
+    )
     
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     response.headers["Content-Security-Policy"] = (
