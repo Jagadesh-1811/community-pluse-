@@ -54,7 +54,7 @@ async def accept_need(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f" Incident ID `{incident_id}` not found.")
             return
         
-        need_ref.update({"status": "in-progress"})
+        need_ref.update({"status": "in_progress"})
         await update.message.reply_text(f" Mission accepted for Incident ID `{incident_id}`. Status set to IN-PROGRESS.")
         
         # Log to message feed

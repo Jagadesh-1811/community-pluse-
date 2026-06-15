@@ -63,9 +63,6 @@ export default function AuthForm({ initialMode = 'signin' }: AuthFormProps) {
         }
 
         userRole = role;
-        if (role === 'VOLUNTEER' && volunteerCode === 'PULSE_ADMIN_1') {
-          userRole = 'ADMIN';
-        }
         await set(ref(rtdb, `users/${user.uid}`), {
           email: user.email,
           role: userRole,
@@ -117,9 +114,6 @@ export default function AuthForm({ initialMode = 'signin' }: AuthFormProps) {
         await sendEmailVerification(user, actionCodeSettings);
 
         let userRole = role;
-        if (role === 'VOLUNTEER' && volunteerCode === 'PULSE_ADMIN_1') {
-          userRole = 'ADMIN';
-        }
 
         await set(ref(rtdb, `users/${user.uid}`), {
           email,

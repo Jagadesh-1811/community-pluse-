@@ -65,9 +65,7 @@ export default function AdminPage() {
 
   // Dynamic Stats calculations for Analytics tab
   const totalIncidents = needs.length;
-  const activeMissions = needs.filter(
-    (n) => n.status === 'in-progress' || n.status === 'in_progress',
-  ).length;
+  const activeMissions = needs.filter((n) => n.status === 'in_progress').length;
   const resolvedMissions = needs.filter((n) => n.status === 'resolved').length;
   const pendingIncidents = needs.filter((n) => !n.status || n.status === 'open').length;
 

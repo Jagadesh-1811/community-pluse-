@@ -68,9 +68,7 @@ export default function Home() {
 
   // Dynamic Stats calculations for Analytics tab
   const totalIncidents = needs.length;
-  const activeMissions = needs.filter(
-    (n) => n.status === 'in-progress' || n.status === 'in_progress',
-  ).length;
+  const activeMissions = needs.filter((n) => n.status === 'in_progress').length;
   const resolvedMissions = needs.filter((n) => n.status === 'resolved').length;
   const pendingIncidents = needs.filter((n) => !n.status || n.status === 'open').length;
 
@@ -350,7 +348,7 @@ export default function Home() {
     setRecommendationData(null);
     try {
       const token = user ? await user.getIdToken() : '';
-      const res = await fetch(`${apiBaseUrl}/incidents/${incidentId}/recommend-volunteer`, {
+      const res = await fetch(`${apiBaseUrl}/needs/${incidentId}/recommend-volunteer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -381,8 +379,8 @@ export default function Home() {
       const needRef = ref(rtdb, `needs/${needId}`);
       await update(needRef, { status });
 
-      if (status === 'in-progress' || status === 'resolved') {
-        if (status === 'in-progress') setTrackingNeedId(needId);
+      if (status === 'in_progress' || status === 'resolved') {
+        if (status === 'in_progress') setTrackingNeedId(needId);
         else setTrackingNeedId(null);
         try {
           const token = user ? await user.getIdToken() : '';
@@ -400,7 +398,7 @@ export default function Home() {
       } else if (status === 'resolved' || status === 'open') {
         setTrackingNeedId(null);
       }
-      if (status === 'in-progress') {
+      if (status === 'in_progress') {
         setActionToast({
           type: 'success',
           message: 'Dispatch initiated successfully.',
@@ -524,7 +522,7 @@ export default function Home() {
     .filter((n) => n.status === 'open' || !n.status)
     .sort((a, b) => b.urgency_score - a.urgency_score);
   const dispatchedNeeds = [...filteredNeeds]
-    .filter((n) => n.status === 'in-progress')
+    .filter((n) => n.status === 'in_progress')
     .sort((a, b) => b.urgency_score - a.urgency_score);
   const resolvedNeeds = [...filteredNeeds]
     .filter((n) => n.status === 'resolved')
@@ -2488,10 +2486,10 @@ export default function Home() {
                         </div>
 
                         <div className="space-y-4">
-                          {selectedNeed.status !== 'in-progress' && (
+                          {selectedNeed.status !== 'in_progress' && (
                             <div className="group relative">
                               <button
-                                onClick={() => handleDeploy(selectedNeed.id, 'in-progress')}
+                                onClick={() => handleDeploy(selectedNeed.id, 'in_progress')}
                                 className="w-full py-6 bg-orange-500 hover:bg-orange-400 text-black font-black rounded-3xl hover:scale-[0.99] active:scale-95 transition-all shadow-[0_15px_40px_rgba(249,115,22,0.3)] flex items-center justify-center gap-3 text-sm uppercase tracking-[0.2em]"
                               >
                                 <Truck size={20} /> INITIATE DISPATCH
@@ -2577,7 +2575,7 @@ export default function Home() {
                     'rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest',
                     collapsedNeed.status === 'resolved'
                       ? 'bg-success/15 text-success'
-                      : collapsedNeed.status === 'in-progress'
+                      : collapsedNeed.status === 'in_progress'
                         ? 'bg-orange-500/15 text-orange-400'
                         : 'bg-emergency/15 text-emergency',
                   )}

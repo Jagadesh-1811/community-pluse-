@@ -290,7 +290,7 @@ const MapInner = (props: LiveMapProps & { L: any }) => {
       {/* Polyline Routing Connector for all Dispatched / In-Progress tasks */}
       {volunteerLocation &&
         needs
-          .filter((n) => n.lat && n.lng && n.status === 'in-progress' && n.id !== focusNeed?.id)
+          .filter((n) => n.lat && n.lng && n.status === 'in_progress' && n.id !== focusNeed?.id)
           .map((need) => (
             <Polyline
               key={`route-${need.id}`}

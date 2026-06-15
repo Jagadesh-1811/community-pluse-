@@ -458,7 +458,27 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Detailed health check for deployment monitoring."""
-    db_status = "connected" if root_ref is not None else "disconnected"
+    db_status = "disconnected"
+    try:
+        if root_ref is not None:
+            connected_ref = admin_db.reference(".info/connected")
+            is_connected = connected_ref.get()
+            if is_connected:
+                db_status = "connected"
+            else:
+                db_status = "degraded"
+        else:
+            db_status = "not_configured"
+    except Exception as e:
+        logger.error(f"Health check RTDB connectivity ping failed: {e}")
+        db_status = "error"
+
+    if db_status not in ("connected", "degraded"):
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database connection degraded: status={db_status}"
+        )
+
     return {
         "status": "healthy",
         "database": db_status,
@@ -856,7 +876,7 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
         
         if not transcript:
             logger.warning("Voice webhook received with empty transcript")
-            return {"status": "error", "message": "No transcript provided"}
+            raise HTTPException(status_code=400, detail="No transcript provided")
         
         logger.info("Processing voice agent webhook")
         
@@ -876,7 +896,7 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
             customer_obj = call.get("customer")
             if customer_obj:
                 caller_phone = customer_obj.get("number")
-
+ 
         # Parse messages to build webrtc_conversation
         webrtc_conv = []
         raw_messages = msg.get("messages") or []
@@ -889,7 +909,7 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
                     "text": text,
                     "timestamp": m.get("time") or int(time.time() * 1000)
                 })
-
+ 
         need_id = str(uuid.uuid4())
         need_record = {
             "id": need_id,
@@ -928,13 +948,14 @@ async def handle_vapi_webhook(payload: dict, background_tasks: BackgroundTasks):
             return {"status": "success", "id": need_id, "urgency_score": urgency_score}
             
         except Exception as db_error:
-
             logger.error(f"Database write error in voice webhook: {db_error}")
-            return {"status": "error", "message": "Failed to save voice need"}
+            raise HTTPException(status_code=500, detail="Failed to save voice need")
             
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error handling voice webhook: {e}")
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/status/update", tags=["Missions"], summary="Update incident status")
 async def update_status(
@@ -1173,9 +1194,9 @@ async def handle_post_acceptance_dispatch(incident_id: str, volunteer_id: str, a
         logger.error(f"Error in post acceptance dispatch: {e}")
 
 
-@app.post("/incidents/{incident_id}/recommend-volunteer", response_model=RecommendVolunteerResponse, tags=["Missions"], summary="Recommend best volunteer for incident")
+@app.post("/needs/{need_id}/recommend-volunteer", response_model=RecommendVolunteerResponse, tags=["Missions"], summary="Recommend best volunteer for incident")
 async def recommend_volunteer_for_incident(
-    incident_id: str,
+    need_id: str,
     decoded_token: dict = Depends(verify_volunteer_auth)
 ):
     """
@@ -1185,7 +1206,7 @@ async def recommend_volunteer_for_incident(
         from services.ai_service import recommend_best_volunteer
         
         # 1. Fetch incident
-        incident = admin_db.reference(f"needs/{incident_id}").get()
+        incident = admin_db.reference(f"needs/{need_id}").get()
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
             
@@ -1229,9 +1250,9 @@ async def recommend_volunteer_for_incident(
         raise HTTPException(status_code=500, detail=f"Recommendation engine failed: {str(e)}")
 
 
-@app.post("/incidents/{incident_id}/accept", response_model=AcceptMissionResponse, tags=["Missions"], summary="Accept incident dispatch mission")
+@app.post("/needs/{need_id}/accept", response_model=AcceptMissionResponse, tags=["Missions"], summary="Accept incident dispatch mission")
 async def accept_incident_mission(
-    incident_id: str,
+    need_id: str,
     payload: AcceptMissionRequest,
     background_tasks: BackgroundTasks,
     decoded_token: dict = Depends(verify_volunteer_auth)
@@ -1248,20 +1269,20 @@ async def accept_incident_mission(
             raise AlreadyAcceptedError(
                 accepted_by_name=current_data.get("accepted_by_name", "another volunteer")
             )
-        current_data["status"] = "accepted"
+        current_data["status"] = "in_progress"
         current_data["accepted_by"] = volunteer_id
         current_data["accepted_by_name"] = volunteer_name
         current_data["accepted_at"] = int(time.time() * 1000)
         return current_data
 
     try:
-        incident_ref = admin_db.reference(f"incidents/{incident_id}")
-        incident_ref.transaction(accept_transaction)
-        logger.info(f"Incident {incident_id} successfully accepted by {volunteer_name} ({volunteer_id})")
+        need_ref = admin_db.reference(f"needs/{need_id}")
+        need_ref.transaction(accept_transaction)
+        logger.info(f"Need {need_id} successfully accepted by {volunteer_name} ({volunteer_id})")
 
         background_tasks.add_task(
             handle_post_acceptance_dispatch,
-            incident_id=incident_id,
+            incident_id=need_id,
             volunteer_id=volunteer_id,
             accepted_by_name=volunteer_name
         )

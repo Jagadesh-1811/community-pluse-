@@ -18,7 +18,7 @@ const toFiniteCoordinate = (value: unknown): number | null => {
 
 const STAGES = [
   { key: 'open', label: 'Processing', sublabel: 'System AI Intake', icon: Clock },
-  { key: 'in-progress', label: 'Dispatched', sublabel: 'Volunteer En Route', icon: Truck },
+  { key: 'in_progress', label: 'Dispatched', sublabel: 'Volunteer En Route', icon: Truck },
   { key: 'resolved', label: 'Resolved', sublabel: 'Mission Completed', icon: ShieldCheck },
 ];
 export default function StatusTracker({ needId, onVolunteerLocationUpdate }: StatusTrackerProps) {
@@ -153,7 +153,7 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
           'flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all duration-500',
           status === 'open'
             ? 'bg-(--foreground)/5 border-(--border-color)'
-            : status === 'in-progress'
+            : status === 'in_progress'
               ? 'bg-orange-500/10 border-orange-500/20'
               : 'bg-emerald-500/10 border-emerald-500/20',
         )}
@@ -163,7 +163,7 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
             'w-2.5 h-2.5 rounded-full animate-pulse',
             status === 'open'
               ? 'bg-(--foreground)'
-              : status === 'in-progress'
+              : status === 'in_progress'
                 ? 'bg-orange-400'
                 : 'bg-emerald-400',
           )}
@@ -173,14 +173,14 @@ export default function StatusTracker({ needId, onVolunteerLocationUpdate }: Sta
             'text-xs font-black uppercase tracking-widest',
             status === 'open'
               ? 'text-(--foreground)'
-              : status === 'in-progress'
+              : status === 'in_progress'
                 ? 'text-orange-400'
                 : 'text-emerald-400',
           )}
         >
           {status === 'open'
             ? 'Waiting for Volunteer...'
-            : status === 'in-progress'
+            : status === 'in_progress'
               ? 'Volunteer Dispatched — Help is on the way!'
               : 'Mission Resolved '}
         </span>

@@ -147,24 +147,26 @@ async def process_whatsapp_pipeline(message_data: dict, phone_number_id: str):
                 requires_immediate_response=False
             )
 
-        # 3. Save to Firebase RTDB under /incidents/{incident_id}
-        incident_id = str(uuid.uuid4())
-        incident_record = {
+        # 3. Save to Firebase RTDB under /needs/{need_id}
+        need_id = str(uuid.uuid4())
+        need_record = {
+            "id": need_id,
             "source": "whatsapp",
-            "reporter_phone": reporter_phone,
-            "message": message_text,
+            "caller_phone": reporter_phone,
+            "raw_text": message_text,
+            "description": message_text,
             "lat": lat,
             "lng": lng,
-            "category": triage_data.category,
+            "need_type": triage_data.category,
             "urgency_score": triage_data.urgency_score,
-            "summary": triage_data.summary,
+            "ai_heading": triage_data.summary[:50] + "..." if len(triage_data.summary) > 50 else triage_data.summary,
             "status": "open",
-            "timestamp": {".sv": "timestamp"}  # Firebase Server Timestamp placeholder
+            "created_at": {".sv": "timestamp"}  # Firebase Server Timestamp placeholder
         }
 
         try:
-            admin_db.reference(f"incidents/{incident_id}").set(incident_record)
-            logger.info(f"Successfully saved WhatsApp incident {incident_id} to Firebase.")
+            admin_db.reference(f"needs/{need_id}").set(need_record)
+            logger.info(f"Successfully saved WhatsApp need {need_id} to Firebase /needs.")
         except Exception as db_err:
             logger.error(f"Firebase database write failed: {db_err}")
 
@@ -172,13 +174,13 @@ async def process_whatsapp_pipeline(message_data: dict, phone_number_id: str):
         await send_whatsapp_reply(
             to_phone=reporter_phone, 
             phone_number_id=phone_number_id, 
-            incident_id=incident_id
+            need_id=need_id
         )
 
     except Exception as pipeline_err:
         logger.error(f"Fatal error running WhatsApp pipeline: {pipeline_err}", exc_info=True)
 
-async def send_whatsapp_reply(to_phone: str, phone_number_id: str, incident_id: str):
+async def send_whatsapp_reply(to_phone: str, phone_number_id: str, need_id: str):
     """
     Posts message payload to Meta Cloud Graph API endpoint to notify the reporter.
     """
@@ -199,7 +201,7 @@ async def send_whatsapp_reply(to_phone: str, phone_number_id: str, incident_id: 
         f" *CommunityPulse Field Logged*\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"Your report has been successfully categorized by AI.\n"
-        f"Incident ID: `{incident_id}`\n"
+        f"Incident ID: `{need_id}`\n"
         f"Field dispatch units have been notified."
     )
 

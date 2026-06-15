@@ -191,7 +191,7 @@ export default function FieldIntakePage() {
                             'px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider',
                             need.status === 'resolved'
                               ? 'bg-success/20 text-success border border-success/30'
-                              : need.status === 'in-progress'
+                              : need.status === 'in_progress'
                                 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
                                 : 'bg-yellow/20 text-yellow border border-yellow/30',
                           )}
@@ -361,14 +361,14 @@ export default function FieldIntakePage() {
                       'font-black',
                       selectedNeed.status === 'resolved'
                         ? 'text-emerald-400'
-                        : selectedNeed.status === 'in-progress'
+                        : selectedNeed.status === 'in_progress'
                           ? 'text-orange-400 animate-pulse'
                           : 'text-yellow',
                     )}
                   >
                     {selectedNeed.status === 'resolved'
                       ? 'Resolved '
-                      : selectedNeed.status === 'in-progress'
+                      : selectedNeed.status === 'in_progress'
                         ? 'Volunteer Dispatched'
                         : 'Awaiting Dispatch'}
                   </span>

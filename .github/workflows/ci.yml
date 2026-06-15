@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-name: '3.12'
+        python-version: '3.12'
 
     - name: Install Dependencies
       run: |
@@ -44,6 +44,11 @@ jobs:
       run: |
         cd frontend
         npx vitest run
+
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4

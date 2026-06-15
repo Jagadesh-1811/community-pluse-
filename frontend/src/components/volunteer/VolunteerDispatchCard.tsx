@@ -45,7 +45,7 @@ export default function VolunteerDispatchCard({
 
   useEffect(() => {
     if (!rtdb) return;
-    const incidentRef = ref(rtdb, `incidents/${incidentId}`);
+    const incidentRef = ref(rtdb, `needs/${incidentId}`);
 
     onValue(incidentRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -64,7 +64,7 @@ export default function VolunteerDispatchCard({
 
     try {
       const token = user ? await user.getIdToken() : '';
-      const response = await fetch(`${apiBaseUrl}/incidents/${incidentId}/accept`, {
+      const response = await fetch(`${apiBaseUrl}/needs/${incidentId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
