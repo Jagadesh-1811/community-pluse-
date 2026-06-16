@@ -2294,7 +2294,7 @@ export default function Home() {
                         </div>
                         {selectedNeed.visual_severity && (
                           <div className="flex flex-wrap gap-3 items-center">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                               Visual Severity:
                             </span>
                             <span
@@ -2316,7 +2316,7 @@ export default function Home() {
                         )}
                         {selectedNeed.visual_hazards && selectedNeed.visual_hazards.length > 0 && (
                           <div className="space-y-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                               Spotted Hazards:
                             </span>
                             <div className="flex flex-wrap gap-2">

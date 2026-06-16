@@ -34,10 +34,19 @@ interface Category {
   color: string;
 }
 
+interface VolunteerData {
+  id: string;
+  email: string;
+  domain?: string;
+  categories?: string[];
+  created_at?: string;
+}
+
 export default function AdminPage() {
   const { user, role, loading: globalAuthLoading, signOut } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [volunteers, setVolunteers] = useState<VolunteerData[]>([]);
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#facc15');
 
@@ -89,12 +98,12 @@ export default function AdminPage() {
   const escalatedCount = needs.filter((n) => n.sla_escalated).length;
   const clusteredCount = needs.filter((n) => n.is_major_incident || n.parent_incident_id).length;
 
-  // LISTEN TO CATEGORIES
+  // LISTEN TO CATEGORIES & VOLUNTEERS
   useEffect(() => {
     if (role !== 'ADMIN') return;
 
     const categoriesRef = ref(rtdb, 'categories');
-    const unsubscribe = onValue(categoriesRef, (snapshot) => {
+    const unsubscribeCats = onValue(categoriesRef, (snapshot) => {
       const list: Category[] = [];
       snapshot.forEach((child) => {
         list.push({ id: child.key!, ...child.val() });
@@ -102,7 +111,22 @@ export default function AdminPage() {
       setCategories(list);
     });
 
-    return () => unsubscribe();
+    const usersRef = ref(rtdb, 'users');
+    const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+      const list: VolunteerData[] = [];
+      snapshot.forEach((child) => {
+        const data = child.val();
+        if (data.role === 'VOLUNTEER') {
+          list.push({ id: child.key!, ...data });
+        }
+      });
+      setVolunteers(list);
+    });
+
+    return () => {
+      unsubscribeCats();
+      unsubscribeUsers();
+    };
   }, [role]);
 
   // CATEGORY MANAGEMENT
@@ -690,6 +714,57 @@ export default function AdminPage() {
                 )}
               </button>
             </form>
+
+            {/* Volunteer List */}
+            <div className="pt-8 border-t border-(--border-color) space-y-4">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-(--foreground)/60 pl-1">
+                Commissioned Volunteers ({volunteers.length})
+              </h3>
+              {volunteers.length === 0 ? (
+                <p className="text-xs text-sage italic p-4 bg-(--background) rounded-2xl border border-(--border-color) text-center">
+                  No volunteers commissioned yet.
+                </p>
+              ) : (
+                <div className="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+                  {volunteers.map((vol) => (
+                    <div
+                      key={vol.id}
+                      className="flex flex-col p-4 bg-(--background) border border-(--border-color) rounded-2xl gap-2"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-black tracking-wide text-(--foreground)">
+                          {vol.email}
+                        </span>
+                        {vol.domain && (
+                          <span
+                            className={cn(
+                              'text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full',
+                              vol.domain === 'human'
+                                ? 'bg-yellow/20 text-yellow'
+                                : 'bg-blue-500/20 text-blue-400',
+                            )}
+                          >
+                            {vol.domain} Health
+                          </span>
+                        )}
+                      </div>
+                      {vol.categories && vol.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {vol.categories.map((catName) => (
+                            <span
+                              key={catName}
+                              className="text-[8px] font-bold uppercase tracking-wider bg-(--foreground)/5 text-(--foreground)/60 px-2 py-0.5 rounded-lg border border-(--border-color)"
+                            >
+                              {catName}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </section>
         </div>
 

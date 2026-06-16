@@ -1,7 +1,7 @@
 # CommunityPulse: Intelligent Field Coordination
 
-**Live Deployment:** https://community-pluse.vercel.app/  
-**Backend API Endpoint:** https://community-pulse-api.onrender.com
+**Live Deployment (Firebase Hosting):** https://commuintypluse.web.app/  
+**Backend API Endpoint:** https://commuintypluse.web.app/api (via Firebase Cloud Functions)
 <!-- Git configuration test line: authenticated under Jagadesh-1811 -->
 
 CommunityPulse is a real-time field coordination platform designed for rapid disaster response, tactical volunteer management, and emergency triage. Developed for the Google Solution Build / Google AI Hackathon, the project integrates Google Gemini AI model capabilities with decentralized client gateways to synchronize field operations and command center operations.
@@ -54,8 +54,8 @@ graph TD
 ```
 
 ### Layer Details
-- **Frontend Layer**: Built using Next.js 16 (Webpack), styled with Tailwind CSS, and using React-Leaflet for geospatial map rendering. Voice communications leverage the Vapi Web SDK.
-- **Backend Layer**: Driven by a FastAPI (Python) server integrating the Google Gemini 2.0 Flash SDK (`google.genai`) and the Firebase Admin SDK.
+- **Frontend Layer**: Built using Next.js 16 (Webpack), styled with Tailwind CSS, and using React-Leaflet for geospatial map rendering. Voice communications leverage the Vapi Web SDK. Statically exported and deployed globally on **Firebase Hosting**.
+- **Backend Layer**: Driven by a FastAPI (Python) server integrating the Google Gemini 2.0 Flash SDK (`google.genai`) and the Firebase Admin SDK. Deployed via **Firebase Cloud Functions**.
 - **Data Synchronicity**: Driven by the Firebase Realtime Database to achieve latency-free updates across portals.
 
 ---

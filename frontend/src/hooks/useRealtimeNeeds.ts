@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue, query } from 'firebase/database';
 import * as Sentry from '@sentry/nextjs';
+import { useAuth } from '@/lib/auth-context';
 
 export interface ConversationEntry {
   role: 'user' | 'assistant';
@@ -61,11 +62,13 @@ export interface Need {
 export function useRealtimeNeeds() {
   const [needs, setNeeds] = useState<Need[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const needsRef = ref(rtdb, 'needs');
     // Sort by key (which is a push ID, usually chronological)
     const q = query(needsRef);
+
 
     const unsubscribe = onValue(
       q,
@@ -113,7 +116,7 @@ export function useRealtimeNeeds() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [user]);
 
   return { needs, loading, refresh: () => {} };
 }
