@@ -1,19 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'export',
   transpilePackages: ['leaflet.offline', '@turf/turf'],
   compress: true,
   poweredByHeader: false,
-  
-  async redirects() {
-    return [
-      {
-        source: '/voluter',
-        destination: '/volunteer',
-        permanent: true,
-      },
-    ];
-  },
 
   webpack: (config, { isServer }) => {
     if (isServer) {
