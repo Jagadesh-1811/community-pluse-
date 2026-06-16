@@ -2,7 +2,7 @@
 
 **Application Module:** Server-Side Intelligence Engine  
 **Framework:** FastAPI (Python)  
-**Status:** Production-Ready
+**Status:** Evaluation-Candidate
 
 ---
 
